@@ -24,7 +24,8 @@
     "npm:cc-safety-net",
     "npm:pi-intercom",
     "git:github.com/earendil-works/pi-review",
-    "npm:pi-commandcode-provider"
+    "npm:pi-commandcode-provider",
+    "npm:@andrewjacop/pi-herdr"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish"
