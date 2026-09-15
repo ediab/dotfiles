@@ -25,7 +25,8 @@
     "npm:pi-intercom",
     "git:github.com/earendil-works/pi-review",
     "npm:pi-commandcode-provider",
-    "npm:@andrewjacop/pi-herdr"
+    "npm:@andrewjacop/pi-herdr",
+    "npm:@lanlance/pi-btw"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish"
