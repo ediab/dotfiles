@@ -133,7 +133,8 @@ The same explicit-delegation rule applies to evidence audits.
 
 ### Subagent models
 
-Primaries run cheap; Astra only orchestrates and plans, never implements.
+Primaries run cheap; implementation happens in the main session — subagents are for
+independent parallel work and fresh second opinions, not a default implementation hop.
 Each role has an explicit `<role>-backup` profile for model/provider failure
 — same contract, no automatic failover. Dispatch backups via
 `subagent_type: <role>-backup` (or workflow `agentType` with a leaf profile only — orchestrators are forbidden in workflows — and never with a `model`/`effort` override; profile pins win on `Agent` calls). Start a new call; resuming the primary retains its model. Inspect partial work before
@@ -143,7 +144,7 @@ retrying; at most one backup attempt per retry budget. The Muse→DeepSeek backu
 |---|---|---|
 | `worker`, `explorer`, `researcher`, `reviewer`, `evidence-auditor`, `oracle`, `general-purpose` | `opencode-go/muse-spark-1.3-contributor` | `opencode-go/deepseek-v4.1-flash` |
 
-Also: the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra`, `agent-orchestrator`, and `planner` are retired (use `worker`, main-session orchestration via `/skill:orchestrate`, and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
+Also: the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra`, `agent-orchestrator`, and `planner` are retired (implementation runs in the main session; use main-session orchestration via `/skill:orchestrate` and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
 
 ### Keeping the repo in sync
 
