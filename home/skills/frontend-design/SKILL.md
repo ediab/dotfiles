@@ -11,7 +11,7 @@ Approach this as the design lead at a small studio known for giving every client
 
 ## Ground it in the subject
 
-If the brief leaves a material product decision open (what the product is, its audience, the page's single job), clarify it with the user instead of inventing it. Visual implementation choices within the approved brief belong to you: name one concrete subject, its audience, and the page's single job, and state your choice. If there's any information in your memory about the human's preferences, context about what they're building, or designs you've made before – use that as a hint. The subject's own world, its materials, instruments, artifacts, and vernacular, is where distinctive choices come from. Build with the brief's real content and subject matter throughout.
+If the brief leaves a material product decision open (what the product is, its audience, the page's single job), clarify it with the user instead of inventing it. Within the clarified brief, commit to one concrete visual interpretation of that subject and state your choice. If there's any information in your memory about the human's preferences, context about what they're building, or designs you've made before – use that as a hint. The subject's own world, its materials, instruments, artifacts, and vernacular, is where distinctive choices come from. Build with the brief's real content and subject matter throughout.
 
 ## Design principles
 

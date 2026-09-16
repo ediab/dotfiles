@@ -36,7 +36,8 @@ Running the bootstrap installs:
   agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
   implementation).
 - **Ponytail default** — `home/ponytail.json` deployed to `~/.config/ponytail/config.json`
-  (`defaultMode: off`, so ponytail is on-demand via `/ponytail full`). This is the same file
+  (`defaultMode: off`, so ponytail is on-demand via `/ponytail`, e.g. `/ponytail lite` or
+  `/ponytail full`). This is the same file
   pi's `/ponytail default` command writes. The package's broad main skill
   (`ponytail`, "use on ANY coding task") is excluded from discovery in
   `home/settings.json` so off stays off; the extension, its `/ponytail` mode
