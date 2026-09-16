@@ -60,7 +60,3 @@ Planning or saving a plan is not approval to implement it. Offer implementation
 as the next step and stop pending approval. If the user already explicitly
 requested planning followed by implementation, proceed after planning unless
 an unresolved decision needs their input.
-
-Delegated planning: a planning subagent returns the plan plus unresolved
-decisions to its parent and never saves, edits, or implements — the
-owning/main agent handles saving, approval, and any later implementation.

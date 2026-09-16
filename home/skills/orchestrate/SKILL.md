@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Main-agent-owned fan-out for approved execution or research across 2-5 workstreams. Use when the main agent will decompose, delegate to worker/explorer/researcher/reviewer/oracle, verify, and synthesize inline. Not for planning-only requests (use /skill:plan) or for handing ownership to a delegated orchestrator.
+description: Main-agent-owned fan-out for approved execution or research across 2-5 workstreams. Use when the main agent will decompose, delegate to worker/explorer/researcher/reviewer/oracle, verify, and synthesize inline. Not for planning-only requests (use /skill:plan).
 ---
 
 # Orchestrate

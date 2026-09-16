@@ -21,8 +21,8 @@ Running the bootstrap installs:
   here (see *What it does NOT install*).
 - **Custom agents** — every `.md` under `home/agents/`, copied to `~/.pi/agent/agents/`
   (user agents for `@tintinweb/pi-subagents`, e.g. `explorer` with a custom model).
-  `explorer` and `planner` replace the built-in `Explore` and `Plan`; disabled
-  overrides keep the old types from reappearing. The `plan` skill is separate.
+  `explorer` replaces the built-in `Explore`; disabled overrides keep `Explore`
+  and `Plan` from reappearing. Planning runs in the main session via the `plan` skill.
 - **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
   (`backgroundByDefault`, `reportUsage`, `showCost`, `maxConcurrent: 4` — at most
   4 active leaf agents per task; reviewers and follow-ups count).
@@ -141,10 +141,9 @@ retrying; at most one backup attempt per retry budget. The Muse→DeepSeek backu
 
 | Roles | Primary | Backup |
 |---|---|---|
-| `planner` | `openai-codex/gpt-6-astra` | `opencode-go/glm-5.3` |
 | `worker`, `explorer`, `researcher`, `reviewer`, `evidence-auditor`, `oracle`, `general-purpose` | `opencode-go/muse-spark-1.3-contributor` | `opencode-go/deepseek-v4.1-flash` |
 
-Also: `planner` is restricted to the `pi-fff` extension with the `plan` skill preloaded; the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra` and `agent-orchestrator` are retired (use `worker` and main-session orchestration via `/skill:orchestrate`).
+Also: the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra`, `agent-orchestrator`, and `planner` are retired (use `worker`, main-session orchestration via `/skill:orchestrate`, and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
 
 ### Keeping the repo in sync
 
