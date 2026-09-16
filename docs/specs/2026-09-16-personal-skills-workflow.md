@@ -4,6 +4,7 @@
 - Repository: `/Users/eliasdiab/Dev/pi-dotfiles` (also referred to as `~/dev/pi-dotfiles`; use the actual checkout path)
 - Branch when written: `main`
 - Status: design agreed; implementation has not started.
+- Revision 2026-09-16 (later same day): added subagent delegation tightening (section 6); no-mistakes cleanup removed — it stays exactly as installed per user decision (section 7).
 
 ## 0. Read this first — scope and authorization
 
@@ -151,6 +152,18 @@ Record that routine technical decisions within approved constraints do not requi
 
 After approval, finish the approved sequence without repeated “continue?” prompts. Keep existing bounded retries; do not import Superpowers' lengthy task-by-task review/fix machinery.
 
+### Subagent delegation
+
+Keep the current division of labour: the main agent owns the goal and the result; explorers find facts, workers implement, reviewers check. Tighten how helpers are dispatched:
+
+- **Enforce the agent cap in settings, not only instructions.** The orchestrate skill says at most 4 active leaf agents, but neither settings file enforces it: `home/subagents.json` (mirrored to `~/.pi/agent/subagents.json`) omits `maxConcurrent`, so the default 10 applies, and `.pi/subagents.json` sets it to 10. Set `maxConcurrent` to 4 in both. Leave foreground concurrency unlimited — a foreground agent blocks its parent anyway.
+- **Choose foreground or background deliberately.** `backgroundByDefault` is `false` in both files, so an unspecified `Agent` call blocks the turn, despite the generic tool description saying background is the default. Pass `run_in_background` explicitly: background when the owning agent has useful work meanwhile, foreground when the next step depends on the result.
+- **Prefer fewer, better-briefed agents.** One well-briefed worker and one reviewer usually beat several loosely directed helpers. Parallelize genuinely independent work such as exploration; do not split a coherent task just because it can be split, and do not spawn a helper for work the main agent can do faster inline.
+- **Brief every dispatch self-contained.** A subagent does not see the parent conversation unless context is inherited. Each dispatch prompt carries the goal, exact paths and scope, constraints, and what “done” looks like.
+- **Independent reviews must be fresh.** Dispatch a new `reviewer` agent with the agreed intent and exact changeset. Do not resume an existing reviewer handle for an independence check; resume is for iterating on the same review.
+- **Keep strict dispatch.** `fallbackSubagent` stays `"none"`: an unknown agent type fails loudly rather than substituting.
+- The user describes tasks; the main agent selects and briefs helpers. The user should not have to manage concurrency, handles, or briefing details.
+
 ### Automatic independent review
 
 For substantial implementation, the owning agent dispatches the existing `reviewer` profile after implementation and initial checks. Provide:
@@ -193,13 +206,9 @@ Do not directly edit installed `node_modules` content. Confirm that off does not
 
 Explicitly enabled Ponytail still does not authorize unrequested Git operations, unsafe changes, or silently overriding the user's approved requirements.
 
-### no-mistakes — explicit release pipeline only
+### no-mistakes — unchanged
 
-Current source: `~/.agents/skills/no-mistakes/SKILL.md`, outside this repo. Its description includes generic “validate their changes” triggers. It can lead into feature-branch creation, commits, push, PR, and CI; that is too broad for the agreed default local checks.
-
-Make invocation explicit without rewriting its pipeline. A small manual-only local wrapper under `home/skills/no-mistakes/SKILL.md`, loading the installed original only on explicit request, plus an exclusion of the shared original from automatic discovery is a candidate. Pi already uses the same exclusion idea for the shared TinyFish copy. Verify current discovery/command behaviour first. Preserve explicit no-mistakes usage, nested-run safety, and the upstream pipeline instructions. If the prerequisite CLI/original skill is unavailable, report it; do not install or initialize anything implicitly.
-
-`user-invocable: true` in the original is not Pi's manual-only setting. Pi uses `disable-model-invocation: true`. Do not assume those fields are interchangeable.
+Per the user's decision (2026-09-16): leave no-mistakes exactly as installed. No wrapper skill, no discovery exclusion, no edits to `~/.agents/skills/no-mistakes/SKILL.md`. It remains a separate, heavier release pipeline the user invokes explicitly when wanted. Its broad auto-trigger description is a known, accepted consequence of this choice — nothing in this spec suppresses it. Implementing this spec must not run its pipeline, create feature branches, push, or open PRs.
 
 ### Frontend design — keep visual initiative, not invented product intent
 
@@ -238,7 +247,7 @@ All repo paths below are relative to the root.
 |---|---|
 | `home/skills/brainstorm/SKILL.md` | New, manual-only skill following section 5. |
 | `home/skills/plan/SKILL.md` | Separate high-level user approval from executor detail; preserve existing concise planning and optional save behaviour. |
-| `home/AGENTS.md` | Canonical clarification/execution/review/validation/communication policy; preserve unrelated safety, Git, models, and VPS rules. |
+| `home/AGENTS.md` | Canonical clarification/execution/review/validation/communication/delegation policy; preserve unrelated safety, Git, models, and VPS rules. |
 | `~/.pi/agent/AGENTS.md` | Mirror agreed policy changes carefully; `rebuild.sh` does not deploy this file. Preserve machine-specific sections. |
 | `home/skills/orchestrate/SKILL.md` | Replace stale explicit-only implementation-review wording with a reference to canonical policy. Preserve explicit workflow opt-in, caps, file ownership, and retry bounds. |
 | `home/agents/reviewer.md`, `home/agents/reviewer-backup.md` | Update invocation description for automatic substantial-change review; preserve report-only scope and model pins. |
@@ -247,7 +256,8 @@ All repo paths below are relative to the root.
 | `home/skills/frontend-design/SKILL.md` | Clarify missing product intent instead of inventing it. |
 | `home/skills/diagnosing-bugs/SKILL.md` | Add light/full routing without weakening evidence requirements. |
 | `home/settings.json` | Only narrowly necessary skill-discovery changes, verified against current Pi docs; preserve packages/models and existing TinyFish exclusion. |
-| `home/skills/no-mistakes/SKILL.md` | Optional small manual-only wrapper if verified as the appropriate way to suppress broad upstream auto-triggering. |
+| `home/subagents.json` | Set `maxConcurrent` to 4 per section 6; preserve all other fields. |
+| `.pi/subagents.json` | Project-local pi-subagents settings; apply the same cap. |
 | `README.md` | Update user-facing workflow and review documentation to match the actual implemented configuration. |
 | `home/skills/use-tinyfish/SKILL.md` | If necessary, clarify Context7's library/API-doc priority; do not rewrite web tooling. |
 
@@ -280,13 +290,13 @@ Perform only after implementation is requested.
 - Apply only the small routing clarifications justified in section 7.
 - Done when there is no conflicting explicit-only rule for substantial implementation reviews and no new authorization for evidence-audit fan-out.
 
-### Unit 4 — optional-tool discovery, preserving Ponytail
+### Unit 4 — subagent settings and Ponytail preservation
 
+- Apply the subagent delegation settings from section 6: `maxConcurrent` 4 in `home/subagents.json` and `.pi/subagents.json`; preserve every other field.
 - Inspect the installed Ponytail extension and current Pi resource filtering.
 - Preserve its package, default-off setting, all modes, and companion commands. If necessary, suppress only the separate main-skill auto-discovery route and verify manual activation still works.
-- Make no-mistakes an explicitly requested pipeline; generic checking requests must not trigger it.
 - Avoid direct edits to installed packages or a large vendored fork.
-- Done when normal tasks stay in the agreed workflow and explicit opt-in tools remain usable.
+- Done when the subagent caps match the agreed policy, normal tasks stay in the agreed workflow, and explicit opt-in tools remain usable.
 
 ### Unit 5 — validate, document, and deploy locally
 
@@ -303,7 +313,7 @@ Perform only after implementation is requested.
 
 - New skill frontmatter parses and uses Pi's real `disable-model-invocation` field.
 - JSON settings parse; existing package/model settings and TinyFish exclusion survive.
-- No new conflicting skill names or broken wrapper paths after discovery.
+- No new conflicting skill names or broken skill paths after discovery.
 - `home/ponytail.json` and the live Ponytail default remain off; explicit commands are retained.
 - All named policy/profile consumers are consistent; evidence audits stay explicit-only.
 - Repository and deployed copies match where intended; live-only global instruction sections are preserved.
@@ -328,8 +338,7 @@ Use fresh-context, bounded, non-production trials where feasible. Reload resourc
 | Substantial change or security-sensitive one-file fix | Independent reviewer gets the agreed intent and exact changeset; checks run before claiming done. |
 | A test passes but one requested behaviour is missing | Reports/fixes the missing behaviour rather than treating the test result as full completion. |
 | Validation cannot run | States the limitation; does not claim verified success. |
-| “Implement this and check it.” | Local checking; no automatic no-mistakes pipeline, branch creation, push, or deployment. |
-| Explicit no-mistakes invocation in a safe inspection-only trial | Reaches its manual workflow; preserves its safety/preflight rules rather than silently starting from a generic request. |
+| “Implement this and check it.” | Local checking; no branch creation, push, or deployment. |
 | Ponytail default-off session | No automatic Ponytail policy injection or main-skill activation merely because the task is coding. |
 | Explicit `/ponytail lite`, full/on via supported command, then off | Existing mode behaviour and controls work; changing mode does not rewrite the persistent default unless requested. |
 | Straightforward low-risk bug | Small evidence-backed fix, not a mandatory multi-hypothesis ceremony. |
@@ -337,7 +346,7 @@ Use fresh-context, bounded, non-production trials where feasible. Reload resourc
 | Explicit frontend design with missing product purpose | Clarifies the product decision; handles visual details itself afterward. |
 | Request to explain something visually | Chooses the smallest useful visual; no unnecessary branded-diagram setup for an ASCII sketch. |
 
-At minimum try brainstorming, a small fix, a substantial-change routing case, a no-mistakes non-trigger, and Ponytail off/manual modes. Say which scenarios were actually exercised and which were only inspected. A single successful trial is evidence, not a guarantee across models.
+At minimum try brainstorming, a small fix, a substantial-change routing case, and Ponytail off/manual modes. Say which scenarios were actually exercised and which were only inspected. A single successful trial is evidence, not a guarantee across models.
 
 ## 11. Non-goals and guardrails
 
