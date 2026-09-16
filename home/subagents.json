@@ -1,6 +1,7 @@
 {
   "backgroundByDefault": false,
   "fallbackSubagent": "none",
+  "maxConcurrent": 4,
   "reportUsage": true,
   "showCost": true
 }
