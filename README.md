@@ -222,9 +222,9 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   (change-gated, every 15 minutes); run it by hand when you want the VPS updated now.
 - `docs/solutions/`, `CONCEPTS.md` — archival notes and planning records, kept
   **local-only** and gitignored (not canonical config; find them in git history).
-  `docs/WORKFLOW.md` used to be the versioned exception; it was retired on 2026-09-11
-  after drifting from the real setup. `docs/plans/` held local-only planning records
-  until 2026-09-13, when its contents were deleted as stale.
+  All historical documents were removed on 2026-09-16 as stale — the workflow spec had
+  been fully implemented and the rest described retired setups. `docs/specs/` and
+  `docs/plans/` are recreated on demand when a brief or plan is saved.
 
 ## How the sync works
 
