@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: Autonomous web researcher — searches, evaluates, and synthesizes a focused research brief. Use it to answer an open question from external sources — not to audit claims that have already been gathered (use evidence-auditor).
+description: Autonomous web researcher — searches, evaluates, and synthesizes a focused research brief. Use it to answer an open question from external sources; the owning agent source-checks important claims inline.
 tools: [read, "ext:pi-web-access/web_search", "ext:pi-web-access/fetch_content", "ext:pi-web-access/get_search_content", "ext:pi-web-access/source_check"]
 extensions: [pi-web-access]
 model: opencode-go/muse-spark-1.3-contributor

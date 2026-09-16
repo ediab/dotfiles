@@ -129,20 +129,21 @@ automatically after a substantial implementation under the agreed workflow (the 
 supplies the agreed intent, acceptance examples, and exact changeset; tiny mechanical
 edits stay inline). “Review this”, `/review`, and generic orchestration requests keep
 the review inline.
-The same explicit-delegation rule applies to evidence audits.
+The same explicit-delegation rule applies to research evidence: the owner synthesizes and source-checks it inline rather than dispatching an audit agent.
 
 ### Subagent models
 
 Primaries run cheap; implementation happens in the main session — subagents are for
 independent parallel work and fresh second opinions, not a default implementation hop.
-Each role has an explicit `<role>-backup` profile for model/provider failure
-— same contract, no automatic failover. Dispatch backups via
-`subagent_type: <role>-backup` (or workflow `agentType` with a leaf profile only — orchestrators are forbidden in workflows — and never with a `model`/`effort` override; profile pins win on `Agent` calls). Start a new call; resuming the primary retains its model. Inspect partial work before
-retrying; at most one backup attempt per retry budget. The Muse→DeepSeek backups share one provider, so they are not full OpenCode-outage resilience, and nothing here is a hard no-Astra guard (see `home/AGENTS.md`).
+Each profile pins its model; there are no backup profiles and no automatic failover. If a
+pinned model is unavailable, the dispatch is reported as a blocker — not silently retried
+on another model. Profile pins win on `Agent` calls; never pass a `model`/`effort` override
+alongside a pinned profile (in workflows, always pass an explicit existing `agentType` —
+workflows default to `general-purpose`, and orchestrators are forbidden in workflows).
 
-| Roles | Primary | Backup |
-|---|---|---|
-| `worker`, `explorer`, `researcher`, `reviewer`, `evidence-auditor`, `oracle`, `general-purpose` | `opencode-go/muse-spark-1.3-contributor` | `opencode-go/deepseek-v4.1-flash` |
+| Roles | Pinned model |
+|---|---|
+| `worker`, `explorer`, `researcher`, `reviewer`, `general-purpose` | `opencode-go/muse-spark-1.3-contributor` |
 
 Also: the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra`, `agent-orchestrator`, and `planner` are retired (implementation runs in the main session; use main-session orchestration via `/skill:orchestrate` and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
 

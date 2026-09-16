@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Main-agent-owned fan-out for approved execution or research across 2-5 workstreams. Use when the main agent will decompose, delegate to worker/explorer/researcher/reviewer/oracle, verify, and synthesize inline. Not for planning-only requests (use /skill:plan).
+description: Main-agent-owned fan-out for approved execution or research across 2-5 workstreams. Use when the main agent will decompose, delegate to worker/explorer/researcher/reviewer, verify, and synthesize inline. Not for planning-only requests (use /skill:plan).
 ---
 
 # Orchestrate
@@ -17,7 +17,7 @@ Split into 2-5 workstreams; default to two specialists. At most 4 active leaf ag
 
 ## 3. Choose profiles by contract
 
-Worker implements approved edits; explorer locates code (quick/medium/very-thorough breadth); researcher gathers external evidence via web tools; reviewer audits a diff without fixing; oracle checks decision consistency. Research-only work is synthesized and source-checked by the owner, not auto-routed to the code reviewer.
+Worker implements approved edits; explorer locates code (quick/medium/very-thorough breadth); researcher gathers external evidence via web tools; reviewer audits a diff without fixing. Research-only work is synthesized and source-checked by the owner, not auto-routed to the code reviewer.
 
 ## 4. Launch and collect
 
@@ -25,11 +25,11 @@ Launch independent `Agent` calls in one message for real concurrency; respect de
 
 ## 5. Verify, review, recover
 
-Inspect actual changes and validation evidence, not summaries. One targeted retry or follow-up per workstream max; an explicit `<role>-backup` run after a model/provider failure consumes that workstream's retry budget (see the model-routing/backup policy in `~/.pi/agent/AGENTS.md`); after code review allow one bounded correction pass plus one re-review. If checks still fail or a decision remains unresolved after those attempts, report incomplete rather than looping. Resolve conflicting outputs against actual files/sources and the approved scope; escalate unapproved decisions to the user. Review non-trivial implementations inline by default; delegate review on explicit review-agent consent ("use a reviewer subagent"), or automatically for substantial implementations under the agreed workflow in `~/.pi/agent/AGENTS.md` (owner supplies intent, acceptance examples, and the exact changeset). Ordinary review requests, generic subagent permission, and invoking this skill or any workflow are not review-delegation consent. An authorized reviewer gets intent, exact changed paths, and a scoped diff/base.
+Inspect actual changes and validation evidence, not summaries. One targeted retry or follow-up per workstream max — if a dispatch fails on its pinned model, report the blocker rather than re-routing to another model; after code review allow one bounded correction pass plus one re-review. If checks still fail or a decision remains unresolved after those attempts, report incomplete rather than looping. Resolve conflicting outputs against actual files/sources and the approved scope; escalate unapproved decisions to the user. Review non-trivial implementations inline by default; delegate review on explicit review-agent consent ("use a reviewer subagent"), or automatically for substantial implementations under the agreed workflow in `~/.pi/agent/AGENTS.md` (owner supplies intent, acceptance examples, and the exact changeset). Ordinary review requests, generic subagent permission, and invoking this skill or any workflow are not review-delegation consent. An authorized reviewer gets intent, exact changed paths, and a scoped diff/base.
 
 ## 6. Respect precedence and boundaries
 
-On `Agent` calls, profile frontmatter is authoritative for model, thinking, and `inherit_context` — pass only what the profile leaves unset (most profiles pin a level and/or model; check the profile file). Worker and oracle pin `inherit_context: true`; every primary/backup profile pins a model. Fresh reviewer calls use `inherit_context: false`. Select profiles by role — explorer for inexpensive lookup, worker for implementation, oracle/reviewer for high reasoning — and never override a pin. Do not prescribe model IDs in this policy, manage Herdr, schedule work, or add persistent orchestration state. Existing harness transcripts/session storage remain unchanged. "Integration" means combining verified results, not authorization for Git operations; follow applicable user and repository Git rules separately.
+On `Agent` calls, profile frontmatter is authoritative for model, thinking, and `inherit_context` — pass only what the profile leaves unset (most profiles pin a level and/or model; check the profile file). Worker pins `inherit_context: true`; every profile pins a model. Fresh reviewer calls use `inherit_context: false`. Select profiles by role — explorer for inexpensive lookup, worker for implementation, reviewer for high reasoning — and never override a pin. Do not prescribe model IDs in this policy, manage Herdr, schedule work, or add persistent orchestration state. Existing harness transcripts/session storage remain unchanged. "Integration" means combining verified results, not authorization for Git operations; follow applicable user and repository Git rules separately.
 
 ## 7. Report
 
