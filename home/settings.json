@@ -5,6 +5,7 @@
   "defaultModel": "muse-spark-1.3-contributor",
   "defaultThinkingLevel": "high",
   "tuiMode": "fullscreen",
+  "externalEditor": "code --wait",
   "packages": [
     "npm:pi-web-access",
     "npm:pi-mcp-adapter",
