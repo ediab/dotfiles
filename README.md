@@ -24,15 +24,24 @@ Running the bootstrap installs:
   `explorer` and `planner` replace the built-in `Explore` and `Plan`; disabled
   overrides keep the old types from reappearing. The `plan` skill is separate.
 - **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
-  (`backgroundByDefault`, `reportUsage`, `showCost`).
+  (`backgroundByDefault`, `reportUsage`, `showCost`, `maxConcurrent: 4` — at most
+  4 active leaf agents per task; reviewers and follow-ups count).
 - **Zentui TUI config** — `home/zentui.json` deployed to `~/.pi/agent/zentui.json`. The custom
   editor is off; footer, theme, and the other components stay as configured.
 - **Plan skill** — `home/skills/plan/` (`/skill:plan` or automatic for substantial
   architectural choices: read-only investigation, right-sized plan, offer to save
   to `docs/plans/` unless saving was already requested).
+- **Brainstorm skill** — `home/skills/brainstorm/` (`/skill:brainstorm`, explicit
+  invocation only: one question at a time with a recommendation, ends at an
+  agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
+  implementation).
 - **Ponytail default** — `home/ponytail.json` deployed to `~/.config/ponytail/config.json`
   (`defaultMode: off`, so ponytail is on-demand via `/ponytail full`). This is the same file
-  pi's `/ponytail default` command writes.
+  pi's `/ponytail default` command writes. The package's broad main skill
+  (`ponytail`, "use on ANY coding task") is excluded from discovery in
+  `home/settings.json` so off stays off; the extension, its `/ponytail` mode
+  commands, and the companion skills (`ponytail-review/-audit/-debt/-gain/-help`)
+  keep working.
 - **CC Safety Net policy** — `home/cc-safety-net-policy.json` deployed to
   `~/.cc-safety-net/policy.json` (0700 dir, 0600 file). Turns off `secret.cli.pi` so Pi
   may read its own `auth.json`; every other destructive-command and secret rule stays on.
@@ -114,8 +123,11 @@ prompt, so a repo carries its own review rules without touching this harness.
 
 `home/agents/reviewer.md` is the complementary path, not a duplicate: `/review` runs the
 review in the current session, while `reviewer` is a fresh-context, report-only subagent on
-its own pinned review model, used only when you explicitly request review delegation.
-“Review this”, `/review`, and generic orchestration requests keep the review inline.
+its own pinned review model, used when you explicitly request review delegation — or
+automatically after a substantial implementation under the agreed workflow (the owner
+supplies the agreed intent, acceptance examples, and exact changeset; tiny mechanical
+edits stay inline). “Review this”, `/review`, and generic orchestration requests keep
+the review inline.
 The same explicit-delegation rule applies to evidence audits.
 
 ### Subagent models
