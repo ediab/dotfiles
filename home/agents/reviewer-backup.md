@@ -1,6 +1,6 @@
 ---
 name: reviewer-backup
-description: Failure-recovery-only mirror of reviewer (same contract). Use only when the primary model/provider is unavailable or failing. Fresh-context code review of a diff or changeset — correctness, security, architecture, performance. Report-only, never fixes. Use only when the user explicitly requests a review subagent; ordinary review requests stay in the current session.
+description: Failure-recovery-only mirror of reviewer (same contract). Use only when the primary model/provider is unavailable or failing. Fresh-context code review of a diff or changeset — correctness, security, architecture, performance. Report-only, never fixes. Use when the user explicitly requests a review subagent, or automatically after a substantial implementation when the owner supplies the agreed intent and changeset; ordinary review requests stay in the current session.
 color: cyan
 tools: [read, bash, grep, find, ls]
 model: opencode-go/deepseek-v4.1-flash

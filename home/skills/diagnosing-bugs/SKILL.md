@@ -5,6 +5,10 @@ description: Diagnosis loop for hard bugs and performance regressions. Use when 
 
 # Diagnosing Bugs
 
+## Light or full path
+
+A clear low-risk fix takes the light path: inspect the relevant flow and callers, establish the smallest useful check for the reported symptom, fix the cause, rerun the check. Use the full phased process below for hard, recurring, intermittent, or performance bugs — and escalate to it whenever the cause is uncertain, the first fix fails, or risk warrants it. Either path needs relevant evidence: never declare a fix on looks alone.
+
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.

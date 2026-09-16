@@ -23,6 +23,8 @@ Strong triggers include:
 - Source-backed answers: answer using web sources, verify a fact, check whether something changed, gather information from the web.
 - Website work: interact with a site, click through pages, fill forms, log in, collect structured data, handle bot-protected pages.
 
+For exact library/API signatures and version-pinned behaviour, prefer Context7 under the global policy; reach for TinyFish for general web search, page content, and site interaction.
+
 Default to the lightest tool that can answer:
 
 - No URL and the user needs web information: `search`, then `fetch` the best result(s) if more detail is needed.
