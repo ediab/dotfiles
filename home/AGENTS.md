@@ -39,6 +39,20 @@ Project-level `AGENTS.md` / `CLAUDE.md` files layer on top of this one and take 
 
 * Review in the current session by default. Spawn a subagent to perform a review or evidence audit only when the user explicitly requests review delegation (for example, "use a reviewer subagent"). This applies regardless of the chosen agent type or tool.
 * "Review this", `/review`, generic permission to use subagents, and invoking an orchestration skill or workflow do not by themselves authorize a review subagent. Keep review stages inline unless review delegation was explicitly requested.
+* Exception: substantial implementations get an automatic fresh-reviewer pass under Personal workflow below. Standalone review requests and evidence audits still need an explicit request.
+
+## Personal workflow
+
+* Plain English for the user. Technical detail belongs in agent instructions or on request.
+* Brainstorming only on explicit invocation (`/skill:brainstorm`): one question at a time with a recommendation; stay with the user's idea; propose smaller versions and let the user decide. End at an agreed short brief; offer chat-only or saving under `docs/specs/`; never auto-start implementation.
+* Small, clear, low-risk changes: implement directly. Material uncertainty or substantial/risky changes: inspect first, resolve high-level decisions with the user, present a short plan for approval before implementing.
+* Non-trivial plans carry 2–3 agent-proposed, checkable success examples; the user confirms or edits them. They become acceptance criteria for implementation and review. Clear small fixes skip this; the request itself is the criterion.
+* After approval, execute the whole approved sequence without "shall I continue?" prompts. Routine technical decisions within approved constraints belong to the agent. Workers escalate material deviations to their owner; the owner asks the user only about changed product intent, material trade-offs, or unapproved risk.
+* Substantial changes (a new user-facing flow, behaviour spanning components, a nontrivial refactor, auth/privacy/financial-calculation/data-deletion/deployment changes — impact, not size) get an automatic independent review: the owner dispatches a fresh `reviewer` with the agreed intent, acceptance examples, exact changeset, and validation performed. The reviewer reports only; the owner assigns corrections to the implementer and rechecks affected behaviour. Tiny mechanical edits stay inline.
+* Validate proportionately; stronger evidence for money, private data, authentication, and live-service behaviour. Compare the result to the agreed goal and exclusions before claiming completion; state what was checked and what remains unverified. A passing test suite does not prove a live service works.
+* Deliver locally by default. Push, deploy, branch, or open PRs only when requested.
+* Delegation: the main agent owns the goal and result. Prefer one well-briefed helper over several loosely directed ones; parallelize genuinely independent work. At most 4 active leaf agents (enforced in subagents config). Set `run_in_background` explicitly: background with useful work meanwhile, foreground when the next step depends on the result. Brief every dispatch self-contained (goal, paths, scope, constraints, done-criteria). Use a fresh reviewer per independence check, never a resumed one. `fallbackSubagent` stays `none`.
+* Ponytail stays installed with default off; it runs only on explicit user opt-in (`/ponytail`, `/ponytail lite`). An enabled Ponytail never authorizes unrequested Git operations or overriding approved requirements.
 ## Model routing and backup profiles
 
 Model IDs live in the agent profiles (`~/.pi/agent/agents/*.md`); this section states routing policy only. The `<role>-backup` profile is the source of truth for role fallback mapping.
