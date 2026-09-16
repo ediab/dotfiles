@@ -141,10 +141,10 @@ retrying; at most one backup attempt per retry budget. The Muse→DeepSeek backu
 
 | Roles | Primary | Backup |
 |---|---|---|
-| `agent-orchestrator`, `planner` | `openai-codex/gpt-6-astra` | `opencode-go/glm-5.3` |
+| `planner` | `openai-codex/gpt-6-astra` | `opencode-go/glm-5.3` |
 | `worker`, `explorer`, `researcher`, `reviewer`, `evidence-auditor`, `oracle`, `general-purpose` | `opencode-go/muse-spark-1.3-contributor` | `opencode-go/deepseek-v4.1-flash` |
 
-Also: `planner` is restricted to the `pi-fff` extension with the `plan` skill preloaded; the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra` is retired (use `worker`).
+Also: `planner` is restricted to the `pi-fff` extension with the `plan` skill preloaded; the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra` and `agent-orchestrator` are retired (use `worker` and main-session orchestration via `/skill:orchestrate`).
 
 ### Keeping the repo in sync
 

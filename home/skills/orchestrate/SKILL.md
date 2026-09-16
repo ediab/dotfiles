@@ -5,7 +5,7 @@ description: Main-agent-owned fan-out for approved execution or research across 
 
 # Orchestrate
 
-Invoke as `/skill:orchestrate`. The main agent owns decomposition, delegation, verification, and synthesis. Keep this path flat: main → leaf specialists. Never spawn an orchestrator from this skill; an explicit delegated handoff uses the separate `agent-orchestrator` profile instead.
+Invoke as `/skill:orchestrate`. The main agent owns decomposition, delegation, verification, and synthesis. Keep this path flat: main → leaf specialists. Never spawn an orchestrator from this skill; orchestration stays with the main agent (there is no delegated-orchestrator profile).
 
 ## 1. Decide whether to delegate
 
