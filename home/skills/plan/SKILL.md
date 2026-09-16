@@ -24,12 +24,27 @@ Produce a concise implementation-ready plan containing (at most):
 - Tests / verification
 - Material risks or dependencies
 
+Separate two audiences in one plan: a short user-facing summary (goal,
+scope, meaningful choices, recommended approach, what success looks like —
+plain English, no implementation detail) plus executor instructions with
+enough file/component detail, ordered work, constraints, and checks for a
+fresh weaker model to implement. Routine technical choices are the agent's
+responsibility, not the user's approval list.
+
 Right-size the plan. Simple work gets a simple plan (goal + files + steps);
 use the full list only for genuinely complex work.
 
 Write every plan so a weaker model in a fresh chat with zero memory can
 implement it: exact file paths, small ordered steps, what "done" looks like
 per step, and what NOT to touch. No vague language.
+
+Every non-trivial plan carries 2–3 concrete, checkable success examples
+drafted by you from what the user already said — never ask the user to
+define success as an open question. Propose them (e.g. "the digest
+contains at most ten stories", "changing the layout does not change which
+stories are picked"); the user confirms or edits one, and they become the
+acceptance criteria for both the implementer and any reviewer. Clear small
+fixes skip this: the request itself is the criterion.
 
 Describe WHAT must change and the important constraints. Do not pre-write
 implementation code, exact signatures, or detailed shell command sequences
