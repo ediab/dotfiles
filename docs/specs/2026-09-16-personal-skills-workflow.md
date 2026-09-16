@@ -4,7 +4,7 @@
 - Repository: `/Users/eliasdiab/Dev/pi-dotfiles` (also referred to as `~/dev/pi-dotfiles`; use the actual checkout path)
 - Branch when written: `main`
 - Status: design agreed; implementation has not started.
-- Revision 2026-09-16 (later same day): added subagent delegation tightening (section 6); no-mistakes cleanup removed — it stays exactly as installed per user decision (section 7).
+- Revision 2026-09-16 (later same day): added subagent delegation tightening and agent-proposed success examples (section 6); no-mistakes cleanup removed — it stays exactly as installed per user decision (section 7).
 
 ## 0. Read this first — scope and authorization
 
@@ -144,6 +144,8 @@ Separate the two audiences:
 
 No need to create two documents. A short summary plus implementation details in one plan is sufficient when saving is requested.
 
+**Success examples per task.** Every non-trivial plan carries 2–3 concrete, checkable success examples, drafted by the agent from what the user already said — never requested as an open question. The agent proposes them (e.g. “the digest contains at most ten stories”, “changing the layout does not change which stories are picked”), the user confirms or edits one, and they become the acceptance criteria for both the worker and the reviewer. Clear small fixes skip the ceremony: the request itself is the criterion.
+
 ### Execution policy
 
 Use `home/AGENTS.md` as the source of truth for general behaviour; skills/profiles should refer to it rather than repeat a large new policy everywhere.
@@ -246,7 +248,7 @@ All repo paths below are relative to the root.
 | Path | Intended work |
 |---|---|
 | `home/skills/brainstorm/SKILL.md` | New, manual-only skill following section 5. |
-| `home/skills/plan/SKILL.md` | Separate high-level user approval from executor detail; preserve existing concise planning and optional save behaviour. |
+| `home/skills/plan/SKILL.md` | Separate high-level user approval from executor detail; add agent-proposed success examples per task; preserve existing concise planning and optional save behaviour. |
 | `home/AGENTS.md` | Canonical clarification/execution/review/validation/communication/delegation policy; preserve unrelated safety, Git, models, and VPS rules. |
 | `~/.pi/agent/AGENTS.md` | Mirror agreed policy changes carefully; `rebuild.sh` does not deploy this file. Preserve machine-specific sections. |
 | `home/skills/orchestrate/SKILL.md` | Replace stale explicit-only implementation-review wording with a reference to canonical policy. Preserve explicit workflow opt-in, caps, file ownership, and retry bounds. |
@@ -278,9 +280,9 @@ Perform only after implementation is requested.
 ### Unit 2 — brainstorming and planning
 
 - Add the manual-only brainstorming skill.
-- Adjust the existing planning skill for the user/executor distinction.
+- Adjust the existing planning skill for the user/executor distinction and agent-proposed success examples.
 - Keep general grilling separate; do not replace it with upstream batched questioning.
-- Done when explicit brainstorming ends at an approved brief with an optional save, and ordinary coding requests do not start it.
+- Done when explicit brainstorming ends at an approved brief with an optional save, ordinary coding requests do not start it, and non-trivial plans present 2–3 proposed success examples rather than asking the user to define success.
 
 ### Unit 3 — align existing agents and specialist skills
 
@@ -332,7 +334,7 @@ Use fresh-context, bounded, non-production trials where feasible. Reload resourc
 | User agrees to the brief but chooses chat-only | No spec file is written. |
 | User asks to save the brief | Writes the agreed brief under `docs/specs/`; does not start implementation. |
 | Ordinary request: “Change this button label to Save.” | Direct small change/check; no brainstorming session or mandatory independent review. |
-| Meaningful feature request with an unclear outcome | Clarifies the important choice and seeks short-plan approval; no automatic invocation of the brainstorming skill. |
+| Meaningful feature request with an unclear outcome | Clarifies the important choice and seeks short-plan approval with 2–3 proposed success examples; no automatic invocation of the brainstorming skill. |
 | Approved multi-step implementation | Completes routine steps without “shall I continue?”; routine technical decisions stay with the agent. |
 | Implementation requires changing an approved privacy or product decision | Stops and explains the choice to the user. |
 | Substantial change or security-sensitive one-file fix | Independent reviewer gets the agreed intent and exact changeset; checks run before claiming done. |
