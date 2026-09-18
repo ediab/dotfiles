@@ -171,6 +171,58 @@ def declared_calc_mode(path: Path) -> str:
     return match.group(1) if match else "auto"
 
 
+
+SCRATCH_PROBE = """tell application "Microsoft Excel"
+\tset report to ""
+\trepeat with i from 1 to (count of workbooks)
+\t\tset wb to workbook i
+\t\tset wbName to (name of wb) as text
+\t\tset wbPath to (path of wb) as text
+\t\tset hasContent to false
+\t\tif wbPath is not "" then set hasContent to true
+\t\trepeat with j from 1 to (count of sheets of wb)
+\t\t\tset ws to worksheet j of wb
+\t\t\trepeat with probeCell in {"A1", "B2", "A20", "H20", "A100", "H100"}
+\t\t\t\ttry
+\t\t\t\t\tset v to value of range (probeCell as text) of ws
+\t\t\t\t\tif v is not missing value then
+\t\t\t\t\t\tif (v as text) is not "" then set hasContent to true
+\t\t\t\t\tend if
+\t\t\t\tend try
+\t\t\tend repeat
+\t\tend repeat
+\t\tset report to report & wbName & "|" & (hasContent as text) & linefeed
+\tend repeat
+\treturn report
+end tell"""
+
+
+def ensure_excel_idle() -> list[str]:
+    """Close untitled, verified-empty scratch workbooks Excel restored on launch.
+
+    After a forced quit Excel recreates an empty untitled workbook, which blocks
+    every run because the tool refuses to recalculate unrelated workbooks. Only a
+    workbook whose path is empty and whose probe cells (A1, B2, A20, H20, A100, H100
+    on every sheet) are all empty is closed; Excel rejects a whole-range value read
+    from AppleScript, so the probe is bounded and stated rather than complete. The
+    close goes through the tool's explicit `close workbook=` command. Returns the
+    names closed.
+    """
+    proc = subprocess.run(["osascript", "-e", SCRATCH_PROBE], capture_output=True, text=True, timeout=300)
+    if proc.returncode != 0:
+        return []
+    closable = []
+    for line in proc.stdout.splitlines():
+        parts = line.split("|")
+        if len(parts) == 2 and parts[1].strip() == "false":
+            closable.append(parts[0].strip())
+    for name in closable:
+        subprocess.run(
+            ["osascript", str(APPLESCRIPT), "close", f"workbook={name}"], capture_output=True, text=True, timeout=300
+        )
+    return closable
+
+
 def write_cells_file(path: Path, entries: list[tuple[str, str]]) -> None:
     path.write_text("".join(f"{s}\t{c}\n" for s, c in entries))
 
@@ -183,6 +235,10 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--work", default=str(HERE / "tmp" / "unit0-run"))
     args = parser.parse_args()
+
+    restored = ensure_excel_idle()
+    if restored:
+        print(f"(closed untitled empty scratch workbook(s) Excel restored: {', '.join(restored)})")
 
     work = Path(args.work).resolve()
     if work.exists():

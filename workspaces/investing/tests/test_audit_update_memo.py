@@ -92,6 +92,10 @@ def main() -> int:
     parser.add_argument("--work", default=str(HERE / "tmp" / "checkpoint"))
     args = parser.parse_args()
 
+    restored = base.ensure_excel_idle()
+    if restored:
+        print(f"(closed untitled empty scratch workbook(s) Excel restored: {', '.join(restored)})")
+
     work = Path(args.work).resolve()
     if work.exists():
         shutil.rmtree(work)

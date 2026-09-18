@@ -230,13 +230,19 @@ record (including catching a figure that disagrees).
     picker instead; that picker is not one of Excel's scriptable windows, so it
     cannot be closed from AppleScript, and every later AppleEvent queues behind
     it. Recovery is a human keystroke: press Escape in Excel (or quit Excel).
-    The tool now detects the stuck dialog, reports `BLOCKED` with that
-    instruction when the target workbook declares external links, and otherwise
-    falls back to the standard `open` command — which is **only** allowed for
-    workbooks with no `xl/externalLinks/` part, because the standard open cannot
-    pass `update links do not update links`. Link fidelity is never traded for
-    convenience. It also refuses to attempt the preferred open while a stuck
-    dialog is present, so it does not deepen the wedge.
+    The tool reports the failure, and falls back to the standard `open` command
+    — **only** for workbooks with no `xl/externalLinks/` part, because the
+    standard open cannot pass `update links do not update links`. For a linked
+    workbook it refuses and names the manual recovery. Link fidelity is never
+    traded for convenience.
+16. **The tool deliberately scripts no user interface.** It does not call
+    `System Events` at all: dismissing that stuck picker, or any other UI step,
+    stays with the human. UI scripting needs the macOS **Accessibility**
+    permission, which re-prompts the user every time it is missing, and a
+    calculation tool has no business driving the mouse and keyboard of a live
+    workbook. Everything here goes through Excel's own AppleScript interface
+    (AppleEvents only), which is why the tool needs no Accessibility grant and
+    why it stopped asking for one.
 
 ### Failure handling
 

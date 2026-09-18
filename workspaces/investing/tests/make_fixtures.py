@@ -331,7 +331,7 @@ def build_three_statement(path: Path) -> None:
         ("D&A", 5, "=IS!C9", "=IS!D9"),
         ("Change in accounts receivable", 6, "=-(BS!C5-BS!B5)", "=-(BS!D5-BS!C5)"),
         ("Change in inventory", 7, "=-(BS!C6-BS!B6)", "=-(BS!D6-BS!C6)"),
-        ("Change in accounts payable", 8, "=(BS!C13-BS!B13)", "=(BS!D13-BS!D13)"),
+        ("Change in accounts payable", 8, "=(BS!C13-BS!B13)", "=(BS!D13-BS!C13)"),
         ("CFO", 9, "=SUM(C4:C8)", "=SUM(D4:D8)"),
         ("Capital expenditure (outflow)", 10, "=IS!C4*Assumptions!C14", "=IS!D4*Assumptions!D14"),
         ("CFI", 11, "=-C10", "=-D10"),

@@ -248,6 +248,10 @@ def main() -> int:
     parser.add_argument("--work", default=str(HERE / "tmp" / "phase3"))
     args = parser.parse_args()
 
+    restored = base.ensure_excel_idle()
+    if restored:
+        print(f"(closed untitled empty scratch workbook(s) Excel restored: {', '.join(restored)})")
+
     work = Path(args.work).resolve()
     if work.exists():
         shutil.rmtree(work)
@@ -348,8 +352,8 @@ def main() -> int:
         str(content_changes),
     )
     check("3SM introduced no new error cells", not diff["errors"]["new"], str(diff["errors"]))
-    history = {k: v for k, v in diff["changes"] if "!B" in k and k.split("!")[1].startswith("B")}
-    check("3SM FY0 history untouched", not history, str(list(history)[:5]))
+    history = [c["sheet_cell"] for c in diff["changes"] if c["sheet_cell"].split("!")[1].startswith("B")]
+    check("3SM FY0 history (column B) untouched", not history, str(history[:5]))
     check("3SM original unchanged", sha256(original) == original_hash)
 
     # ============================================================ dcf-model check
@@ -423,9 +427,11 @@ def main() -> int:
     shutil.copy2(comps_original, comps_copy)
     comps_cells = [
         ("Comps", "F4"), ("Comps", "F5"), ("Comps", "F6"), ("Comps", "F7"), ("Comps", "F8"),
+        # statistics rows: 11 Maximum, 12 75th percentile, 13 Median, 14 25th percentile,
+        # 15 Minimum, 16 Count
         ("Comps", "L5"), ("Comps", "L12"), ("Comps", "L13"), ("Comps", "L14"),
-        ("Comps", "M6"), ("Comps", "M12"), ("Comps", "M16"),
-        ("Comps", "N6"), ("Comps", "N12"), ("Comps", "N16"),
+        ("Comps", "M6"), ("Comps", "M13"), ("Comps", "M16"),
+        ("Comps", "N6"), ("Comps", "N13"), ("Comps", "N16"),
     ]
     comps_rb = readback_file(work / "comps-readback.tsv", comps_cells)
     comps_report = excel("recalc", f"workbook={comps_copy}", f"readback={comps_rb}")
@@ -458,24 +464,24 @@ def main() -> int:
     )
     check(
         "comps median EV/Revenue matches independent median",
-        close_to(comps_values["Comps!L12"], expected_comps["ev_revenue"]["median"], 0.0001),
-        f"{comps_values.get('Comps!L12')} vs {expected_comps['ev_revenue']['median']:.4f}",
+        close_to(comps_values["Comps!L13"], expected_comps["ev_revenue"]["median"], 0.0001),
+        f"{comps_values.get('Comps!L13')} vs {expected_comps['ev_revenue']['median']:.4f}",
     )
     check(
         "comps quartiles match independent computation",
-        close_to(comps_values["Comps!L13"], expected_comps["ev_revenue"]["q3"], 0.0001)
+        close_to(comps_values["Comps!L12"], expected_comps["ev_revenue"]["q3"], 0.0001)
         and close_to(comps_values["Comps!L14"], expected_comps["ev_revenue"]["q1"], 0.0001),
-        f"q3 {comps_values.get('Comps!L13')} q1 {comps_values.get('Comps!L14')}",
+        f"q3 {comps_values.get('Comps!L12')} q1 {comps_values.get('Comps!L14')}",
     )
     check(
         "comps median EV/EBITDA excludes the n/m peer",
-        close_to(comps_values["Comps!M12"], expected_comps["ev_ebitda"]["median"], 0.0001),
-        f"{comps_values.get('Comps!M12')} vs {expected_comps['ev_ebitda']['median']:.4f}",
+        close_to(comps_values["Comps!M13"], expected_comps["ev_ebitda"]["median"], 0.0001),
+        f"{comps_values.get('Comps!M13')} vs {expected_comps['ev_ebitda']['median']:.4f}",
     )
     check(
         "comps median P/E excludes the loss-making peer",
-        close_to(comps_values["Comps!N12"], expected_comps["pe"]["median"], 0.0001),
-        f"{comps_values.get('Comps!N12')} vs {expected_comps['pe']['median']:.4f}",
+        close_to(comps_values["Comps!N13"], expected_comps["pe"]["median"], 0.0001),
+        f"{comps_values.get('Comps!N13')} vs {expected_comps['pe']['median']:.4f}",
     )
     check(
         "comps numeric observation counts are reported and exclude n/m",

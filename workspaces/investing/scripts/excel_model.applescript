@@ -156,7 +156,9 @@ on excelWasRunningAtStart()
 	return (application "Microsoft Excel" is running)
 end excelWasRunningAtStart
 
--- Close only workbooks named explicitly on the command line (never saving).
+-- Close only workbooks named explicitly on the command line (never saving). A
+-- workbook= argument may be an absolute path or, for an untitled workbook Excel
+-- restored, a bare name with no slash.
 on cmdClose(argsList, excelWasRunning)
 	set wanted to {}
 	repeat with i from 1 to (count of argsList)
@@ -175,7 +177,11 @@ on cmdClose(argsList, excelWasRunning)
 				set wb to workbook i
 				set wbFull to full name of wb
 				set wbName to name of wb
-				if wanted contains wbFull then
+				set wantedName to false
+				repeat with w in wanted
+					if w = wbName and (w does not contain "/") then set wantedName to true
+				end repeat
+				if (wanted contains wbFull) or wantedName then
 					close wb saving false
 					set out to out & "CLOSED" & TABCHAR & wbName & TABCHAR & wbFull & my LF()
 					set closedAny to true
@@ -335,16 +341,6 @@ on cmdProcess(argsList, doEdits)
 
 	set fileCalcMode to my workbookCalcModeValue(wbPath)
 
-	set stuckDialog to my excelHasStuckOpenDialog()
-
-	-- A stuck file picker blocks a linked workbook outright: it must be opened with
-	-- link updates disabled, and only the preferred `open workbook` call can do that.
-	if stuckDialog and my workbookHasExternalLinks(wbPath) then
-		set out to out & my reportLine("STATUS", blockedStatus) & my LF()
-		set out to out & my reportLine("MESSAGE", "Excel shows a stuck Open dialog, and " & wbPath & " declares external links, which can only be opened safely by the preferred call. Dismiss the dialog in Excel (press Escape) or quit Excel, then retry.") & my LF()
-		return my finish(out, outPath)
-	end if
-
 	-- Refuse to work when unrelated workbooks are open: Excel's calculate command
 	-- recalculates every open workbook.
 	if excelWasRunning and not allowOthers then
@@ -354,10 +350,8 @@ on cmdProcess(argsList, doEdits)
 				repeat with i from 1 to (count of workbooks)
 					set others to others & (name of workbook i) & " | "
 				end repeat
-				set dialogHint to ""
-				if stuckDialog then set dialogHint to " (Excel also shows a stuck Open dialog - press Escape in Excel to dismiss it)"
 				set out to out & my reportLine("STATUS", blockedStatus) & my LF()
-				set out to out & my reportLine("MESSAGE", "unrelated workbooks open in Excel: " & others & "close them or grant exclusive use, then retry" & dialogHint) & my LF()
+				set out to out & my reportLine("MESSAGE", "unrelated workbooks open in Excel: " & others & "close them or grant exclusive use, then retry") & my LF()
 				return my finish(out, outPath)
 			end if
 		end tell
@@ -380,26 +374,19 @@ on cmdProcess(argsList, doEdits)
 			set calculation to calculation manual
 
 			set wb to missing value
-			set needsFallback to my excelHasStuckOpenDialog()
-			if needsFallback then
-				set out to out & "WARNING" & TABCHAR & "Excel already shows a stuck Open dialog; skipping the preferred open" & my LF()
-			else
-				try
-					set wb to open workbook workbook file name wbPath update links do not update links read only false ignore read only recommended true add to mru false
-					set openedWbName to name of wb
-				on error
-					set wb to missing value
-					set needsFallback to true
-					set out to out & "WARNING" & TABCHAR & "open workbook failed for " & wbPath & my LF()
-				end try
-			end if
+			try
+				set wb to open workbook workbook file name wbPath update links do not update links read only false ignore read only recommended true add to mru false
+				set openedWbName to name of wb
+			on error
+				set wb to missing value
+				set out to out & "WARNING" & TABCHAR & "preferred open failed for " & wbPath & my LF()
+			end try
 			if wb is missing value then
 				-- Excel exposes no way to open a workbook with link updates
 				-- disabled other than `open workbook`, so the fallback is allowed
 				-- only when the file declares no external links at all.
-				set discarded to my clearStuckOpenDialog()
 				if my workbookHasExternalLinks(wbPath) then
-					error "cannot open " & wbPath & ": the preferred open failed and the file declares external links, so the standard-open fallback (which cannot disable link updates) is not allowed. Quit Excel with no unsaved workbooks open (or dismiss its Open dialog) and retry."
+					error "cannot open " & wbPath & ": the preferred open failed and the file declares external links, so the standard-open fallback (which cannot disable link updates) is not allowed. In Excel press Escape to dismiss any stuck Open dialog, or quit Excel with no unsaved workbooks open, then retry."
 				end if
 				tell application "Microsoft Excel" to open (POSIX file wbPath)
 				delay 1
@@ -564,52 +551,15 @@ end workbookCalcModeValue
 
 -- Excel's AppleScript `open workbook` can wedge in a long-running session: it stops
 -- returning a workbook object and raises its own file picker instead, which then
--- queues every later AppleEvent behind it. Recover in this order:
---   1. cancel a stuck "Open" picker (a file picker holds no workbook content),
---   2. fall back to the standard `open` command *only* for workbooks that declare
---      no external links, because the standard open cannot pass
+-- queues every later AppleEvent behind it. That picker is not an Excel scripting
+-- object and is not reachable from AppleScript, and this script deliberately does
+-- NOT script the user interface (System Events) to clear it: UI scripting needs the
+-- Accessibility permission and re-prompts the user for it, so recovering the picker
+-- stays a human keystroke. What the script does instead:
+--   1. fall back to the standard `open` command *only* for workbooks that declare no
+--      external links, because the standard open cannot pass
 --      "update links do not update links" and link fidelity is non-negotiable,
---   3. otherwise refuse, so a linked workbook is never opened by a weaker path.
-on clearStuckOpenDialog()
-	try
-		tell application "Microsoft Excel" to activate
-		delay 0.5
-		tell application "System Events"
-			if not (exists process "Microsoft Excel") then return false
-			tell process "Microsoft Excel"
-				repeat with w in windows
-					if (name of w) is "Open" then
-						key code 53
-						delay 1
-						return true
-					end if
-				end repeat
-			end tell
-		end tell
-	on error
-		return false
-	end try
-	return false
-end clearStuckOpenDialog
-
--- A stuck "Open" window means the preferred open already wedged once: skip
--- straight to the safe path instead of queuing another wedging call.
-on excelHasStuckOpenDialog()
-	try
-		tell application "System Events"
-			if not (exists process "Microsoft Excel") then return false
-			tell process "Microsoft Excel"
-				repeat with w in windows
-					if (name of w) is "Open" then return true
-				end repeat
-			end tell
-		end tell
-	on error
-		return false
-	end try
-	return false
-end excelHasStuckOpenDialog
-
+--   2. refuse for a linked workbook, naming the manual recovery step.
 on workbookHasExternalLinks(filePath)
 	set hits to my doShellCommand("unzip -l " & quoted form of filePath & " 2>/dev/null | grep -c 'xl/externalLinks/'")
 	try
