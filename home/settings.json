@@ -27,7 +27,6 @@
     "npm:pi-terminal-theme",
     "npm:pi-updater",
     "npm:@juicesharp/rpiv-advisor",
-    "npm:cc-safety-net",
     "npm:pi-intercom",
     "git:github.com/earendil-works/pi-review",
     "npm:pi-commandcode-provider",

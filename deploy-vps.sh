@@ -44,12 +44,6 @@ fi
 ssh "$VPS_HOST" 'mkdir -p ~/.config/ponytail'
 rsync -az "$REPO_DIR/home/ponytail.json" "$VPS_HOST:~/.config/ponytail/config.json"
 
-# CC Safety Net user policy (secret.cli.pi off = Pi may read its own auth.json).
-# Deploys the repo copy so the VPS stops blocking Pi's own auth.json the same way.
-ssh "$VPS_HOST" 'mkdir -p ~/.cc-safety-net && chmod 700 ~/.cc-safety-net'
-rsync -az "$REPO_DIR/home/cc-safety-net-policy.json" "$VPS_HOST:~/.cc-safety-net/policy.json"
-ssh "$VPS_HOST" 'chmod 600 ~/.cc-safety-net/policy.json'
-
 echo "==> 2/4  skills + prompts + agents + AGENTS.md + configs"
 rsync -az --delete "$REPO_DIR/home/skills/" "$VPS_HOST:~/.pi/agent/skills/"
 rsync -az --delete --exclude=.gitkeep "$REPO_DIR/home/prompts/" "$VPS_HOST:~/.pi/agent/prompts/"

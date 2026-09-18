@@ -165,16 +165,4 @@ if ! diff -q "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.jso
     && echo "    ponytail.json  re-synced (defaultMode off)"
 fi
 
-# CC Safety Net user policy (secret.cli.pi off = Pi may read its own auth.json).
-# Repo copy is the source of truth — matches the live file (0700 dir, 0600 file,
-# written by `cc-safety-net policy apply <file> --global`).
-# diff first so rebuild --sync-only stays quiet when nothing changed.
-if ! diff -q "$SCRIPT_DIR/home/cc-safety-net-policy.json" "$HOME/.cc-safety-net/policy.json" &>/dev/null; then
-  mkdir -p "$HOME/.cc-safety-net"
-  chmod 700 "$HOME/.cc-safety-net"
-  cp "$SCRIPT_DIR/home/cc-safety-net-policy.json" "$HOME/.cc-safety-net/policy.json" \
-    && chmod 600 "$HOME/.cc-safety-net/policy.json" \
-    && echo "    cc-safety-net-policy.json  re-synced (secret.cli.pi off)"
-fi
-
 echo "==> done."

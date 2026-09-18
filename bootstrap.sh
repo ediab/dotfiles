@@ -148,15 +148,6 @@ mkdir -p "$HOME/.config/ponytail"
 cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
   && echo "    ponytail.json  installed (defaultMode off)"
 
-# CC Safety Net user policy (secret.cli.pi off = Pi may read its own auth.json).
-# Repo copy is the source of truth — matches the live file (0700 dir, 0600 file,
-# written by `cc-safety-net policy apply <file> --global`).
-mkdir -p "$HOME/.cc-safety-net"
-chmod 700 "$HOME/.cc-safety-net"
-cp "$SCRIPT_DIR/home/cc-safety-net-policy.json" "$HOME/.cc-safety-net/policy.json" \
-  && chmod 600 "$HOME/.cc-safety-net/policy.json" \
-  && echo "    cc-safety-net-policy.json  installed"
-
 # Seed ~/.pi/agent/AGENTS.md from the sanitized repo copy. Only when absent — never clobber
 # local-only sections like VPS access details.
 if [ ! -f "$HOME/.pi/agent/AGENTS.md" ] && [ -f "$SCRIPT_DIR/home/AGENTS.md" ]; then
