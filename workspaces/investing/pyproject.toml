@@ -1,0 +1,15 @@
+[project]
+name = "investing-workspace"
+version = "0.1.0"
+description = "Local Excel + memo toolset for ad hoc company modeling assignments (supplied data only)"
+requires-python = ">=3.10"
+dependencies = [
+    # Excel inspection/reading only. Workbook writes to inherited models go through
+    # native Excel (scripts/excel_model.applescript), never openpyxl.
+    "openpyxl==3.1.5",
+]
+
+# No installable Python package: this project only declares its runtime dependency
+# set so `pip install -e .` into .venv reproduces the tested environment.
+[tool.setuptools]
+packages = []

@@ -1,0 +1,6 @@
+pyproject.toml
+investing_workspace.egg-info/PKG-INFO
+investing_workspace.egg-info/SOURCES.txt
+investing_workspace.egg-info/dependency_links.txt
+investing_workspace.egg-info/requires.txt
+investing_workspace.egg-info/top_level.txt
