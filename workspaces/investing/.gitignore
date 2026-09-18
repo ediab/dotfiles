@@ -3,3 +3,6 @@
 tests/tmp/
 __pycache__/
 *.pyc
+
+# editable-install metadata
+*.egg-info/

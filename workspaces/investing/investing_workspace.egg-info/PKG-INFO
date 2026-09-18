@@ -1,6 +1,0 @@
-Metadata-Version: 2.4
-Name: investing-workspace
-Version: 0.1.0
-Summary: Local Excel + memo toolset for ad hoc company modeling assignments (supplied data only)
-Requires-Python: >=3.10
-Requires-Dist: openpyxl==3.1.5
