@@ -185,11 +185,34 @@ record (including catching a figure that disagrees).
     objects are unverified.** They need an explicit capability assessment on the
     actual file, and a narrowed scope if they cannot be handled safely.
 
+11. **A modal dialog in Excel queues AppleEvents.** A leftover "Open" file-picker
+    (window subrole `AXDialog`) made every automation call hang until the
+    AppleScript default timeout fired, reported as `-1712 AppleEvent timed out`.
+    The script now takes `timeout=<seconds>` (default 600) and names the likely
+    cause on a timeout. Recover by activating Excel and pressing Escape; a file
+    picker holds no workbook content.
+12. **Quarantined files open fine through AppleScript.** Both supplied Vertiv
+    workbooks carry `com.apple.quarantine`, and the copy opened read/write and
+    saved without a Protected View prompt — but only when this terminal already
+    holds Automation permission. A first run on a fresh machine may still need
+    interactive approval.
+13. **Excel tolerates drawing XML that strict parsers reject.** One supplied
+    workbook declares `xmlns:id="{guid}"` — not a legal namespace name — so
+    openpyxl/Expat failed to read the whole workbook. The inspector now skips
+    unparsable drawing parts, reports them as `parse_warnings`, and still reads
+    formulas, names, values and errors.
+14. **Defined names are reported as a summary, not a list.** One supplied
+    workbook carries **11,051** inherited names (687 broken `#REF!`, 495
+    pointing at other workbooks, 10,774 hidden) while **no** Model-sheet formula
+    references any of them. The record keeps totals plus a bounded sample, so a
+    big number is visible without drowning the report.
+
 ### Failure handling
 
 * A run that fails restores Excel's settings and closes only the workbook it
   opened; Excel is never killed.
-* `close workbook=<abs path>` closes exactly the named workbooks (never saving)
-  and reports `SKIPPED` for anything else that is open.
+* `close workbook=<abs path>` closes exactly the named workbooks (never saving),
+  reports `SKIPPED` for anything else that is open, and restores Excel's settings
+  from a snapshot instead of hardcoding them.
 * An input whose hash no longer matches the inspected/approved copy is refused
   before any edit (see `inspect_workbook.py diff` and the skill policies).

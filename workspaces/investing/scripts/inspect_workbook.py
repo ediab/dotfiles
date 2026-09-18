@@ -45,6 +45,8 @@ import json
 import re
 import sys
 import zipfile
+import xml.etree.ElementTree as ET
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from openpyxl import load_workbook
@@ -102,6 +104,22 @@ PART_FEATURES = {
     "xl/drawings/": "drawings/images",
     "xl/media/": "embedded media",
 }
+
+
+def jsonable(value):
+    """Make a cell value JSON-serialisable and comparable without changing meaning.
+
+    Array formulas arrive as objects whose repr contains a memory address, which
+    would make two identical cells look different; compare their formula text.
+    """
+    if isinstance(value, (datetime, date, time, timedelta)):
+        return value.isoformat()
+    if isinstance(value, bytes):
+        return value.hex()
+    text = getattr(value, "text", None)
+    if isinstance(text, str) and text.startswith("="):
+        return text
+    return value
 
 
 def sha256(path: Path) -> str:
@@ -246,9 +264,40 @@ def raw_part_text_of_sheet(ws) -> str:
     return _SHEET_XML_CACHE[path]
 
 
+# Drawing parts written by Excel can fail strict XML parsing (observed in a
+# supplied broker workbook: `<a16:creationId ... xmlns:id="{guid}" />`, where the
+# namespace value is a GUID rather than a URI). Excel tolerates it; Expat does
+# not, and it aborts the whole workbook read. Formulas, names, values and errors
+# are unaffected, so the drawing/image part is skipped and *reported* rather than
+# failing the inspection.
+PARSE_WARNINGS: list[str] = []
+
+
+def load_workbook_tolerant(path: Path, data_only: bool):
+    from openpyxl.reader import excel as excel_reader
+
+    original = excel_reader.find_images
+
+    def skip_unparsable_drawings(archive, target):
+        try:
+            return original(archive, target)
+        except ET.ParseError as exc:
+            PARSE_WARNINGS.append(
+                f"drawing part {target} is not namespace-well-formed ({exc}); "
+                "images/shapes not inspected"
+            )
+            return [], []
+
+    excel_reader.find_images = skip_unparsable_drawings
+    try:
+        return load_workbook(path, data_only=data_only)
+    finally:
+        excel_reader.find_images = original
+
+
 def load_pair(path: Path):
-    formulas_wb = load_workbook(path, data_only=False)
-    cached_wb = load_workbook(path, data_only=True)
+    formulas_wb = load_workbook_tolerant(path, data_only=False)
+    cached_wb = load_workbook_tolerant(path, data_only=True)
     # openpyxl does not expose the source path; keep it for raw-part lookups.
     formulas_wb._inv_path = str(path)
     cached_wb._inv_path = str(path)
@@ -267,7 +316,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
         "path": str(path),
         "sha256": sha256(path),
         "size_bytes": path.stat().st_size,
-        "sheet_count": len(parts) and None,
+        "sheet_count": None,
         "features": [],
         "unsupported_features": [],
     }
@@ -286,6 +335,7 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     record.update(workbook_properties(path))
 
     formulas_wb, cached_wb = load_pair(path)
+    record["parse_warnings"] = sorted(set(PARSE_WARNINGS))
     record["sheet_count"] = len(formulas_wb.worksheets)
     record["hidden_sheets"] = [ws.title for ws in formulas_wb.worksheets if ws.sheet_state != "visible"]
     record["provider_cache_sheets"] = [
@@ -316,20 +366,32 @@ def cmd_inspect(args: argparse.Namespace) -> int:
         "stored_errors": sum(s["stored_error_count"] for s in sheets),
         "data_table_blocks": sum(s["data_table_blocks"] for s in sheets),
     }
-    if len(record["defined_names"]) > args.max_items:
-        record["defined_names_truncated"] = len(record["defined_names"]) - args.max_items
+    # Defined names are summarised before truncation: a workbook can carry
+    # thousands of inherited names, and the count matters more than the list.
+    record["defined_names_total"] = len(record["defined_names"])
+    record["defined_names_summary"] = {
+        "total": len(record["defined_names"]),
+        "broken_ref": sum(1 for n in record["defined_names"] if "#REF" in n["refers_to"]),
+        "points_at_other_workbook": sum(
+            1 for n in record["defined_names"] if re.search(r"\[\d+\]", n["refers_to"])
+        ),
+        "hidden": sum(1 for n in record["defined_names"] if n["hidden"]),
+    }
+    if record["defined_names_total"] > args.max_items:
+        record["defined_names_truncated"] = record["defined_names_total"] - args.max_items
         record["defined_names"] = record["defined_names"][: args.max_items]
-        record["defined_names"] = record["defined_names"]
     if args.mapping:
         record["assignment_mapping"] = json.loads(Path(args.mapping).read_text())
         record["assignment_mapping_file"] = Path(args.mapping).name
 
     if args.out:
-        Path(args.out).write_text(json.dumps(record, indent=2) + "\n")
+        Path(args.out).write_text(json.dumps(record, indent=2, default=str) + "\n")
         print(f"record written: {args.out}")
 
     calc = record["calculation"]
     print(f"workbook: {record['workbook']}  sha256={record['sha256'][:16]}...")
+    for warning in record["parse_warnings"]:
+        print(f"WARNING  {warning}")
     print(f"sheets: {record['sheet_count']}  hidden: {record['hidden_sheets'] or 'none'}")
     print(
         f"calculation: {calc['calc_mode']}"
@@ -342,7 +404,14 @@ def cmd_inspect(args: argparse.Namespace) -> int:
         f"{record['totals']['stored_errors']} stored error cells, "
         f"{record['totals']['data_table_blocks']} data-table blocks"
     )
-    print(f"defined names: {len(record['defined_names'])}  external links: {len(external_targets)}")
+    names_summary = record["defined_names_summary"]
+    print(
+        f"defined names: {names_summary['total']}"
+        f" (broken #REF!: {names_summary['broken_ref']},"
+        f" pointing at other workbooks: {names_summary['points_at_other_workbook']},"
+        f" hidden: {names_summary['hidden']})"
+        f"  external links: {len(external_targets)}"
+    )
     if external_targets:
         for target in external_targets[:10]:
             print(f"  link -> {target}")
@@ -376,12 +445,12 @@ def cell_map(path: Path) -> tuple[dict, dict]:
         for row in ws.iter_rows():
             for cell in row:
                 if cell.value is not None:
-                    fmap[f"{ws.title}!{cell.coordinate}"] = cell.value
+                    fmap[f"{ws.title}!{cell.coordinate}"] = jsonable(cell.value)
     for ws in cached_wb.worksheets:
         for row in ws.iter_rows():
             for cell in row:
                 if cell.value is not None:
-                    vmap[f"{ws.title}!{cell.coordinate}"] = cell.value
+                    vmap[f"{ws.title}!{cell.coordinate}"] = jsonable(cell.value)
     return fmap, vmap
 
 
@@ -516,7 +585,7 @@ def cmd_checks(args: argparse.Namespace) -> int:
     if len(findings) > len(record["findings"]):
         record["findings_truncated"] = len(findings) - len(record["findings"])
     if args.out:
-        Path(args.out).write_text(json.dumps(record, indent=2) + "\n")
+        Path(args.out).write_text(json.dumps(record, indent=2, default=str) + "\n")
         print(f"record written: {args.out}")
 
     print(f"workbook: {path.name}  sha256={record['sha256'][:16]}...")
@@ -636,7 +705,7 @@ def cmd_diff(args: argparse.Namespace) -> int:
         record["changes_truncated"] = len(changes) - len(listed)
 
     if args.out:
-        Path(args.out).write_text(json.dumps(record, indent=2) + "\n")
+        Path(args.out).write_text(json.dumps(record, indent=2, default=str) + "\n")
         print(f"record written: {args.out}")
 
     print(f"before: {before.name} ({record['before']['sha256'][:16]}...)")

@@ -8,7 +8,7 @@
 --
 -- Usage:
 --   osascript excel_model.applescript status
---   osascript excel_model.applescript recalc workbook=/abs/copy.xlsx [readback=/abs/cells.tsv] [out=/abs/report.tsv] [calc=full|dirty|rebuild] [save=no] [close=no] [allowOtherWorkbooks=yes]
+--   osascript excel_model.applescript recalc workbook=/abs/copy.xlsx [readback=/abs/cells.tsv] [out=/abs/report.tsv] [calc=full|dirty|rebuild] [save=no] [close=no] [allowOtherWorkbooks=yes] [timeout=600]
 --   osascript excel_model.applescript edit   workbook=/abs/copy.xlsx changes=/abs/changes.tsv [readback=...] [out=...] [save=no] [close=no]
 --   osascript excel_model.applescript close workbook=/abs/copy.xlsx [workbook=/abs/other.xlsx]
 --   osascript excel_model.applescript settings-get
@@ -28,6 +28,11 @@
 --
 -- `close` closes only workbooks whose full path appears in an explicit workbook=
 -- argument; it never closes anything else and never saves.
+--
+-- timeout=  AppleEvent timeout in seconds for the Excel calls (default 600). A
+-- modal dialog in Excel queues AppleEvents, and the AppleScript default (120s)
+-- turns that into a misleading -1712 ""timed out"" error, so the timeout is
+-- explicit and a timeout is reported as such.
 --
 -- This script never writes to a path it was not told to open. It does not guess
 -- cell locations and does not repair anything on its own.
@@ -162,6 +167,7 @@ on cmdClose(argsList, excelWasRunning)
 
 	set out to ""
 	set closedAny to false
+	set preState to my appSettings()
 	try
 		tell application "Microsoft Excel"
 			set display alerts to false
@@ -177,16 +183,24 @@ on cmdClose(argsList, excelWasRunning)
 					set out to out & "SKIPPED" & TABCHAR & wbName & TABCHAR & wbFull & my LF()
 				end if
 			end repeat
-			set display alerts to true
-			if (count of workbooks) = 0 and not excelWasRunning then
-				quit
+		end tell
+		if not excelWasRunning then
+			tell application "Microsoft Excel"
+				set stillOpen to (count of workbooks)
+			end tell
+			if stillOpen = 0 then
+				tell application "Microsoft Excel" to quit
 				set out to out & "APP" & TABCHAR & "excel_quit" & TABCHAR & "true" & my LF()
 			end if
-		end tell
+		end if
+		-- Restore whatever Excel's settings were, never a hardcoded value.
+		set restored to my restoreSettings(preState)
+		set out to out & "RESTORED" & TABCHAR & restored & my LF()
 		if not closedAny then set out to out & "CLOSED" & TABCHAR & "none-matching" & TABCHAR & "no open workbook matched" & my LF()
 		return my reportLine("STATUS", okStatus) & my LF() & out
 	on error errMsg number errNum
-		return my reportLine("STATUS", errorStatus) & my LF() & my reportLine("MESSAGE", "(" & errNum & ") " & errMsg) & my LF()
+		set restored to my restoreSettings(preState)
+		return my reportLine("STATUS", errorStatus) & my LF() & my reportLine("MESSAGE", "(" & errNum & ") " & errMsg) & my LF() & "RESTORED" & TABCHAR & restored & my LF()
 	end try
 end cmdClose
 
@@ -244,8 +258,14 @@ on restoreSettings(s)
 	if (alerts of post1) is not (alerts of s) then set mismatch to mismatch & "display_alerts;"
 	if (askLinks of post1) is not (askLinks of s) then set mismatch to mismatch & "ask_to_update_links;"
 	if (autoSec of post1) is not (autoSec of s) then set mismatch to mismatch & "automation_security;"
-	if (calc of post1) is not (calc of s) then set mismatch to mismatch & "calculation;"
+	-- Excel reports `missing value` for the calculation mode when no workbook is
+	-- open (before the first open, or after closing the last one). Then there is
+	-- nothing to restore and nothing to compare, which is stated rather than
+	-- reported as a failed restore.
+	set calcComparable to ((calc of s) is not "missing value") and ((calc of post1) is not "missing value")
+	if calcComparable and (calc of post1) is not (calc of s) then set mismatch to mismatch & "calculation;"
 	set restoreSummary to "calc=" & (calc of post1) & ";alerts=" & (alerts of post1) & ";askLinks=" & (askLinks of post1) & ";autoSec=" & (autoSec of post1)
+	if not calcComparable then set restoreSummary to restoreSummary & ";calculation_not_comparable_no_open_workbook"
 	if mismatch is "" then
 		return restoreSummary & ";match=true"
 	else
@@ -298,6 +318,13 @@ on cmdProcess(argsList, doEdits)
 	set saveFlag to (my getOption(argsList, "save") is not "no")
 	set closeFlag to (my getOption(argsList, "close") is not "no")
 	set allowOthers to (my getOption(argsList, "allowOtherWorkbooks") is "yes")
+	set timeoutOption to my getOption(argsList, "timeout")
+	set opTimeout to 600
+	if timeoutOption is not missing value then
+		try
+			set opTimeout to (timeoutOption as integer)
+		end try
+	end if
 
 	if doShellCommand("test -f " & quoted form of wbPath & " && echo yes") is not "yes" then
 		return my fatal("workbook not found: " & wbPath)
@@ -324,6 +351,9 @@ on cmdProcess(argsList, doEdits)
 		end tell
 	end if
 
+	set out to out & "APP" & TABCHAR & "appleevent_timeout_seconds" & TABCHAR & (opTimeout as text) & my LF()
+
+	with timeout of opTimeout seconds
 	set preState to my appSettings()
 	set openedWbName to missing value
 	set out to out & "CALC" & TABCHAR & "file_declared_mode" & TABCHAR & fileCalcMode & my LF()
@@ -442,6 +472,9 @@ on cmdProcess(argsList, doEdits)
 		set restored to my restoreSettings(preState)
 		set out to out & my reportLine("STATUS", errorStatus) & my LF()
 		set out to out & my reportLine("MESSAGE", "(" & errNum & ") " & errMsg) & my LF()
+		if errNum is -1712 then
+			set out to out & my reportLine("MESSAGE", "Excel did not answer within " & (opTimeout as text) & "s: a modal dialog is probably open in Excel (dismiss it) or the file needs interactive approval") & my LF()
+		end if
 		set out to out & "RESTORED" & TABCHAR & restored & my LF()
 		return my finish(out, outPath)
 	end try
@@ -463,6 +496,7 @@ on cmdProcess(argsList, doEdits)
 	end if
 
 	return my finish(my reportLine("STATUS", okStatus) & my LF() & out, outPath)
+	end timeout
 end cmdProcess
 
 on finish(out, outPath)
