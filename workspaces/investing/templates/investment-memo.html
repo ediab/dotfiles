@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!--
+  Investment memo / pitch template.
+  Self-contained on purpose: inline CSS, no CDN, no script, no external font.
+  Replace every [SQUARE BRACKET] placeholder. Figures must reconcile to the
+  delivered workbook via:
+      inspect_workbook.py verify --workbook <C>.xlsx --evidence <assignment>-evidence.json
+  Escape supplied text; attribute quoted passages to their file and location.
+  Absent inputs stay visibly absent ("MISSING: source not supplied") - never
+  substituted with an estimate or a remembered number.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[Company] ([Ticker]) — [Long/Short] — [Horizon]</title>
+<style>
+  :root { --ink:#14181f; --muted:#5b6675; --rule:#d8dee7; --warn:#8a4b00; --warnbg:#fff6e5; --box:#f6f8fa; }
+  * { box-sizing:border-box; }
+  body { margin:0 auto; padding:40px 28px 72px; max-width:920px; color:var(--ink);
+         font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; }
+  h1 { font-size:24px; margin:0 0 4px; letter-spacing:-0.01em; }
+  h2 { font-size:16px; margin:34px 0 10px; padding-bottom:5px; border-bottom:1px solid var(--rule); }
+  h3 { font-size:14px; margin:20px 0 6px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 20px; }
+  .verdict { background:var(--box); border-left:3px solid var(--ink); padding:14px 16px; margin:18px 0; }
+  .verdict strong { font-size:16px; }
+  table { border-collapse:collapse; width:100%; margin:12px 0; font-size:13.5px; }
+  th,td { border-bottom:1px solid var(--rule); padding:6px 8px; text-align:right; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { border-bottom:2px solid var(--ink); }
+  .missing { background:var(--warnbg); border-left:3px solid var(--warn); padding:12px 14px; margin:16px 0; }
+  .missing h2, .missing h3 { border:0; margin-top:0; color:var(--warn); }
+  .flag { color:var(--warn); font-weight:600; }
+  .provenance { font-size:12.5px; color:var(--muted); }
+  .provenance code { background:var(--box); padding:1px 4px; border-radius:3px; }
+  ul { margin:8px 0 8px 18px; padding:0; }
+  li { margin:4px 0; }
+  footer { margin-top:40px; border-top:1px solid var(--rule); padding-top:12px;
+           font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>[Company] ([Ticker]) — [Long/Short]</h1>
+<p class="sub">[Date] · horizon [6–18 months unless the assignment overrides] · scenario: [base] ·
+workbook <code>[workbook-C.xlsx]</code> · prepared from supplied material only</p>
+
+<div class="verdict">
+  <strong>Verdict: [Long/Short]</strong> — [one sentence: the reason, and the expected outcome].
+  <br><span class="provenance">[State here if the memo is provisional and why.]</span>
+</div>
+
+<h2>1. Thesis</h2>
+<p>[The causal chain: supplied fact → assumption → modelled outcome. Name each assumption it
+rests on and cite where it came from.]</p>
+
+<h2>2. Differentiated view</h2>
+<p>[What the supplied evidence says the market is missing. Only claim a difference from
+consensus when supplied estimates support it; one broker file is one view, not consensus.
+Otherwise write that no comparison is possible from supplied material.]</p>
+
+<h2>3. Operating assumptions</h2>
+<table>
+  <thead><tr><th>Driver</th><th>[FY-1A]</th><th>[FY0E]</th><th>[FY1E]</th><th>Source / basis</th></tr></thead>
+  <tbody>
+    <tr><td>[Revenue driver]</td><td>[…]</td><td>[…]</td><td>[…]</td><td>[supplied source]</td></tr>
+    <tr><td>[Segment / product mix]</td><td>[…]</td><td>[…]</td><td>[…]</td><td>[supplied source]</td></tr>
+    <tr><td>[Margin driver]</td><td>[…]</td><td>[…]</td><td>[…]</td><td>[supplied source]</td></tr>
+    <tr><td>[Capex / capacity / backlog]</td><td>[…]</td><td>[…]</td><td>[…]</td><td>[supplied source]</td></tr>
+  </tbody>
+</table>
+<p class="provenance">Reported figures are [reported / adjusted]: [say which, and list any
+adjustment made, so it is not double-counted in the model].</p>
+
+<h2>4. Valuation</h2>
+<table>
+  <thead><tr><th>Method</th><th>Inputs (source)</th><th>Value / share</th></tr></thead>
+  <tbody>
+    <tr><td>[DCF / EV-EBITDA / P-E …]</td><td>[conventions: period, net debt, share count]</td><td>[…]</td></tr>
+  </tbody>
+</table>
+<p class="provenance">Sheet/cell references for every figure above: [Model!E12, Model!E28 …].
+[State the conventions the number depends on.]</p>
+
+<h2>5. Bull / base / bear</h2>
+<table>
+  <thead><tr><th>Case</th><th>What differs</th><th>Value / share</th><th>What must be true</th></tr></thead>
+  <tbody>
+    <tr><td>Bull</td><td>[…]</td><td>[…]</td><td>[…]</td></tr>
+    <tr><td>Base</td><td>[scenario delivered in the workbook]</td><td>[…]</td><td>[…]</td></tr>
+    <tr><td>Bear</td><td>[…]</td><td>[…]</td><td>[…]</td></tr>
+  </tbody>
+</table>
+<p class="provenance">Probabilities: [supplied, or “not supplied — cases are illustrative, not
+weighted”]. [If illustrative, say so plainly; the memo is then not decision-ready.]</p>
+
+<h2>6. Catalysts</h2>
+<ul>
+  <li>[Date] — [catalyst] ([source]; supplied date). [If reasoned from the model rather than
+      reported, say so and name the assumption.]</li>
+</ul>
+
+<h2>7. Risks and disconfirmers</h2>
+<ul>
+  <li>[Specific, checkable statement of what would prove the thesis wrong.]</li>
+  <li>[Model weakness found in the audit that could invalidate a figure.]</li>
+  <li>[Inherited model issue and its materiality, if unresolved.]</li>
+</ul>
+
+<div class="missing">
+  <h3>8. Missing evidence</h3>
+  <ul>
+    <li class="flag">[e.g. current share price — MISSING: source not supplied; blocks upside/downside and current multiples]</li>
+    <li class="flag">[e.g. consensus estimates — MISSING; the differentiated-view claim is therefore limited to supplied broker views]</li>
+    <li class="flag">[e.g. share count / dilution schedule — MISSING; per-share values above are provisional]</li>
+  </ul>
+</div>
+
+<h2>9. Provenance</h2>
+<p class="provenance">
+  Delivered workbook: <code>[workbook-C.xlsx]</code>, SHA-256 <code>[hash]</code>, scenario
+  <code>[base]</code>.<br>
+  Evidence record: <code>[assignment-evidence.json]</code> — [N] items checked, [0] mismatches.<br>
+  Change log and validation summary: <code>[assignment-change-log.md]</code>.<br>
+  Supplied sources: [file names as supplied].<br>
+  Baseline note: A→B recalculation drift [state]; unresolved inherited issues [count / none].
+</p>
+
+<footer>
+  Prepared from supplied material only. No financial data, prices, consensus or catalysts were
+  retrieved. Figures reconcile to the delivered workbook; judgment, assumptions and missing
+  inputs are labelled as such above.
+</footer>
+
+</body>
+</html>

@@ -306,6 +306,8 @@ on cmdProcess(argsList, doEdits)
 	set excelWasRunning to my excelWasRunningAtStart()
 	set out to ""
 
+	set fileCalcMode to my workbookCalcModeValue(wbPath)
+
 	-- Refuse to work when unrelated workbooks are open: Excel's calculate command
 	-- recalculates every open workbook.
 	if excelWasRunning and not allowOthers then
@@ -324,6 +326,7 @@ on cmdProcess(argsList, doEdits)
 
 	set preState to my appSettings()
 	set openedWbName to missing value
+	set out to out & "CALC" & TABCHAR & "file_declared_mode" & TABCHAR & fileCalcMode & my LF()
 	set didSave to false
 
 	try
@@ -409,8 +412,18 @@ on cmdProcess(argsList, doEdits)
 			end if
 
 			if saveFlag then
+				-- Keep the workbook's own calculation mode rather than ours.
+				if fileCalcMode is "manual" then
+					set calculation to calculation manual
+				else
+					set calculation to calculation automatic
+				end if
 				save wb
 				set didSave to true
+				set out to out & "CALC" & TABCHAR & "saved_with_mode" & TABCHAR & (calculation as text) & my LF()
+				if fileCalcMode is "autoNoTable" then
+					set out to out & "WARNING" & TABCHAR & "workbook declared autoNoTable; AppleScript cannot set that exception, so it was saved as automatic" & my LF()
+				end if
 				set out to out & "SAVED" & TABCHAR & (full name of wb) & my LF()
 			end if
 
@@ -472,6 +485,16 @@ on doShellCommand(cmd)
 		return ""
 	end try
 end doShellCommand
+
+-- Excel writes the *application-level* calculation mode into the workbook when it
+-- saves, so a manual run would silently flip an automatic workbook to manual. Read
+-- the mode the file itself declares and restore it before saving.
+on workbookCalcModeValue(filePath)
+	set raw to my doShellCommand("unzip -p " & quoted form of filePath & " xl/workbook.xml 2>/dev/null | tr '>' '\\n' | grep -o 'calcMode=\"[a-zA-Z]*\"' | head -1")
+	if raw contains "manual" then return "manual"
+	if raw contains "autoNoTable" then return "autoNoTable"
+	return "auto"
+end workbookCalcModeValue
 
 -- Apply one change and return a human summary of the before/after state.
 on applyChange(wb, sheetName, cellAddr, changeKind, changeContent)

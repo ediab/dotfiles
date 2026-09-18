@@ -160,6 +160,17 @@ def cached(path: Path) -> dict[str, object]:
     return out
 
 
+def declared_calc_mode(path: Path) -> str:
+    """The calcMode the file itself declares (Excel writes the app mode on save)."""
+    import re
+    import zipfile
+
+    with zipfile.ZipFile(path) as archive:
+        workbook_xml = archive.read("xl/workbook.xml").decode("utf-8", "replace")
+    match = re.search(r'<calcPr[^>]*calcMode="([^"]*)"', workbook_xml)
+    return match.group(1) if match else "auto"
+
+
 def write_cells_file(path: Path, entries: list[tuple[str, str]]) -> None:
     path.write_text("".join(f"{s}\t{c}\n" for s, c in entries))
 
@@ -234,6 +245,11 @@ def main() -> int:
     check("B saved file carries Excel's result for Model!B8", float(saved_b["Model!B8"]) == 6525.0)
     check("B preserved every formula verbatim", formulas(copy_b) == original_formulas)
     check("B preserved workbook features", features(copy_b) == original_features)
+    check(
+        "B keeps the source workbook's own calculation mode",
+        declared_calc_mode(copy_b) == declared_calc_mode(original),
+        f"{declared_calc_mode(original)} -> {declared_calc_mode(copy_b)}",
+    )
     hash_b_before_edit = sha256(copy_b)
     check("original A was not modified by the baseline run", sha256(original) == original_hash)
 

@@ -50,6 +50,47 @@ machine-specific absolute path, decides the dependency set:
 `scripts/excel_model.applescript` is invoked with the system `osascript`; it has
 no Python dependency.
 
+## Inspector
+
+`scripts/inspect_workbook.py` is read-only; it never writes to a workbook.
+
+| Mode | Purpose |
+| --- | --- |
+| `inspect` | sheets, formulas, stored errors, external links, names, hidden content, calculation mode, provider-function traces, unsupported parts; bounded JSON record + summary |
+| `checks` | mechanical candidates on a recalculated copy: error cells with formulas, formulas breaking their contiguous neighbours' pattern, numeric literals inside formulas, subtraction tie-outs with their cached values |
+| `diff` | two workbooks compared at sheet, name, formula-text, constant, cached-value and error level (A→B = environment drift, B→C = edit effects) |
+| `guard` | input-hash gate: refuses an artifact that is not the inspected one |
+| `verify` | reconciles an evidence record (memo, change log) against the workbook's cached values |
+
+Counts and findings are observations for analyst judgement. `checks` exits 1 when
+it reports an error cell, but a clean run is not a clean model.
+
+## Workspace registration
+
+`setup.sh` registers the skills only in `~/Investing` (override with
+`INVESTING_WORKSPACE`) and mirrors the toolset's layout beside them:
+
+```text
+~/Investing/.agents/skills      -> workspaces/investing/skills      (Pi discovers this)
+~/Investing/.agents/references  -> workspaces/investing/references
+~/Investing/.agents/scripts     -> workspaces/investing/scripts
+~/Investing/.agents/templates   -> workspaces/investing/templates
+~/Investing/.agents/README.md   -> workspaces/investing/README.md
+```
+
+The extra links exist because a relative pointer such as
+`../../references/workflow-policy.md` inside a skill must resolve from *both*
+the checkout and the workspace: a relative symlink inside the repo would break
+once reached through `.agents/skills`, so these use absolute targets. Verified
+live: skills are discovered from `/Users/eliasdiab/Investing` and from an
+assignment subfolder, the two policy pointers resolve from the reported skill
+location, and `TOOLSET="$(dirname "$(readlink -f ~/Investing/.agents/skills)")"`
+runs the inspector from any directory.
+
+`setup.sh` is idempotent, reports conflicts instead of overwriting, and never
+touches global skill settings, `~/.pi/agent/settings.json`, `rebuild.sh`,
+`bootstrap.sh` or VPS sync.
+
 ## Unit 0 — Excel feasibility gate (verified facts)
 
 These are the measured results of the feasibility gate, on disposable synthetic
@@ -59,9 +100,18 @@ from memory were not accepted; every item below was executed.
 Run the gate with:
 
 ```sh
-.venv/bin/python tests/test_unit0_excel_roundtrip.py   # 44 checks
-.venv/bin/python tests/test_applescript_scoping.py     # AppleScript name lint
+tests/run_all.sh                                    # everything below, in order
+.venv/bin/python tests/test_applescript_scoping.py  # AppleScript name lint
+.venv/bin/python tests/test_unit0_excel_roundtrip.py  # 45 checks
+.venv/bin/python tests/test_audit_update_memo.py    # 42 checks: Phase 2 checkpoint
 ```
+
+`test_audit_update_memo.py` is the audit/update/memo integration checkpoint on
+synthetic fixtures: it locates the seeded defects and separates them from
+harmless input constants, applies an approved input change to a hash-gated copy
+and checks the propagated values against arithmetic computed in the test, and
+reconciles memo-style figures to the delivered workbook through the evidence
+record (including catching a figure that disagrees).
 
 ### Environment
 
@@ -115,9 +165,16 @@ Run the gate with:
    Excel, `open workbook` returns without binding a workbook object. The helper
    detects this and fails loudly instead of silently doing nothing.
 7. **Excel rewrites workbooks on save.** Observed serialization changes:
-   external-link formulas are rewritten to absolute paths, and colour alpha
-   bytes are normalised (`0000B050` → `FF00B050`). These are metadata changes,
-   not financial edits, but they must be reported rather than hidden.
+   external-link formulas are rewritten to absolute paths, colour alpha bytes are
+   normalised (`0000B050` → `FF00B050`), `calcId` moves, and `fullCalcOnLoad`
+   is dropped once the workbook has been fully calculated. These are metadata
+   changes, not financial edits, but they must be reported rather than hidden.
+   *Fixed side effect:* Excel writes the **application-level** calculation mode
+   into the saved file, so a run under manual calculation used to flip an
+   automatic workbook to manual. `excel_model.applescript` now reads the mode
+   the file itself declares (`workbookCalcModeValue`) and restores it before
+   saving; an `autoNoTable` workbook is saved as `automatic` and reported as a
+   `WARNING`, because AppleScript cannot express the data-table exception.
 8. **Data-table (`autoNoTable`) recalculation is not addressable from
    AppleScript.** `Application.Calculation` exposes only automatic / manual /
    semiautomatic; the "automatic except data tables" distinction is per
