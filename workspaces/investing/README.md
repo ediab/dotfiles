@@ -50,6 +50,23 @@ machine-specific absolute path, decides the dependency set:
 `scripts/excel_model.applescript` is invoked with the system `osascript`; it has
 no Python dependency.
 
+## Skills
+
+Seven skills live in `skills/`, registered only in `~/Investing`:
+
+| Skill | Basis | Core content |
+| --- | --- | --- |
+| `audit-xls` | Anthropic `financial-analysis/skills/audit-xls` | formula-level checks, model-integrity checks, located findings with severity |
+| `model-update` | Anthropic `equity-research/skills/model-update` | supplied actuals/guidance → mapped change list → approved copy → propagation verification |
+| `investment-memo` | original | evidence record → reconciled HTML memo/pitch, missing inputs flagged |
+| `scenario-analysis` | original | base/bull/bear as driver sets, propagation and grid verification, delivery case restored |
+| `comps-analysis` | Anthropic `financial-analysis/skills/comps-analysis` | supplied peer data, declared units/periods, `n/m` handling, ratios-only statistics |
+| `3-statement-model` | Anthropic `financial-analysis/skills/3-statement-model` | linked IS/BS/CF, schedule-driven tie-outs, driver propagation |
+| `dcf-model` | Anthropic `financial-analysis/skills/dcf-model`, retrieval core stripped | unlevered FCF, WACC, discounting conventions, terminal value, EV→equity bridge |
+
+Shared references (ordinary Markdown, not skills): `workflow-policy.md`,
+`source-policy.md`, `financial-modeling.md`, `sector-drivers.md`.
+
 ## Inspector
 
 `scripts/inspect_workbook.py` is read-only; it never writes to a workbook.
@@ -104,6 +121,7 @@ tests/run_all.sh                                    # everything below, in order
 .venv/bin/python tests/test_applescript_scoping.py  # AppleScript name lint
 .venv/bin/python tests/test_unit0_excel_roundtrip.py  # 45 checks
 .venv/bin/python tests/test_audit_update_memo.py    # 42 checks: Phase 2 checkpoint
+.venv/bin/python tests/test_remaining_skills.py    # Phase 3: 3-statement, DCF, comps, scenarios
 ```
 
 `test_audit_update_memo.py` is the audit/update/memo integration checkpoint on
@@ -206,6 +224,19 @@ record (including catching a figure that disagrees).
     pointing at other workbooks, 10,774 hidden) while **no** Model-sheet formula
     references any of them. The record keeps totals plus a bounded sample, so a
     big number is visible without drowning the report.
+
+15. **Excel's `open workbook` can wedge mid-session.** After a long run of
+    automation it stops returning a workbook object and raises its own file
+    picker instead; that picker is not one of Excel's scriptable windows, so it
+    cannot be closed from AppleScript, and every later AppleEvent queues behind
+    it. Recovery is a human keystroke: press Escape in Excel (or quit Excel).
+    The tool now detects the stuck dialog, reports `BLOCKED` with that
+    instruction when the target workbook declares external links, and otherwise
+    falls back to the standard `open` command — which is **only** allowed for
+    workbooks with no `xl/externalLinks/` part, because the standard open cannot
+    pass `update links do not update links`. Link fidelity is never traded for
+    convenience. It also refuses to attempt the preferred open while a stuck
+    dialog is present, so it does not deepen the wedge.
 
 ### Failure handling
 

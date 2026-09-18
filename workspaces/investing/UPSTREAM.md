@@ -19,12 +19,14 @@ Files read at that revision (adaptation sources):
 | `model-update` | `plugins/vertical-plugins/equity-research/skills/model-update/SKILL.md` | ported |
 | `investment-memo` | — | original; no upstream source |
 | `scenario-analysis` | — | original, uses licensed modelling conventions |
-| `3-statement-model` | `plugins/vertical-plugins/financial-analysis/skills/3-statement-model/` (SKILL.md + `references/{formulas,formatting,sec-filings}.md`) | ported, SEC retrieval dropped |
+| `3-statement-model` | `plugins/vertical-plugins/financial-analysis/skills/3-statement-model/` (SKILL.md + `references/{formulas,formatting,sec-filings}.md`) | ported from SKILL.md and `references/formulas.md`; SEC retrieval (`references/sec-filings.md`) and the formatting palette were dropped |
 | `comps-analysis` | `plugins/vertical-plugins/financial-analysis/skills/comps-analysis/SKILL.md` | ported |
-| `dcf-model` | `plugins/vertical-plugins/financial-analysis/skills/dcf-model/` (SKILL.md, `TROUBLESHOOTING.md`, `scripts/validate_dcf.py`, `requirements.txt`) | ported with the data-retrieval core stripped |
+| `dcf-model` | `plugins/vertical-plugins/financial-analysis/skills/dcf-model/` (SKILL.md, `TROUBLESHOOTING.md`, `scripts/validate_dcf.py`, `requirements.txt`) | ported from SKILL.md; `TROUBLESHOOTING.md`'s error/unreasonable-value checks were **read and folded into the skill text**; `scripts/validate_dcf.py` was read and **replaced** by `scripts/inspect_workbook.py checks/verify`; `requirements.txt` was **not ported** (it pulls `requests` for HTTP fetching) |
 
 Nothing else from the repository was copied: no other skills, no
-`claude-for-*` packages, no agent-plugins variants.
+`claude-for-*` packages, no agent-plugins variants. `xlsx-author`,
+`clean-data-xls` and the powerpoint/deck skills were not used — this toolset
+writes through native Excel, not an Office JS or python-docx pipeline.
 
 ## OpenAI public-equity-investing
 
@@ -45,8 +47,10 @@ cannot hold in a supplied-data-only, local-Excel tool:
    arrives from the user; anything absent is requested or marked `MISSING`
    (see `references/source-policy.md`).
 2. **UI-assumption scoping.** Upstream `audit-xls` scopes by active selection or
-   sheet. This toolset inspects *files* read-only, so scope is a workbook (or a
-   named sheet/range) and every finding carries an explicit sheet + cell.
+   sheet, and the comps/3-statement/DCF skills assume an Office JS environment
+   with an active document. This toolset inspects *files* read-only and writes
+   through native Excel on a copy, so scope is always a workbook (or a named
+   sheet/range) and every finding carries an explicit sheet + cell.
 3. **Tool names and paths.** Upstream references to Office JS, `recalc.py`, and
    cross-skill links that do not exist here are replaced by this toolset's
    `scripts/inspect_workbook.py` and `scripts/excel_model.applescript`, whose
@@ -58,7 +62,12 @@ cannot hold in a supplied-data-only, local-Excel tool:
    (which adds SBC directly) is **not** carried over as a universal check: the
    port checks RE only using the model's own line items, and never imposes an
    identity the workbook is not built to satisfy.
-6. **Unverified upstream claims.** Assumptions were tested rather than
+6. **Comparables hygiene.** Upstream comps assumes a market-data source for
+   price, share count and net debt. The port requires those as supplied inputs,
+   declares units and periods per company, renders non-meaningful denominators as
+   `n/m` and excludes them from the statistics, and never presents one broker
+   file as consensus.
+7. **Unverified upstream claims.** Assumptions were tested rather than
    inherited; where the local environment could not do what upstream implied
    (for example, per-workbook recalculation), the limit is documented in
    `README.md` and the skill is written to work with it.

@@ -335,6 +335,16 @@ on cmdProcess(argsList, doEdits)
 
 	set fileCalcMode to my workbookCalcModeValue(wbPath)
 
+	set stuckDialog to my excelHasStuckOpenDialog()
+
+	-- A stuck file picker blocks a linked workbook outright: it must be opened with
+	-- link updates disabled, and only the preferred `open workbook` call can do that.
+	if stuckDialog and my workbookHasExternalLinks(wbPath) then
+		set out to out & my reportLine("STATUS", blockedStatus) & my LF()
+		set out to out & my reportLine("MESSAGE", "Excel shows a stuck Open dialog, and " & wbPath & " declares external links, which can only be opened safely by the preferred call. Dismiss the dialog in Excel (press Escape) or quit Excel, then retry.") & my LF()
+		return my finish(out, outPath)
+	end if
+
 	-- Refuse to work when unrelated workbooks are open: Excel's calculate command
 	-- recalculates every open workbook.
 	if excelWasRunning and not allowOthers then
@@ -344,8 +354,10 @@ on cmdProcess(argsList, doEdits)
 				repeat with i from 1 to (count of workbooks)
 					set others to others & (name of workbook i) & " | "
 				end repeat
+				set dialogHint to ""
+				if stuckDialog then set dialogHint to " (Excel also shows a stuck Open dialog - press Escape in Excel to dismiss it)"
 				set out to out & my reportLine("STATUS", blockedStatus) & my LF()
-				set out to out & my reportLine("MESSAGE", "unrelated workbooks open in Excel: " & others & "close them or grant exclusive use, then retry") & my LF()
+				set out to out & my reportLine("MESSAGE", "unrelated workbooks open in Excel: " & others & "close them or grant exclusive use, then retry" & dialogHint) & my LF()
 				return my finish(out, outPath)
 			end if
 		end tell
@@ -367,14 +379,34 @@ on cmdProcess(argsList, doEdits)
 			set automation security to msoAutomationSecurityForceDisable
 			set calculation to calculation manual
 
-			set wb to open workbook workbook file name wbPath update links do not update links read only false ignore read only recommended true add to mru false
-			-- If the same path is already open in Excel, `open workbook` returns without
-			-- binding the result object; fail loudly instead of silently doing nothing.
-			try
+			set wb to missing value
+			set needsFallback to my excelHasStuckOpenDialog()
+			if needsFallback then
+				set out to out & "WARNING" & TABCHAR & "Excel already shows a stuck Open dialog; skipping the preferred open" & my LF()
+			else
+				try
+					set wb to open workbook workbook file name wbPath update links do not update links read only false ignore read only recommended true add to mru false
+					set openedWbName to name of wb
+				on error
+					set wb to missing value
+					set needsFallback to true
+					set out to out & "WARNING" & TABCHAR & "open workbook failed for " & wbPath & my LF()
+				end try
+			end if
+			if wb is missing value then
+				-- Excel exposes no way to open a workbook with link updates
+				-- disabled other than `open workbook`, so the fallback is allowed
+				-- only when the file declares no external links at all.
+				set discarded to my clearStuckOpenDialog()
+				if my workbookHasExternalLinks(wbPath) then
+					error "cannot open " & wbPath & ": the preferred open failed and the file declares external links, so the standard-open fallback (which cannot disable link updates) is not allowed. Quit Excel with no unsaved workbooks open (or dismiss its Open dialog) and retry."
+				end if
+				tell application "Microsoft Excel" to open (POSIX file wbPath)
+				delay 1
+				set wb to first workbook whose name is my baseNameOfPath(wbPath)
 				set openedWbName to name of wb
-			on error
-				error "open workbook returned no workbook object for " & wbPath & " - is that file already open in Excel?"
-			end try
+				set out to out & "WORKBOOK" & TABCHAR & "opened_with" & TABCHAR & "standard open fallback (no external links declared)" & my LF()
+			end if
 			set out to out & "WORKBOOK" & TABCHAR & "opened" & TABCHAR & openedWbName & my LF()
 			set out to out & "WORKBOOK" & TABCHAR & "full_name" & TABCHAR & (full name of wb) & my LF()
 			set out to out & "WORKBOOK" & TABCHAR & "sheets" & TABCHAR & (count of sheets of wb as text) & my LF()
@@ -529,6 +561,71 @@ on workbookCalcModeValue(filePath)
 	if raw contains "autoNoTable" then return "autoNoTable"
 	return "auto"
 end workbookCalcModeValue
+
+-- Excel's AppleScript `open workbook` can wedge in a long-running session: it stops
+-- returning a workbook object and raises its own file picker instead, which then
+-- queues every later AppleEvent behind it. Recover in this order:
+--   1. cancel a stuck "Open" picker (a file picker holds no workbook content),
+--   2. fall back to the standard `open` command *only* for workbooks that declare
+--      no external links, because the standard open cannot pass
+--      "update links do not update links" and link fidelity is non-negotiable,
+--   3. otherwise refuse, so a linked workbook is never opened by a weaker path.
+on clearStuckOpenDialog()
+	try
+		tell application "Microsoft Excel" to activate
+		delay 0.5
+		tell application "System Events"
+			if not (exists process "Microsoft Excel") then return false
+			tell process "Microsoft Excel"
+				repeat with w in windows
+					if (name of w) is "Open" then
+						key code 53
+						delay 1
+						return true
+					end if
+				end repeat
+			end tell
+		end tell
+	on error
+		return false
+	end try
+	return false
+end clearStuckOpenDialog
+
+-- A stuck "Open" window means the preferred open already wedged once: skip
+-- straight to the safe path instead of queuing another wedging call.
+on excelHasStuckOpenDialog()
+	try
+		tell application "System Events"
+			if not (exists process "Microsoft Excel") then return false
+			tell process "Microsoft Excel"
+				repeat with w in windows
+					if (name of w) is "Open" then return true
+				end repeat
+			end tell
+		end tell
+	on error
+		return false
+	end try
+	return false
+end excelHasStuckOpenDialog
+
+on workbookHasExternalLinks(filePath)
+	set hits to my doShellCommand("unzip -l " & quoted form of filePath & " 2>/dev/null | grep -c 'xl/externalLinks/'")
+	try
+		return (hits as integer) > 0
+	on error
+		return true
+	end try
+end workbookHasExternalLinks
+
+on baseNameOfPath(thePath)
+	set prevDelims to AppleScript's text item delimiters
+	set AppleScript's text item delimiters to "/"
+	set theParts to text items of thePath
+	set AppleScript's text item delimiters to prevDelims
+	return (item -1 of theParts) as text
+end baseNameOfPath
 
 -- Apply one change and return a human summary of the before/after state.
 on applyChange(wb, sheetName, cellAddr, changeKind, changeContent)

@@ -544,19 +544,33 @@ def cmd_checks(args: argparse.Namespace) -> int:
                     )
                 formula_cells.setdefault(cell.column, []).append((cell.row, value))
 
-        for col, entries in sorted(formula_cells.items()):
-            entries.sort()
-            run: list[tuple[int, str]] = []
-            for entry in entries + [(None, None)]:
-                if run and (entry[0] is None or entry[0] != run[-1][0] + 1):
-                    if len(run) >= 3:
-                        shapes = [
-                            normalize_formula(formula, row, col) for row, formula in run
-                        ]
-                        dominant = max(set(shapes), key=shapes.count)
-                        if shapes.count(dominant) < len(shapes):
-                            for (row, formula), shape in zip(run, shapes):
-                                if shape != dominant:
+        # An inconsistent formula is a cell that breaks its neighbours' pattern.
+        # Both axes matter: line items vary down a column within one period, and
+        # periods vary across a row for one line item. Each is checked separately.
+        row_cells: dict[int, list[tuple[int, str]]] = {}
+        for row in ws.iter_rows():
+            for cell in row:
+                value = cell.value
+                if isinstance(value, str) and value.startswith("="):
+                    row_cells.setdefault(cell.row, []).append((cell.column, value))
+
+        def scan_runs(runs, axis: str) -> None:
+            for fixed, entries in sorted(runs.items()):
+                entries.sort()
+                run: list[tuple[int, str]] = []
+                for entry in entries + [(None, None)]:
+                    if run and (entry[0] is None or entry[0] != run[-1][0] + 1):
+                        if len(run) >= 3:
+                            shapes = [
+                                normalize_formula(formula, *position(index, fixed, axis))
+                                for index, formula in run
+                            ]
+                            dominant = max(set(shapes), key=shapes.count)
+                            if shapes.count(dominant) < len(shapes):
+                                for (index, formula), shape in zip(run, shapes):
+                                    if shape == dominant:
+                                        continue
+                                    row, col = position(index, fixed, axis)
                                     findings.append(
                                         {
                                             "category": "inconsistent_formula",
@@ -564,12 +578,20 @@ def cmd_checks(args: argparse.Namespace) -> int:
                                             "cell": f"{get_column_letter(col)}{row}",
                                             "formula": formula,
                                             "neighbour_pattern": dominant,
-                                            "note": "breaks the pattern of its contiguous neighbours in this column",
+                                            "axis": axis,
+                                            "note": "breaks the pattern of its contiguous neighbours along this "
+                                            + ("row (across periods)" if axis == "row" else "column (down line items)"),
                                         }
                                     )
-                    run = []
-                if entry[0] is not None:
-                    run.append(entry)
+                        run = []
+                    if entry[0] is not None:
+                        run.append(entry)
+
+        def position(index: int, fixed: int, axis: str) -> tuple[int, int]:
+            return (fixed, index) if axis == "row" else (index, fixed)
+
+        scan_runs(formula_cells, "column")
+        scan_runs(row_cells, "row")
 
     counts: dict[str, int] = {}
     for finding in findings:
@@ -601,7 +623,7 @@ def cmd_checks(args: argparse.Namespace) -> int:
             )
         elif finding["category"] == "inconsistent_formula":
             print(
-                f"  INCONSISTENT {sheet}!{cell}  {finding['formula']}"
+                f"  INCONSISTENT {sheet}!{cell} [{finding.get('axis', 'column')}]  {finding['formula']}"
                 f"  (neighbours: {finding['neighbour_pattern']})"
             )
         else:

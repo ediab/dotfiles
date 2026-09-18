@@ -16,3 +16,6 @@ echo "== Unit 0 Excel feasibility gate"
 echo
 echo "== Phase 2 checkpoint: audit-xls / model-update / investment-memo"
 "$PY" tests/test_audit_update_memo.py
+echo
+echo "== Phase 3 checkpoint: 3-statement-model / dcf-model / comps-analysis / scenario-analysis"
+"$PY" tests/test_remaining_skills.py

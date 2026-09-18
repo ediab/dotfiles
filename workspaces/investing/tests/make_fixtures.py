@@ -22,6 +22,21 @@ audit.xlsx
     Deliberately defective: broken #REF! reference, an inconsistent formula
     inside an otherwise uniform row, a failed tie-out, and harmless hardcoded
     assumptions that must not be reported as defects.
+three_statement.xlsx
+    A small linked three-statement model (Assumptions / IS / BS / CF) that
+    balances and ties its cash, so a changed operating driver can be traced
+    through the income statement, balance sheet and cash flow.
+dcf.xlsx
+    A five-year unlevered DCF with known inputs (mid-year convention, perpetuity
+    terminal value, net-debt bridge, diluted shares) whose arithmetic can be
+    recomputed independently.
+comps.xlsx
+    A five-peer comparables table with declared units and fiscal periods,
+    including a peer with negative EBITDA/earnings and peers whose period and
+    units differ, plus a ratios-only statistics block.
+scenario.xlsx
+    A switched base/bull/bear model plus a growth x margin sensitivity grid in
+    which every corner cell is a full recalculation of the model.
 """
 
 from __future__ import annotations
@@ -212,6 +227,305 @@ def build_audit(path: Path) -> None:
     wb.save(path)
 
 
+
+def build_three_statement(path: Path) -> None:
+    """A small linked 3-statement model that balances and ties its cash.
+
+    Column B = FY0 actuals (constants), C = FY1, D = FY2 (formulas). The model is
+    built so the identity holds by construction: every non-cash balance-sheet
+    movement appears on the cash flow statement, so assets - L&E = 0 and BS cash
+    - CF ending cash = 0 in both forecast years.
+    """
+    wb = Workbook()
+
+    a = wb.active
+    a.title = "Assumptions"
+    a["A1"] = "Synthetic three-statement fixture - disposable, not financial data"
+    a["A3"] = "Driver"
+    a["B3"] = "FY0A"
+    a["C3"] = "FY1E"
+    a["D3"] = "FY2E"
+    rows = [
+        ("Revenue growth", None, 0.08, 0.10),
+        ("Gross margin", 0.40, 0.40, 0.41),
+        ("S&M % of revenue", 0.10, 0.10, 0.105),
+        ("G&A % of revenue", 0.08, 0.08, 0.08),
+        ("D&A % of opening gross PP&E", 0.0625, 0.0625, 0.0625),
+        ("Interest rate on opening debt", 0.05, 0.05, 0.05),
+        ("Tax rate", 0.25, 0.25, 0.25),
+        ("DSO (days)", 50, 50, 50),
+        ("DIO (days)", 60, 60, 60),
+        ("DPO (days)", 50, 50, 50),
+        ("Capex % of revenue", 0.08, 0.08, 0.08),
+        ("Current debt repayment", 10, 10, 10),
+        ("Long-term debt repayment", 20, 20, 20),
+        ("Dividends", 20, 20, 20),
+    ]
+    for i, (label, fy0, fy1, fy2) in enumerate(rows, start=4):
+        a.cell(row=i, column=1, value=label)
+        for col, val in ((2, fy0), (3, fy1), (4, fy2)):
+            if val is not None:
+                a.cell(row=i, column=col, value=val)
+    for col, fmt in ((2, "0.000"), (3, "0.000"), (4, "0.000")):
+        pass
+    a.column_dimensions["A"].width = 32
+    for c in "BCD":
+        a.column_dimensions[c].width = 12
+
+    is_ = wb.create_sheet("IS")
+    is_["A3"] = "Income statement"
+    is_lines = [
+        ("Revenue", 1000, "=B4*(1+Assumptions!C4)", "=C4*(1+Assumptions!D4)"),
+        ("COGS", 600, "=C4*(1-Assumptions!C5)", "=D4*(1-Assumptions!D5)"),
+        ("Gross profit", "=B4-B5", "=C4-C5", "=D4-D5"),
+        ("S&M", 100, "=C4*Assumptions!C6", "=D4*Assumptions!D6"),
+        ("G&A", 80, "=C4*Assumptions!C7", "=D4*Assumptions!D7"),
+        ("D&A", 50, "=BS!B8*Assumptions!C8", "=BS!C8*Assumptions!D8"),
+        ("EBIT", "=B6-B7-B8-B9", "=C6-C7-C8-C9", "=D6-D7-D8-D9"),
+        ("Interest expense", 20, "=(BS!B14+BS!B15)*Assumptions!C9", "=(BS!C14+BS!C15)*Assumptions!D9"),
+        ("Pre-tax income", "=B10-B11", "=C10-C11", "=D10-D11"),
+        ("Tax", "=MAX(0,B12*Assumptions!B10)", "=MAX(0,C12*Assumptions!C10)", "=MAX(0,D12*Assumptions!D10)"),
+        ("Net income", "=B12-B13", "=C12-C13", "=D12-D13"),
+    ]
+    for i, (label, b, c, d) in enumerate(is_lines, start=4):
+        is_.cell(row=i, column=1, value=label)
+        is_.cell(row=i, column=2, value=b)
+        is_.cell(row=i, column=3, value=c)
+        is_.cell(row=i, column=4, value=d)
+    is_.column_dimensions["A"].width = 24
+
+    bs = wb.create_sheet("BS")
+    bs["A3"] = "Balance sheet"
+    bs_lines = [
+        ("Cash", 150, "=CF!C17", "=CF!D17"),
+        ("Accounts receivable", 137.0, "=IS!C4*Assumptions!C11/365", "=IS!D4*Assumptions!D11/365"),
+        ("Inventory", 98.6, "=IS!C5*Assumptions!C12/365", "=IS!D5*Assumptions!D12/365"),
+        ("Total current assets", "=SUM(B4:B6)", "=SUM(C4:C6)", "=SUM(D4:D6)"),
+        ("PP&E, gross", 800, "=B8+CF!C10", "=C8+CF!D10"),
+        ("Accumulated depreciation", 200, "=B9+IS!C9", "=C9+IS!D9"),
+        ("PP&E, net", "=B8-B9", "=C8-C9", "=D8-D9"),
+        ("Total assets", "=B7+B10", "=C7+C10", "=D7+D10"),
+        ("Accounts payable", 82.2, "=IS!C5*Assumptions!C13/365", "=IS!D5*Assumptions!D13/365"),
+        ("Current portion of debt", 50, "=B14-Assumptions!C15", "=C14-Assumptions!D15"),
+        ("Long-term debt", 150, "=B15-Assumptions!C16", "=C15-Assumptions!D16"),
+        ("Total liabilities", "=SUM(B13:B15)", "=SUM(C13:C15)", "=SUM(D13:D15)"),
+        ("Common stock", 300, "=B18", "=C18"),
+        ("Retained earnings", 403.4, "=B19+IS!C14-Assumptions!C17", "=C19+IS!D14-Assumptions!D17"),
+        ("Total equity", "=B18+B19", "=C18+C19", "=D18+D19"),
+        ("Total liabilities and equity", "=B16+B20", "=C16+C20", "=D16+D20"),
+        ("Check: assets - L&E", "=B11-B21", "=C11-C21", "=D11-D21"),
+    ]
+    # rows must land on the addresses the formulas reference (4,5,6,7,8,9,10,11,13,14,15,16,18,19,20,21,23)
+    targets = [4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 18, 19, 20, 21, 23]
+    for row, (label, b, c, d) in zip(targets, bs_lines):
+        bs.cell(row=row, column=1, value=label)
+        bs.cell(row=row, column=2, value=b)
+        bs.cell(row=row, column=3, value=c)
+        bs.cell(row=row, column=4, value=d)
+    bs.column_dimensions["A"].width = 30
+
+    cf = wb.create_sheet("CF")
+    cf["A3"] = "Cash flow"
+    cf_lines = [
+        ("Net income", 4, "=IS!C14", "=IS!D14"),
+        ("D&A", 5, "=IS!C9", "=IS!D9"),
+        ("Change in accounts receivable", 6, "=-(BS!C5-BS!B5)", "=-(BS!D5-BS!C5)"),
+        ("Change in inventory", 7, "=-(BS!C6-BS!B6)", "=-(BS!D6-BS!C6)"),
+        ("Change in accounts payable", 8, "=(BS!C13-BS!B13)", "=(BS!D13-BS!D13)"),
+        ("CFO", 9, "=SUM(C4:C8)", "=SUM(D4:D8)"),
+        ("Capital expenditure (outflow)", 10, "=IS!C4*Assumptions!C14", "=IS!D4*Assumptions!D14"),
+        ("CFI", 11, "=-C10", "=-D10"),
+        ("Debt repayment", 12, "=-(Assumptions!C15+Assumptions!C16)", "=-(Assumptions!D15+Assumptions!D16)"),
+        ("Dividends", 13, "=-Assumptions!C17", "=-Assumptions!D17"),
+        ("CFF", 14, "=C12+C13", "=D12+D13"),
+        ("Net change in cash", 15, "=C9+C11+C14", "=D9+D11+D14"),
+        ("Opening cash", 16, "=BS!B4", "=BS!C4"),
+        ("Ending cash", 17, "=C16+C15", "=D16+D15"),
+        ("Check: BS cash - CF ending cash", 19, "=BS!C4-C17", "=BS!D4-D17"),
+    ]
+    for label, row, c, d in cf_lines:
+        cf.cell(row=row, column=1, value=label)
+        cf.cell(row=row, column=3, value=c)
+        cf.cell(row=row, column=4, value=d)
+    cf.column_dimensions["A"].width = 34
+    wb.save(path)
+
+
+def build_dcf(path: Path) -> None:
+    """Five-year unlevered DCF with known inputs and a mid-year convention."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "DCF"
+    ws["A1"] = "Synthetic DCF fixture - disposable, not financial data"
+    ws["A3"] = "Inputs (all supplied)"
+    inputs = [
+        ("WACC", 0.10),
+        ("Terminal growth rate", 0.025),
+        ("Tax rate", 0.25),
+        ("Net debt (as of FY0 end)", 500),
+        ("Diluted shares (m)", 100),
+        ("Discounting convention", "mid-year"),
+    ]
+    for i, (label, value) in enumerate(inputs, start=4):
+        ws.cell(row=i, column=1, value=label)
+        ws.cell(row=i, column=2, value=value)
+
+    ws["A11"] = "Year"
+    for i, year in enumerate(range(1, 6)):
+        ws.cell(row=11, column=3 + i, value=year)
+    ws["A12"] = "Unlevered FCF (supplied)"
+    for i, fcf in enumerate([100, 110, 121, 133.1, 146.41]):
+        ws.cell(row=12, column=3 + i, value=fcf)
+    ws["A13"] = "Discount period (mid-year)"
+    ws["A14"] = "Discount factor"
+    ws["A15"] = "PV of FCF"
+    for i, col in enumerate("CDEFG"):
+        ws[f"{col}13"] = f"={col}11-0.5"
+        ws[f"{col}14"] = f"=1/(1+$B$4)^{col}13"
+        ws[f"{col}15"] = f"={col}12*{col}14"
+
+    ws["A16"] = "Sum of PV of FCFs"
+    ws["B16"] = "=SUM(C15:G15)"
+    ws["A18"] = "Terminal value (perpetuity)"
+    ws["B18"] = "=G12*(1+$B$5)/($B$4-$B$5)"
+    ws["A19"] = "Discount factor, terminal period"
+    ws["B19"] = "=1/(1+$B$4)^G13"
+    ws["A20"] = "PV of terminal value"
+    ws["B20"] = "=B18*B19"
+    ws["A21"] = "Enterprise value"
+    ws["B21"] = "=B16+B20"
+    ws["A22"] = "Terminal value as % of enterprise value"
+    ws["B22"] = "=B20/B21"
+    ws["A24"] = "Less: net debt"
+    ws["B24"] = "=-B7"
+    ws["A25"] = "Equity value"
+    ws["B25"] = "=B21+B24"
+    ws["A26"] = "Implied value per share"
+    ws["B26"] = "=B25/B8"
+    ws["A28"] = "Check: terminal growth below WACC (1 = true)"
+    ws["B28"] = "=IF(B5<B4,1,0)"
+    ws.column_dimensions["A"].width = 42
+    wb.save(path)
+
+
+def build_comps(path: Path) -> None:
+    """Five-peer comparables table with declared units and periods."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Comps"
+    ws["A1"] = "Synthetic comparables fixture - disposable, not financial data"
+    ws["A2"] = "All figures supplied. Units and periods are declared per company and are NOT harmonised automatically."
+    headers = [
+        "Company", "Price", "Diluted shares (m)", "Market cap", "Net debt (neg = net cash)",
+        "Enterprise value", "Revenue", "EBITDA", "Net income", "Period", "Units",
+        "EV/Revenue", "EV/EBITDA", "P/E",
+    ]
+    for i, h in enumerate(headers, start=1):
+        ws.cell(row=3, column=i, value=h)
+    peers = [
+        ("ALPHA", 50, 100, 200, 500, 100, 60, "LTM Jun-26", "USD m"),
+        ("BETA", 25, 200, -50, 800, 160, 90, "LTM Jun-26", "USD m"),
+        ("GAMMA", 12, 150, 300, 400, -20, -30, "FY25A", "USD m"),
+        ("DELTA", 8, 400, 100, 1200, 240, 120, "LTM Jun-26", "USD k"),
+        ("EPSILON", 60, 50, 0, 200, 40, 25, "LTM Jun-26", "USD m"),
+    ]
+    for i, (name, price, shares, net_debt, revenue, ebitda, ni, period, units) in enumerate(peers, start=4):
+        ws.cell(row=i, column=1, value=name)
+        ws.cell(row=i, column=2, value=price)
+        ws.cell(row=i, column=3, value=shares)
+        ws.cell(row=i, column=4, value=f"=B{i}*C{i}")
+        ws.cell(row=i, column=5, value=net_debt)
+        ws.cell(row=i, column=6, value=f"=D{i}+E{i}")
+        ws.cell(row=i, column=7, value=revenue)
+        ws.cell(row=i, column=8, value=ebitda)
+        ws.cell(row=i, column=9, value=ni)
+        ws.cell(row=i, column=10, value=period)
+        ws.cell(row=i, column=11, value=units)
+        ws.cell(row=i, column=12, value=f"=F{i}/G{i}")
+        ws.cell(row=i, column=13, value=f'=IF(H{i}<=0,"n/m",F{i}/H{i})')
+        ws.cell(row=i, column=14, value=f'=IF(I{i}<=0,"n/m",D{i}/I{i})')
+
+    ws["A10"] = "Statistics (ratios only)"
+    stats = [
+        ("Maximum", "=MAX({r})"),
+        ("75th percentile", "=QUARTILE({r},3)"),
+        ("Median", "=MEDIAN({r})"),
+        ("25th percentile", "=QUARTILE({r},1)"),
+        ("Minimum", "=MIN({r})"),
+        ("Count (numeric observations)", "=COUNT({r})"),
+    ]
+    for i, (label, formula) in enumerate(stats, start=11):
+        ws.cell(row=i, column=1, value=label)
+        for col in (12, 13, 14):
+            letter = get_column_letter(col)
+            ws.cell(row=i, column=col, value=formula.format(r=f"{letter}4:{letter}8"))
+    ws.column_dimensions["A"].width = 30
+    wb.save(path)
+
+
+def build_scenario(path: Path) -> None:
+    """Switched base/bull/bear model plus a growth x margin sensitivity grid."""
+    wb = Workbook()
+    sc = wb.active
+    sc.title = "Scenarios"
+    sc["A1"] = "Synthetic scenario fixture - disposable, not financial data"
+    sc["A2"] = "Switch (1 = base, 2 = bull, 3 = bear)"
+    sc["B2"] = 1
+    sc["A4"] = "Revenue growth"
+    sc["B4"] = 0.05
+    sc["C4"] = 0.12
+    sc["D4"] = -0.03
+    sc["A5"] = "Gross margin"
+    sc["B5"] = 0.40
+    sc["C5"] = 0.45
+    sc["D5"] = 0.32
+    sc["A7"] = "Base"
+    sc["A8"] = "Bull"
+    sc["A9"] = "Bear"
+    for row, col in ((7, "B"), (8, "C"), (9, "D")):
+        sc[f"{col}7"] = f"={col}4"
+    sc["A11"] = "Delivery case is column B (base) unless the user asks otherwise."
+    sc.column_dimensions["A"].width = 40
+
+    m = wb.create_sheet("Model")
+    m["A1"] = "Synthetic scenario fixture - disposable, not financial data"
+    m["A3"] = "Revenue prior year (supplied)"
+    m["B3"] = 1000
+    m["A4"] = "Revenue growth (from switch)"
+    m["B4"] = "=INDEX(Scenarios!$B$4:$D$4,1,Scenarios!$B$2)"
+    m["A5"] = "Revenue"
+    m["B5"] = "=B3*(1+B4)"
+    m["A6"] = "Gross profit"
+    m["B6"] = "=B5*INDEX(Scenarios!$B$5:$D$5,1,Scenarios!$B$2)"
+    m["A7"] = "Opex (fixed)"
+    m["B7"] = 300
+    m["A8"] = "EBIT"
+    m["B8"] = "=B6-B7"
+    m["A9"] = "Tax rate"
+    m["B9"] = 0.25
+    m["A10"] = "Tax"
+    m["B10"] = "=MAX(0,B8*B9)"
+    m["A11"] = "Net income"
+    m["B11"] = "=B8-B10"
+
+    m["A13"] = "Sensitivity: net income by revenue growth (rows) and gross margin (columns)"
+    m["B14"] = "growth \ margin"
+    for i, margin in enumerate([0.32, 0.40, 0.45]):
+        m.cell(row=14, column=3 + i, value=margin)
+    for i, growth in enumerate([0.05, -0.03]):
+        m.cell(row=15 + i, column=2, value=growth)
+        for j in range(3):
+            col = get_column_letter(3 + j)
+            # every corner is a full recalculation of the model, not an approximation
+            m.cell(
+                row=15 + i,
+                column=3 + j,
+                value=f"=MAX(0,((1000*(1+$B{15 + i}))*{col}$14-$B$7))*(1-$B$9)",
+            )
+    m.column_dimensions["A"].width = 40
+    wb.save(path)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -229,6 +543,10 @@ def main() -> None:
     build_feasibility(out / "feasibility.xlsx")
     build_linked(out / "linked.xlsx", "feasibility.xlsx")
     build_audit(out / "audit.xlsx")
+    build_three_statement(out / "three_statement.xlsx")
+    build_dcf(out / "dcf.xlsx")
+    build_comps(out / "comps.xlsx")
+    build_scenario(out / "scenario.xlsx")
     for f in sorted(out.iterdir()):
         print(f)
 
