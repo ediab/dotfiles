@@ -156,4 +156,8 @@ if ! diff -q "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.jso
     && echo "    ponytail.json  re-synced (defaultMode off)"
 fi
 
+# i-have-adhd always-on config. Repo copy is the source of truth.
+cp "$SCRIPT_DIR/home/i-have-adhd.json" "$HOME/.pi/agent/i-have-adhd.json" \
+  && echo "    i-have-adhd.json  re-synced"
+
 echo "==> done."

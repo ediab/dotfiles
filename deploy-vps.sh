@@ -60,6 +60,7 @@ ssh "$VPS_HOST" 'rm -rf ~/.pi/agent/pi-pretty; rm -f ~/.pi/agent/lsp.json ~/.pi/
 # Versioned package configs: the repo is the source of truth, so the VPS gets the same
 # files bootstrap.sh / rebuild.sh deploy locally.
 rsync -az "$REPO_DIR/home/zentui.json" "$VPS_HOST:~/.pi/agent/zentui.json"
+rsync -az "$REPO_DIR/home/i-have-adhd.json" "$VPS_HOST:~/.pi/agent/i-have-adhd.json"
 
 # code-previews.json is per-machine (local paths and state) — mirrored, not versioned.
 if [ -f "$PI_DIR/code-previews.json" ]; then
