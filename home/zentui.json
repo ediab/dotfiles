@@ -45,7 +45,7 @@
           "format": "",
           "responsive": true,
           "compactFormat": "$cwd$wrap(in $session_name)$wrap(on $git_branch) $git_status$wrap$context$wrap_sep$tokens",
-          "compactMaxLines": 2,
+          "compactMaxLines": 3,
           "separator": "dot",
           "contextStyle": "text",
           "contextThresholds": {
@@ -97,7 +97,8 @@
             }
           }
         }
-      }
+      },
+      "codexQuota": false
     },
     "userMessages": {
       "enabled": true,
