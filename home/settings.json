@@ -44,5 +44,5 @@
   "steeringMode": "one-at-a-time",
   "followUpMode": "one-at-a-time",
   "quietStartup": true,
-  "hideThinkingBlock": true
+  "hideThinkingBlock": false
 }
