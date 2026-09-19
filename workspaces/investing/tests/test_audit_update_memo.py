@@ -109,6 +109,7 @@ def main() -> int:
     make_fixtures.build_feasibility(fixtures / "feasibility.xlsx")
     make_fixtures.build_audit(fixtures / "audit.xlsx")
     make_fixtures.build_data_tables(fixtures / "data_tables.xlsx")
+    make_fixtures.build_truncation(fixtures / "truncation.xlsx")
 
     # ======================================================= audit-xls checkpoint
     print("== audit-xls: locate defects and separate them from harmless inputs")
@@ -182,6 +183,30 @@ def main() -> int:
         "the data-table total is not multiplied by the sheet count",
         tables_record["totals"]["data_table_blocks"] == 2,
         str(tables_record["totals"]["data_table_blocks"]),
+    )
+
+    # sheet_facts caps the per-sheet samples, so a list that is already capped can
+    # never exceed --max-items. Truncation has to be reported from the true count.
+    trunc_path = assignment / "working" / "truncation-inspect.json"
+    inspector(
+        "inspect", str(fixtures / "truncation.xlsx"), f"--out={trunc_path}", "--max-items=60"
+    )
+    long_sheet = next(s for s in json.loads(trunc_path.read_text())["sheets"] if s["title"] == "Long")
+    check(
+        "an already-capped error list is still reported as truncated",
+        long_sheet["stored_error_count"] == 60
+        and len(long_sheet["stored_errors"]) == 50
+        and long_sheet.get("stored_errors_truncated") is True,
+        f"count={long_sheet['stored_error_count']} kept={len(long_sheet['stored_errors'])} "
+        f"flag={long_sheet.get('stored_errors_truncated')}",
+    )
+    check(
+        "an already-capped formula sample is reported as truncated too",
+        long_sheet["formula_count"] == 30
+        and len(long_sheet["formula_sample"]) == 25
+        and long_sheet.get("formula_sample_truncated") is True,
+        f"count={long_sheet['formula_count']} kept={len(long_sheet['formula_sample'])} "
+        f"flag={long_sheet.get('formula_sample_truncated')}",
     )
 
     # ================================================== model-update checkpoint
@@ -372,8 +397,12 @@ def main() -> int:
         "No financial data, prices, consensus or catalysts were" in template,
     )
 
-    # Escaping supplied text must be mechanical, not agent discipline. Run a
-    # hostile supplied string through the documented stdlib escaper.
+    # There is no memo generator in scripts/ to test: the memo is authored by an
+    # agent following investment-memo/SKILL.md, which instructs running each
+    # supplied string through the stdlib escaper by hand. So escaping stays agent
+    # discipline, and this check only proves the documented escaper is available
+    # and does the right thing. It is NOT regression cover for the memo pipeline
+    # and cannot fail unless Python itself breaks.
     proc = subprocess.run(
         [
             sys.executable, "-c", "import html,sys; print(html.escape(sys.argv[1]))",
@@ -383,7 +412,8 @@ def main() -> int:
     )
     escaped = proc.stdout.strip()
     check(
-        "the documented escaper neutralizes hostile supplied text",
+        "the documented escaper neutralizes hostile supplied text "
+        "(agent discipline, not regression cover)",
         proc.returncode == 0
         and "&lt;script&gt;" in escaped
         and "&amp;" in escaped

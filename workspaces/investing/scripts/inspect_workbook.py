@@ -135,6 +135,14 @@ def is_error_value(value) -> bool:
     return isinstance(value, str) and value.strip() in ERROR_VALUES
 
 
+# Both per-sheet lists are capped here to bound the record for pathological
+# workbooks. `cmd_inspect` reports truncation by comparing the kept list against
+# the sheet's true count, because a list already capped here can never exceed
+# --max-items and so would never be flagged by that comparison alone.
+FORMULA_SAMPLE_CAP = 25
+STORED_ERROR_CAP = 50
+
+
 def zip_parts(path: Path) -> list[str]:
     try:
         with zipfile.ZipFile(path) as archive:
@@ -207,7 +215,7 @@ def sheet_facts(ws, cached_ws) -> dict:
                 continue
             if isinstance(value, str) and value.startswith("="):
                 formulas += 1
-                if len(formula_sample) < 25:
+                if len(formula_sample) < FORMULA_SAMPLE_CAP:
                     formula_sample.append({"cell": cell.coordinate, "formula": value})
                 upper = value.upper()
                 for token in PROVIDER_TOKENS:
@@ -236,7 +244,7 @@ def sheet_facts(ws, cached_ws) -> dict:
         "constant_count": constants,
         "formula_sample": formula_sample,
         "stored_error_count": len(stored_errors),
-        "stored_errors": stored_errors[:50],
+        "stored_errors": stored_errors[:STORED_ERROR_CAP],
         "hidden_rows": hidden_rows,
         "hidden_columns": hidden_cols,
         "data_validations": len(ws.data_validations.dataValidation),
@@ -398,12 +406,14 @@ def cmd_inspect(args: argparse.Namespace) -> int:
     for ws in formulas_wb.worksheets:
         cached_ws = cached_wb[ws.title] if ws.title in cached_wb.sheetnames else None
         facts = sheet_facts(ws, cached_ws)
-        if facts["formula_sample"] and len(facts["formula_sample"]) > args.max_items:
-            facts["formula_sample"] = facts["formula_sample"][: args.max_items]
-            facts["formula_sample_truncated"] = True
-        if len(facts["stored_errors"]) > args.max_items:
-            facts["stored_errors"] = facts["stored_errors"][: args.max_items]
-            facts["stored_errors_truncated"] = True
+        for key, total in (
+            ("formula_sample", facts["formula_count"]),
+            ("stored_errors", facts["stored_error_count"]),
+        ):
+            kept = facts[key][: args.max_items]
+            if len(kept) < total:
+                facts[f"{key}_truncated"] = True
+            facts[key] = kept
         sheets.append(facts)
     record["sheets"] = sheets
     record["totals"] = {

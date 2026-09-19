@@ -26,6 +26,10 @@ data_tables.xlsx
     Three sheets with two injected <dataTable> blocks on one of them, so the
     per-sheet sensitivity-table count cannot be satisfied by a workbook-wide
     count reported per sheet.
+truncation.xlsx
+    One sheet holding more formulas and more stored error cells than the
+    inspector's per-sheet caps, so a truncated list can be checked to carry its
+    truncation flag rather than looking complete.
 three_statement.xlsx
     A small linked three-statement model (Assumptions / IS / BS / CF) that
     balances and ties its cash, so a changed operating driver can be traced
@@ -278,6 +282,29 @@ def build_data_tables(path: Path) -> None:
                     text = text.replace("</sheetData>", injected + "</sheetData>", 1)
                     data = text.encode("utf-8")
             target.writestr(item, data)
+
+
+TRUNCATION_ERRORS = 60
+TRUNCATION_FORMULAS = 30
+
+
+def build_truncation(path: Path) -> None:
+    """One sheet whose counts exceed the inspector's per-sheet caps.
+
+    The error cells hold the literal error string, which is exactly what the
+    inspector detects in a workbook's cached values; the fixture exists to
+    exercise the truncation flag, so how the errors were produced does not
+    matter. `--max-items` above both caps must still flag the lists as truncated.
+    """
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Long"
+    ws["A1"] = "Truncation fixture: counts exceed the per-sheet caps"
+    for row in range(2, TRUNCATION_ERRORS + 2):
+        ws.cell(row=row, column=1, value="#REF!")
+    for row in range(2, TRUNCATION_FORMULAS + 2):
+        ws.cell(row=row, column=3, value=f"=A{row}+1")
+    wb.save(path)
 
 
 def build_three_statement(path: Path) -> None:
@@ -632,6 +659,7 @@ def main() -> None:
     build_linked(out / "linked.xlsx", "feasibility.xlsx")
     build_audit(out / "audit.xlsx")
     build_data_tables(out / "data_tables.xlsx")
+    build_truncation(out / "truncation.xlsx")
     build_three_statement(out / "three_statement.xlsx")
     build_dcf(out / "dcf.xlsx")
     build_comps(out / "comps.xlsx")

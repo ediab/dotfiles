@@ -73,7 +73,7 @@ Shared references (ordinary Markdown, not skills): `workflow-policy.md`,
 
 | Mode | Purpose |
 | --- | --- |
-| `inspect` | sheets, formulas, stored errors, external links, names, hidden content, calculation mode, provider-function traces, unsupported parts; bounded JSON record + summary |
+| `inspect` | sheets, formulas, stored errors, external links, names, hidden content, calculation mode, provider-function traces, unsupported parts; bounded JSON record + summary. A per-sheet list cut to fit carries a `<name>_truncated` flag alongside the sheet's true count |
 | `checks` | mechanical candidates on a recalculated copy: error cells with formulas, formulas breaking their contiguous neighbours' pattern, numeric literals inside formulas, subtraction tie-outs with their cached values |
 | `diff` | two workbooks compared at sheet, name, formula-text, constant, cached-value and error level (A→B = environment drift, B→C = edit effects) |
 | `guard` | input-hash gate: refuses an artifact that is not the inspected one |
@@ -120,19 +120,26 @@ Run the gate with:
 tests/run_all.sh                                    # everything below, in order
 .venv/bin/python tests/test_applescript_scoping.py  # AppleScript name lint
 .venv/bin/python tests/test_unit0_excel_roundtrip.py  # 45 checks
-.venv/bin/python tests/test_audit_update_memo.py    # 50 checks: Phase 2 checkpoint
+.venv/bin/python tests/test_audit_update_memo.py    # 52 checks: Phase 2 checkpoint
 .venv/bin/python tests/test_remaining_skills.py    # Phase 3: 3-statement, DCF, comps, scenarios
 ```
 
-`test_remaining_skills.py` covers the other four skills: a changed operating
-driver traced through IS/BS/CF with tie-outs re-checked, DCF discounting and the
-EV-to-equity bridge recomputed independently, comps multiples and
-comparable-only medians recomputed with the exclusions asserted (and shown to
-change the answer, so the safeguard is not decorative), and scenario cases
-toggled with a single-input diff plus a negative test that breaks a model
-linkage to prove the model-path checks can fail. Its sensitivity grid is a
-closed-form cross-check, explicitly *not* a model recapture — the test asserts
-that limitation rather than hiding it.
+`test_remaining_skills.py` exercises the **helper scripts those four skills
+call**, not the skills themselves: a changed operating driver traced through
+IS/BS/CF with tie-outs re-checked, DCF discounting and the EV-to-equity bridge
+recomputed independently, comps multiples and comparable-only medians recomputed
+with the exclusions asserted (and shown to change the answer, so the safeguard is
+not decorative), and scenario cases toggled with a single-input diff plus a
+negative test that breaks a model linkage to prove the model-path checks can
+fail. Its sensitivity grid is a closed-form cross-check, explicitly *not* a model
+recapture — the test asserts that limitation rather than hiding it.
+
+**Coverage boundary.** `audit-xls`, `model-update` and `investment-memo` have
+also been driven *as skills* end to end on the real Evercore workbook (steps 1–6
+of the Vertiv trial). The four Phase 3 skills have no equivalent exercise: their
+SKILL.md prose — the part an agent actually follows — is unexercised by this
+suite, which proves the underlying scripts rather than the instructions for
+using them.
 
 `test_audit_update_memo.py` is the audit/update/memo integration checkpoint on
 synthetic fixtures: it locates the seeded defects and separates them from
