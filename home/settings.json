@@ -32,7 +32,8 @@
     "npm:@andrewjacop/pi-herdr",
     "npm:@lanlance/pi-btw",
     "../../Dev/switchyard",
-    "npm:@lll9p/pi-better-compaction"
+    "npm:@lll9p/pi-better-compaction",
+    "https://github.com/ayghri/i-have-adhd"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish"
