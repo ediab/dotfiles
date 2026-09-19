@@ -24,7 +24,7 @@ module, no `requests` dependency, no live data path. See
 ## Environment
 
 ```sh
-TOOLSET="$(dirname "$(readlink -f ~/Investing/.agents/skills)")"   # investing toolset root
+TOOLSET="$(dirname "$(readlink -f ~/Desktop/Fundaments/.agents/skills)")"   # investing toolset root
 ```
 
 ## 1. Confirm the inputs exist before building anything

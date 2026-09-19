@@ -4,7 +4,7 @@
 - Original request: adapt selected skills from Anthropic financial-services and OpenAI public-equity-investing for Pi. After clarification, the user wants to supply existing company Excel models and all external data, adapt those models on an ad hoc basis, then write an investment memo/pitch.
 - Working directory: `/Users/eliasdiab/Dev/pi-dotfiles`
 - Verified Git branch: `main`
-- Status: planning complete; revised 2026-09-18 after review (phased delivery, verified upstream facts, dependency decisions, consolidated helpers). Implemented 2026-09-18 through Unit 5: all three phases delivered, all fixture checkpoints pass, and the real-file trial ran steps 1–6 with the user's recorded decision of **no financial edits** (delivered workbook is the recalculated Evercore baseline; memo is provisional pending supplied price/consensus). See `~/Investing/VRT-trial/working/approval.md` and `outputs/validation-summary.md`. Independent reviewer pass: completed 2026-09-19 — verdict Approve; the three minor findings (mechanical HTML escaping, recording `allowOtherWorkbooks` permission, `autoNoTable` demotion note) were corrected in `4706ffb` and the affected checkpoint rerun (43 checks pass).
+- Status: planning complete; revised 2026-09-18 after review (phased delivery, verified upstream facts, dependency decisions, consolidated helpers). Implemented 2026-09-18 through Unit 5: all three phases delivered, all fixture checkpoints pass, and the real-file trial ran steps 1–6 with the user's recorded decision of **no financial edits** (delivered workbook is the recalculated Evercore baseline; memo is provisional pending supplied price/consensus). See `~/Desktop/Fundaments/VRT-trial/working/approval.md` and `outputs/validation-summary.md`. Independent reviewer pass: completed 2026-09-19 — verdict Approve; the three minor findings (mechanical HTML escaping, recording `allowOtherWorkbooks` permission, `autoNoTable` demotion note) were corrected in `4706ffb` and the affected checkpoint rerun (43 checks pass).
 - Canonical location: `docs/specs/2026-09-18-ad-hoc-modeling-and-pitch.md` (outside ignored `docs/plans/`). Saving here makes the file eligible for Git tracking; it does not itself commit or sync it.
 - Latest clarification: privacy/provider routing is not a concern for this task. Leave existing model and memory configuration unchanged; do not add provider restrictions or model pinning.
 
@@ -44,7 +44,7 @@ These are the end-to-end acceptance criteria for implementation and the independ
 
 - Pi supports standard `SKILL.md` skills and explicit `/skill:<name>` invocation.
 - Project `.pi/settings.json` is read from the current directory; a root settings entry does not register skills in sessions started from assignment subfolders.
-- Pi discovers `.agents/skills/` in the current directory and ancestors, bounded by the Git root (or filesystem root outside a repository). Use `/Users/eliasdiab/Investing/.agents/skills` as a symlink to the versioned skill directory. Test symlink following and discovery from root and assignment subfolders. Do not assume inheritance across a nested Git repository boundary.
+- Pi discovers `.agents/skills/` in the current directory and ancestors, bounded by the Git root (or filesystem root outside a repository). Use `/Users/eliasdiab/Desktop/Fundaments/.agents/skills` as a symlink to the versioned skill directory. Test symlink following and discovery from root and assignment subfolders. Do not assume inheritance across a nested Git repository boundary.
 - `/Users/eliasdiab/Dev/pi-dotfiles/rebuild.sh` copies every directory under `home/skills/` into the global `~/.pi/agent/skills/` directory. Therefore these finance skills must NOT live in `home/skills/`.
 - Version this implementation separately under `workspaces/investing/`. Keep assignment data out of the repository.
 - Verified 2026-09-18: `workspaces/` does not exist yet, `/Users/eliasdiab/Investing` does not exist yet, and `docs/` is currently untracked in git. Pi docs confirm `.agents/skills/` discovery of nested `SKILL.md` files in grouping folders (project discovery applies only after the project is trusted); symlink following still needs a live test.
@@ -120,7 +120,7 @@ workspaces/investing/
 
 Names above are planned targets, not existing APIs. Keep helpers small: do not create a generic approval service, schema framework, report platform, or assignment engine. **Consolidation decision (2026-09-18):** one inspector script — `inspect_workbook.py` with an inspection mode and a diff mode (replacing the previously planned `compare_workbooks.py` and `validate_assignment.py`). Add `pyproject.toml` declaring supported Python and actual dependencies (`openpyxl`, pinned; no `requests`), and document the tested interpreter version and environment setup. Shared references are ordinary Markdown, not extra discoverable skills.
 
-Private runtime workspace: `/Users/eliasdiab/Investing/`.
+Private runtime workspace: `/Users/eliasdiab/Desktop/Fundaments/` (renamed from `~/Investing` on 2026-09-19).
 
 ```text
 Investing/
@@ -153,7 +153,7 @@ Done: the core Excel path is proven. If blocked, report the blocker before inves
 Files: `setup.sh`, `README.md`, `templates/workspace-AGENTS.md`, and runtime `.agents/skills`/`AGENTS.md`.
 
 - Read current Pi documentation to verify ancestor discovery and symlink behavior.
-- Make setup create `/Users/eliasdiab/Investing/.agents/skills` as a symlink to the repository's `workspaces/investing/skills/` directory. If the path exists and is not the intended link, report the conflict rather than overwriting it. Do not also register the same skills in `.pi/settings.json`.
+- Make setup create `/Users/eliasdiab/Desktop/Fundaments/.agents/skills` as a symlink to the repository's `workspaces/investing/skills/` directory. If the path exists and is not the intended link, report the conflict rather than overwriting it. Do not also register the same skills in `.pi/settings.json`.
 - Make setup repeatable. Preserve unrelated existing project settings and instructions; report conflicts instead of overwriting them.
 - Document starting Pi at the workspace root as the simplest workflow. Test root and assignment-subfolder discovery, including relative references in symlinked skills. Do not claim nested discovery if the actual installation fails it; report that limitation.
 - Leave existing model/provider and memory package configuration unchanged. No privacy override or workspace model pin is required.

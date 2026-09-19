@@ -17,7 +17,7 @@ section). Data requirements are the opening question, not an afterthought.
 ## Environment
 
 ```sh
-TOOLSET="$(dirname "$(readlink -f ~/Investing/.agents/skills)")"   # investing toolset root
+TOOLSET="$(dirname "$(readlink -f ~/Desktop/Fundaments/.agents/skills)")"   # investing toolset root
 ```
 
 ## 1. Establish what was supplied — and what each figure is

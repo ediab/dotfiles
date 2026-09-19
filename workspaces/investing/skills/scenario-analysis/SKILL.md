@@ -17,7 +17,7 @@ Where to aim each driver, by sector: [`sector-drivers.md`](../../references/sect
 ## Environment
 
 ```sh
-TOOLSET="$(dirname "$(readlink -f ~/Investing/.agents/skills)")"   # investing toolset root
+TOOLSET="$(dirname "$(readlink -f ~/Desktop/Fundaments/.agents/skills)")"   # investing toolset root
 ```
 
 ## 1. Name the drivers and the cases

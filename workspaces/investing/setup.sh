@@ -15,7 +15,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$HERE/../.." && pwd)"
-WORKSPACE="${INVESTING_WORKSPACE:-$HOME/Investing}"
+WORKSPACE="${INVESTING_WORKSPACE:-$HOME/Desktop/Fundaments}"
 SKILLS_DIR="$HERE/skills"
 LINK="$WORKSPACE/.agents/skills"
 TEMPLATE_AGENTS="$HERE/templates/workspace-AGENTS.md"
@@ -101,7 +101,7 @@ if [[ $problems -gt 0 ]]; then
 fi
 
 cat <<EOF
-Investing workspace ready.
+Fundaments workspace ready.
 
   skills    $LINK
   workspace $WORKSPACE

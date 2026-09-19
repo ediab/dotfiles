@@ -27,7 +27,7 @@ workspaces/investing/
 ```
 
 The skill definitions in `skills/` are registered **only** in the private
-assignment workspace `~/Investing` (see `setup.sh`). They are deliberately
+assignment workspace `~/Desktop/Fundaments` (see `setup.sh`). They are deliberately
 *not* in `home/skills/`, so `rebuild.sh` never copies them into the global
 `~/.pi/agent/skills/` directory, and they are not part of VPS sync.
 
@@ -52,7 +52,7 @@ no Python dependency.
 
 ## Skills
 
-Seven skills live in `skills/`, registered only in `~/Investing`:
+Seven skills live in `skills/`, registered only in `~/Desktop/Fundaments`:
 
 | Skill | Basis | Core content |
 | --- | --- | --- |
@@ -84,24 +84,24 @@ it reports an error cell, but a clean run is not a clean model.
 
 ## Workspace registration
 
-`setup.sh` registers the skills only in `~/Investing` (override with
+`setup.sh` registers the skills only in `~/Desktop/Fundaments` (override with
 `INVESTING_WORKSPACE`) and mirrors the toolset's layout beside them:
 
 ```text
-~/Investing/.agents/skills      -> workspaces/investing/skills      (Pi discovers this)
-~/Investing/.agents/references  -> workspaces/investing/references
-~/Investing/.agents/scripts     -> workspaces/investing/scripts
-~/Investing/.agents/templates   -> workspaces/investing/templates
-~/Investing/.agents/README.md   -> workspaces/investing/README.md
+~/Desktop/Fundaments/.agents/skills      -> workspaces/investing/skills      (Pi discovers this)
+~/Desktop/Fundaments/.agents/references  -> workspaces/investing/references
+~/Desktop/Fundaments/.agents/scripts     -> workspaces/investing/scripts
+~/Desktop/Fundaments/.agents/templates   -> workspaces/investing/templates
+~/Desktop/Fundaments/.agents/README.md   -> workspaces/investing/README.md
 ```
 
 The extra links exist because a relative pointer such as
 `../../references/workflow-policy.md` inside a skill must resolve from *both*
 the checkout and the workspace: a relative symlink inside the repo would break
 once reached through `.agents/skills`, so these use absolute targets. Verified
-live: skills are discovered from `/Users/eliasdiab/Investing` and from an
+live: skills are discovered from `/Users/eliasdiab/Desktop/Fundaments` and from an
 assignment subfolder, the two policy pointers resolve from the reported skill
-location, and `TOOLSET="$(dirname "$(readlink -f ~/Investing/.agents/skills)")"`
+location, and `TOOLSET="$(dirname "$(readlink -f ~/Desktop/Fundaments/.agents/skills)")"`
 runs the inspector from any directory.
 
 `setup.sh` is idempotent, reports conflicts instead of overwriting, and never
