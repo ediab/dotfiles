@@ -8,3 +8,6 @@ docs/plans/*
 docs/solutions/
 CONCEPTS.md
 HANDOFF.md
+
+# macOS
+.DS_Store
