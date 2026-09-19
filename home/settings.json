@@ -33,7 +33,8 @@
     "npm:@lll9p/pi-better-compaction",
     "https://github.com/ayghri/i-have-adhd",
     "npm:omp-codex-reserve",
-    "npm:@lnilluv/pi-opencode-go-rotation@1.5.3"
+    "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
+    "npm:pi-updater"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish"
