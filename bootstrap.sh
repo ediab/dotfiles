@@ -125,12 +125,6 @@ cp "$SCRIPT_DIR/home/subagents.json" "$HOME/.pi/agent/subagents.json" \
 cp "$SCRIPT_DIR/home/zentui.json" "$HOME/.pi/agent/zentui.json" \
   && echo "    zentui.json  installed"
 
-# pi-blackhole observational-memory + compaction config (observer on opencode-go/deepseek-v4-flash).
-# Repo copy is the source of truth.
-mkdir -p "$HOME/.pi/agent/pi-blackhole"
-cp "$SCRIPT_DIR/home/pi-blackhole.json" "$HOME/.pi/agent/pi-blackhole/pi-blackhole-config.json" \
-  && echo "    pi-blackhole.json  installed"
-
 # Prompt templates: every .md in home/prompts/ → ~/.pi/agent/prompts/. Add/remove by file; no script edit needed.
 PI_PROMPTS_DIR="$HOME/.pi/agent/prompts"
 mkdir -p "$PI_PROMPTS_DIR"

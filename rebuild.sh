@@ -136,15 +136,6 @@ cp "$SCRIPT_DIR/home/web-search.json" "$HOME/.pi/agent/web-search.json" \
 cp "$SCRIPT_DIR/home/zentui.json" "$HOME/.pi/agent/zentui.json" \
   && echo "    zentui.json  re-synced"
 
-# pi-blackhole observational-memory + compaction config (observer on opencode-go/deepseek-v4-flash).
-# Repo copy is the source of truth — the package does not rewrite this file.
-# diff first so rebuild --sync-only stays quiet when nothing changed.
-if ! diff -q "$SCRIPT_DIR/home/pi-blackhole.json" "$HOME/.pi/agent/pi-blackhole/pi-blackhole-config.json" &>/dev/null; then
-  mkdir -p "$HOME/.pi/agent/pi-blackhole"
-  cp "$SCRIPT_DIR/home/pi-blackhole.json" "$HOME/.pi/agent/pi-blackhole/pi-blackhole-config.json" \
-    && echo "    pi-blackhole.json  re-synced (observer opencode-go/deepseek-v4-flash)"
-fi
-
 # Prompt templates: every .md in home/prompts/ → ~/.pi/agent/prompts/. Add/remove by file; no script edit needed.
 PI_PROMPTS_DIR="$HOME/.pi/agent/prompts"
 mkdir -p "$PI_PROMPTS_DIR"

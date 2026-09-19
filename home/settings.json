@@ -22,7 +22,6 @@
     "npm:@juicesharp/rpiv-todo@2.9.0",
     "npm:@juicesharp/rpiv-ask-user-question",
     "https://github.com/cathrynlavery/diagram-design",
-    "npm:pi-blackhole",
     "npm:pi-zentui",
     "npm:pi-terminal-theme",
     "npm:pi-updater",
