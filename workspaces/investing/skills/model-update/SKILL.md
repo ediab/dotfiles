@@ -19,7 +19,7 @@ Derive the toolset root (scripts, policies, venv) once, so every command below
 works from any directory:
 
 ```sh
-TOOLSET="$(dirname "$(readlink -f ~/Desktop/Fundaments/.agents/skills)")"   # investing toolset root
+TOOLSET="$(dirname "$(readlink -f ~/Desktop/Fundamentals/.agents/skills)")"   # investing toolset root
 ```
 
 ## 1. Map the supplied information to cells
