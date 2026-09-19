@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import html
 import json
 import re
 import sys
@@ -251,17 +252,62 @@ def sheet_facts(ws, cached_ws) -> dict:
 
 
 _SHEET_XML_CACHE: dict[str, str] = {}
+_WORKSHEET_PARTS_CACHE: dict[str, dict[str, str]] = {}
+
+
+def worksheet_parts(path: Path) -> dict[str, str]:
+    """Map sheet title -> its own 'xl/worksheets/sheetN.xml' part.
+
+    openpyxl's `ws.path` is unusable here (its `_id` is never populated, so it
+    renders as `sheetNone.xml`), and worksheet parts are not guaranteed to be in
+    sheet order. The workbook part's relationships are the only exact mapping.
+    """
+    key = str(path)
+    if key in _WORKSHEET_PARTS_CACHE:
+        return _WORKSHEET_PARTS_CACHE[key]
+    mapping: dict[str, str] = {}
+    try:
+        with zipfile.ZipFile(path) as archive:
+            workbook_xml = archive.read("xl/workbook.xml").decode("utf-8", "replace")
+            rels_xml = archive.read("xl/_rels/workbook.xml.rels").decode("utf-8", "replace")
+        targets: dict[str, str] = {}
+        for element in re.finditer(r"<Relationship\b([^>]*?)/>", rels_xml):
+            attrs = dict(re.findall(r'(\w+)="([^"]*)"', element.group(1)))
+            if "worksheet" not in attrs.get("Type", ""):
+                continue
+            target = attrs.get("Target", "").lstrip("/")
+            if target:
+                targets[attrs.get("Id", "")] = target if target.startswith("xl/") else "xl/" + target
+        for element in re.finditer(r"<sheet\b([^>]*?)/>", workbook_xml):
+            attrs = dict(re.findall(r'(\w+:?\w*)="([^"]*)"', element.group(1)))
+            part = targets.get(attrs.get("r:id", ""))
+            if part:
+                # Sheet names are XML-escaped in the part but openpyxl hands back
+                # the decoded title (e.g. 'P&L', not 'P&amp;L').
+                mapping[html.unescape(attrs.get("name", ""))] = part
+    except (KeyError, zipfile.BadZipFile):
+        pass
+    _WORKSHEET_PARTS_CACHE[key] = mapping
+    return mapping
 
 
 def raw_part_text_of_sheet(ws) -> str:
-    """Best-effort raw XML for a worksheet, cached per path."""
+    """Raw XML for one worksheet part, cached per (workbook, part)."""
     parent = getattr(ws, "parent", None)
     path = getattr(parent, "_inv_path", None)
     if path is None:
         return ""
-    if path not in _SHEET_XML_CACHE:
-        _SHEET_XML_CACHE[path] = raw_part_text(Path(path), "xl/worksheets/")
-    return _SHEET_XML_CACHE[path]
+    part = worksheet_parts(Path(path)).get(ws.title)
+    if part is None:
+        return ""
+    key = f"{path}::{part}"
+    if key not in _SHEET_XML_CACHE:
+        try:
+            with zipfile.ZipFile(path) as archive:
+                _SHEET_XML_CACHE[key] = archive.read(part).decode("utf-8", "replace")
+        except (KeyError, zipfile.BadZipFile):
+            _SHEET_XML_CACHE[key] = ""
+    return _SHEET_XML_CACHE[key]
 
 
 # Drawing parts written by Excel can fail strict XML parsing (observed in a
@@ -781,11 +827,22 @@ def cmd_guard(args: argparse.Namespace) -> int:
 def cmd_verify(args: argparse.Namespace) -> int:
     path = Path(args.workbook).resolve()
     evidence = json.loads(Path(args.evidence).read_text())
+    items = evidence.get("items") or []
+    claimed_hash = evidence.get("workbook_sha256")
     _, values = cell_map(path)
     failures = 0
     checked = 0
 
-    claimed_hash = evidence.get("workbook_sha256")
+    # This mode is the mechanical gate between a memo's figures and the workbook,
+    # so an evidence record that cannot be checked must fail rather than pass.
+    if not args.allow_empty:
+        if not items:
+            print("FAIL evidence record lists no items: nothing was reconciled against the workbook")
+            return 1
+        if not claimed_hash:
+            print("FAIL evidence record declares no workbook_sha256: the figures are not pinned to a workbook")
+            return 1
+
     if claimed_hash:
         actual = sha256(path)
         if actual != claimed_hash.strip().lower():
@@ -794,7 +851,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
         else:
             print(f"PASS workbook hash {actual[:16]}... matches the evidence record")
 
-    for item in evidence.get("items", []):
+    for item in items:
         key = f"{item.get('sheet')}!{item.get('cell')}"
         expected = item.get("expected")
         actual = values.get(key)
@@ -866,6 +923,11 @@ def main() -> int:
     p_verify = sub.add_parser("verify")
     p_verify.add_argument("--workbook", required=True)
     p_verify.add_argument("--evidence", required=True)
+    p_verify.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="permit an evidence record with no items or no workbook_sha256 (checks nothing)",
+    )
     p_verify.set_defaults(func=cmd_verify)
 
     args = parser.parse_args()

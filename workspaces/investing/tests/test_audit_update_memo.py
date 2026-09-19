@@ -108,6 +108,7 @@ def main() -> int:
 
     make_fixtures.build_feasibility(fixtures / "feasibility.xlsx")
     make_fixtures.build_audit(fixtures / "audit.xlsx")
+    make_fixtures.build_data_tables(fixtures / "data_tables.xlsx")
 
     # ======================================================= audit-xls checkpoint
     print("== audit-xls: locate defects and separate them from harmless inputs")
@@ -166,6 +167,22 @@ def main() -> int:
         f"constants={p_and_l['constant_count']} formulas={p_and_l['formula_count']}",
     )
     check("inspection records the file hash for gating", len(inspect_record["sha256"]) == 64)
+
+    tables_fixture = fixtures / "data_tables.xlsx"
+    tables_path = assignment / "working" / "data-tables-inspect.json"
+    inspector("inspect", str(tables_fixture), f"--out={tables_path}")
+    tables_record = json.loads(tables_path.read_text())
+    per_sheet = {s["title"]: s["data_table_blocks"] for s in tables_record["sheets"]}
+    check(
+        "data tables are counted on the sheet that holds them, not on every sheet",
+        per_sheet == {"Summary": 0, "Sensitivity": 2, "Notes": 0},
+        str(per_sheet),
+    )
+    check(
+        "the data-table total is not multiplied by the sheet count",
+        tables_record["totals"]["data_table_blocks"] == 2,
+        str(tables_record["totals"]["data_table_blocks"]),
+    )
 
     # ================================================== model-update checkpoint
     print("== model-update: approved actual change, hash-gated, original untouched")
@@ -312,6 +329,26 @@ def main() -> int:
     wrong_hash_path.write_text(json.dumps(wrong_hash, indent=2) + "\n")
     code, verify_out = inspector("verify", f"--workbook={delivered}", f"--evidence={wrong_hash_path}")
     check("evidence bound to a different workbook hash is rejected", code == 1)
+
+    # An evidence record that cannot be checked must fail: this mode is the
+    # mechanical gate between a memo's figures and the workbook.
+    empty_path = assignment / "outputs" / "SAMPLE-evidence-empty.json"
+    empty_path.write_text(json.dumps({"workbook_sha256": evidence["workbook_sha256"]}) + "\n")
+    code, verify_out = inspector("verify", f"--workbook={delivered}", f"--evidence={empty_path}")
+    check("an evidence record with no items is rejected rather than passing vacuously", code == 1)
+    check("the empty-items reason is stated", "lists no items" in verify_out)
+
+    no_hash = {"items": evidence["items"]}
+    no_hash_path = assignment / "outputs" / "SAMPLE-evidence-nohash.json"
+    no_hash_path.write_text(json.dumps(no_hash, indent=2) + "\n")
+    code, verify_out = inspector("verify", f"--workbook={delivered}", f"--evidence={no_hash_path}")
+    check("an evidence record with no workbook_sha256 is rejected", code == 1)
+    check("the missing-hash reason is stated", "no workbook_sha256" in verify_out)
+
+    code, _ = inspector(
+        "verify", f"--workbook={delivered}", f"--evidence={empty_path}", "--allow-empty"
+    )
+    check("--allow-empty restores the vacuous pass explicitly", code == 0)
 
     template = TEMPLATE.read_text()
     for section in [

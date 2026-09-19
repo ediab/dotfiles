@@ -22,6 +22,10 @@ audit.xlsx
     Deliberately defective: broken #REF! reference, an inconsistent formula
     inside an otherwise uniform row, a failed tie-out, and harmless hardcoded
     assumptions that must not be reported as defects.
+data_tables.xlsx
+    Three sheets with two injected <dataTable> blocks on one of them, so the
+    per-sheet sensitivity-table count cannot be satisfied by a workbook-wide
+    count reported per sheet.
 three_statement.xlsx
     A small linked three-statement model (Assumptions / IS / BS / CF) that
     balances and ties its cash, so a changed operating driver can be traced
@@ -46,6 +50,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
+import zipfile
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -229,6 +234,50 @@ def build_audit(path: Path) -> None:
     bs["B6"] = "=B3-B4"
     wb.save(path)
 
+
+# Marks the one worksheet that receives injected data tables, so the part is
+# found by content rather than by relying on worksheet part ordering.
+DATA_TABLE_MARKER = "DATA-TABLE-MARKER"
+DATA_TABLE_SHEET = "Sensitivity"
+DATA_TABLE_ROWS = 2
+
+# A data-table formula as Excel stores it: the `<dataTable>` element lives inside
+# the formula. openpyxl cannot author these, so they are injected into the saved
+# part. The audit counts the element name, so the surrounding ref/r1/r2 only need
+# to be well-formed.
+_DATA_TABLE_ROW = (
+    '<row r="{row}"><c r="A{row}" t="str"><v>sensitivity</v></c>'
+    '<c r="B{row}"><f t="dataTable" ref="B{row}:C{row}" dt2D="1" dtr="0" r1="A1" r2="B1">'
+    '<dataTable/></f></c></row>'
+)
+
+
+def build_data_tables(path: Path) -> None:
+    """Three sheets, two injected data tables on one of them.
+
+    Excel's `calculate full` does not refresh data-table caches unless asked, and
+    the audit must account for sensitivity tables per sheet. A workbook-wide count
+    reported per sheet would multiply by the sheet count, so the fixture has two
+    more sheets than tables.
+    """
+    wb = Workbook()
+    wb.active.title = "Summary"
+    wb["Summary"]["A1"] = "Sensitivity tables live on the Sensitivity sheet"
+    wb.create_sheet(DATA_TABLE_SHEET)["A1"] = DATA_TABLE_MARKER
+    wb.create_sheet("Notes")["A1"] = "A third sheet, so a workbook-wide count is obvious"
+    wb.save(path)
+
+    injected = "".join(_DATA_TABLE_ROW.format(row=20 + i) for i in range(DATA_TABLE_ROWS))
+    with zipfile.ZipFile(path) as source:
+        members = [(item, source.read(item.filename)) for item in source.infolist()]
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as target:
+        for item, data in members:
+            if item.filename.startswith("xl/worksheets/") and item.filename.endswith(".xml"):
+                text = data.decode("utf-8")
+                if DATA_TABLE_MARKER in text:
+                    text = text.replace("</sheetData>", injected + "</sheetData>", 1)
+                    data = text.encode("utf-8")
+            target.writestr(item, data)
 
 
 def build_three_statement(path: Path) -> None:
@@ -582,6 +631,7 @@ def main() -> None:
     build_feasibility(out / "feasibility.xlsx")
     build_linked(out / "linked.xlsx", "feasibility.xlsx")
     build_audit(out / "audit.xlsx")
+    build_data_tables(out / "data_tables.xlsx")
     build_three_statement(out / "three_statement.xlsx")
     build_dcf(out / "dcf.xlsx")
     build_comps(out / "comps.xlsx")

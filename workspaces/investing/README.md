@@ -77,7 +77,7 @@ Shared references (ordinary Markdown, not skills): `workflow-policy.md`,
 | `checks` | mechanical candidates on a recalculated copy: error cells with formulas, formulas breaking their contiguous neighbours' pattern, numeric literals inside formulas, subtraction tie-outs with their cached values |
 | `diff` | two workbooks compared at sheet, name, formula-text, constant, cached-value and error level (A→B = environment drift, B→C = edit effects) |
 | `guard` | input-hash gate: refuses an artifact that is not the inspected one |
-| `verify` | reconciles an evidence record (memo, change log) against the workbook's cached values |
+| `verify` | reconciles an evidence record (memo, change log) against the workbook's cached values; a record with no items, or with no `workbook_sha256`, is rejected rather than reported as PASS (override with `--allow-empty`) |
 
 Counts and findings are observations for analyst judgement. `checks` exits 1 when
 it reports an error cell, but a clean run is not a clean model.
@@ -120,7 +120,7 @@ Run the gate with:
 tests/run_all.sh                                    # everything below, in order
 .venv/bin/python tests/test_applescript_scoping.py  # AppleScript name lint
 .venv/bin/python tests/test_unit0_excel_roundtrip.py  # 45 checks
-.venv/bin/python tests/test_audit_update_memo.py    # 42 checks: Phase 2 checkpoint
+.venv/bin/python tests/test_audit_update_memo.py    # 50 checks: Phase 2 checkpoint
 .venv/bin/python tests/test_remaining_skills.py    # Phase 3: 3-statement, DCF, comps, scenarios
 ```
 
@@ -174,6 +174,12 @@ record (including catching a figure that disagrees).
    (`STATUS BLOCKED`). Work with Excel otherwise idle, or pass
    `allowOtherWorkbooks=yes` only with the user's explicit permission — which
    must then be recorded in `working/approval.md` (see `workflow-policy.md` §3).
+   The check runs **twice**: once before opening, and again once the workbook is
+   open, because launching Excel can restore workbooks the first check could not
+   see. A run that trips the second check reports `STATUS ERROR` and restores
+   Excel's settings without calculating anything. When the exception *is* in
+   force, the report names every workbook exposed to `calculate full` in an
+   `ALLOW_OTHER_WORKBOOKS` line.
 2. **AppleScript name collisions.** Inside `tell application "Microsoft Excel"`,
    an unqualified name that also exists in Excel's dictionary resolves to
    Excel's property. `kind` and `content` returned `missing value`; `ask`,
@@ -209,7 +215,8 @@ record (including catching a figure that disagrees).
    semiautomatic; the "automatic except data tables" distinction is per
    workbook. Unchanged sensitivity tables must not be presented as fresh.
 9. **No per-workbook `calculate` means no isolation from other workbooks** —
-   see (1). The block-when-busy guard is the safety mechanism.
+   see (1). The two block-when-busy checks (before open and after open) are the
+   safety mechanism.
 10. **Protected sheets, missing add-ins, circular references and unsupported
     objects are unverified.** They need an explicit capability assessment on the
     actual file, and a narrowed scope if they cannot be handled safely.

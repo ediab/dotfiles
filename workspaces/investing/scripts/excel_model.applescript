@@ -411,6 +411,24 @@ on cmdProcess(argsList, doEdits)
 			set out to out & "WORKBOOK" & TABCHAR & "full_name" & TABCHAR & (full name of wb) & my LF()
 			set out to out & "WORKBOOK" & TABCHAR & "sheets" & TABCHAR & (count of sheets of wb as text) & my LF()
 
+			-- Excel can restore workbooks when it launches, which the pre-open guard
+			-- could not see. Recount now, before `calculate full` touches everything.
+			set others to ""
+			repeat with i from 1 to (count of workbooks)
+				if (name of workbook i) is not openedWbName then
+					set others to others & (name of workbook i) & " | "
+				end if
+			end repeat
+			if others is not "" then
+				if allowOthers then
+					-- Record what this run exposes to `calculate full`; permission is
+					-- granted in policy, but the names belong in the report.
+					set out to out & my reportLine("ALLOW_OTHER_WORKBOOKS", others) & my LF()
+				else
+					error "Excel opened these unrelated workbooks: " & others & "close them, then retry"
+				end if
+			end if
+
 			set calculation to calculation manual
 			set out to out & "CALC" & TABCHAR & "mode_before" & TABCHAR & (calculation as text) & my LF()
 
