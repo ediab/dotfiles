@@ -33,7 +33,8 @@
     "npm:@lanlance/pi-btw",
     "../../Dev/switchyard",
     "npm:@lll9p/pi-better-compaction",
-    "https://github.com/ayghri/i-have-adhd"
+    "https://github.com/ayghri/i-have-adhd",
+    "npm:omp-codex-reserve"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish"
