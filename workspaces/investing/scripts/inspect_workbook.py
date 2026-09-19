@@ -810,7 +810,11 @@ def cmd_verify(args: argparse.Namespace) -> int:
             continue
         tolerance = item.get("tolerance")
         if tolerance is None:
-            tolerance = max(abs(float(expected)) * 1e-9, 1e-9)
+            # A hidden default would make rounding an invisible fudge, so an item
+            # without a declared tolerance fails rather than being approximated.
+            print(f"FAIL {label} ({key}): no tolerance declared in the evidence record")
+            failures += 1
+            continue
         try:
             difference = abs(float(actual) - float(expected))
         except (TypeError, ValueError):

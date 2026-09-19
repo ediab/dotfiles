@@ -124,6 +124,16 @@ tests/run_all.sh                                    # everything below, in order
 .venv/bin/python tests/test_remaining_skills.py    # Phase 3: 3-statement, DCF, comps, scenarios
 ```
 
+`test_remaining_skills.py` covers the other four skills: a changed operating
+driver traced through IS/BS/CF with tie-outs re-checked, DCF discounting and the
+EV-to-equity bridge recomputed independently, comps multiples and
+comparable-only medians recomputed with the exclusions asserted (and shown to
+change the answer, so the safeguard is not decorative), and scenario cases
+toggled with a single-input diff plus a negative test that breaks a model
+linkage to prove the model-path checks can fail. Its sensitivity grid is a
+closed-form cross-check, explicitly *not* a model recapture — the test asserts
+that limitation rather than hiding it.
+
 `test_audit_update_memo.py` is the audit/update/memo integration checkpoint on
 synthetic fixtures: it locates the seeded defects and separates them from
 harmless input constants, applies an approved input change to a hash-gated copy
@@ -209,33 +219,43 @@ record (including catching a figure that disagrees).
     The script now takes `timeout=<seconds>` (default 600) and names the likely
     cause on a timeout. Recover by activating Excel and pressing Escape; a file
     picker holds no workbook content.
-12. **Quarantined files open fine through AppleScript.** Both supplied Vertiv
+12. **A command arriving while Excel is mid-launch or mid-quit fails as
+    `-609 Connection is invalid` or `-1712 timed out`.** Both leave the workbook
+    untouched, because a failed run closes without saving, so `recalc` and `edit`
+    now retry once after three seconds and report `RETRY` in the output rather
+    than failing the run. Seen in practice when one run quits Excel and the next
+    starts immediately.
+13. **Quarantined files open fine through AppleScript.** Both supplied Vertiv
     workbooks carry `com.apple.quarantine`, and the copy opened read/write and
     saved without a Protected View prompt — but only when this terminal already
     holds Automation permission. A first run on a fresh machine may still need
     interactive approval.
-13. **Excel tolerates drawing XML that strict parsers reject.** One supplied
+14. **Excel tolerates drawing XML that strict parsers reject.** One supplied
     workbook declares `xmlns:id="{guid}"` — not a legal namespace name — so
     openpyxl/Expat failed to read the whole workbook. The inspector now skips
     unparsable drawing parts, reports them as `parse_warnings`, and still reads
     formulas, names, values and errors.
-14. **Defined names are reported as a summary, not a list.** One supplied
+15. **Defined names are reported as a summary, not a list.** One supplied
     workbook carries **11,051** inherited names (687 broken `#REF!`, 495
     pointing at other workbooks, 10,774 hidden) while **no** Model-sheet formula
     references any of them. The record keeps totals plus a bounded sample, so a
     big number is visible without drowning the report.
 
-15. **Excel's `open workbook` can wedge mid-session.** After a long run of
+16. **Excel's `open workbook` can wedge mid-session.** After a long run of
     automation it stops returning a workbook object and raises its own file
     picker instead; that picker is not one of Excel's scriptable windows, so it
     cannot be closed from AppleScript, and every later AppleEvent queues behind
     it. Recovery is a human keystroke: press Escape in Excel (or quit Excel).
+    *This path is documented but not exercised by the test suite* — the wedge has
+    to be created to test it, and it costs a manual keystroke to clear; it was
+    observed, diagnosed and reported live instead. Given that, the tested
+    behaviour is the standard-open fallback and the refuse-when-linked rule.
     The tool reports the failure, and falls back to the standard `open` command
     — **only** for workbooks with no `xl/externalLinks/` part, because the
     standard open cannot pass `update links do not update links`. For a linked
     workbook it refuses and names the manual recovery. Link fidelity is never
     traded for convenience.
-16. **The tool deliberately scripts no user interface.** It does not call
+17. **The tool deliberately scripts no user interface.** It does not call
     `System Events` at all: dismissing that stuck picker, or any other UI step,
     stays with the human. UI scripting needs the macOS **Accessibility**
     permission, which re-prompts the user every time it is missing, and a

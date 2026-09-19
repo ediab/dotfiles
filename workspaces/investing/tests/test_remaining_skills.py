@@ -171,24 +171,38 @@ def dcf_model(wacc: float = 0.10, growth: float = 0.025, net_debt: float = 500.0
 
 # ---------------------------------------------------------- comps independent
 
-def comps_model() -> dict[str, float | str | int]:
+def comps_model() -> dict[str, object]:
+    """Peer multiples, comparability flags and comparable-only statistics.
+
+    Comparable means the peer's declared period and units match the fixture's
+    declared base (LTM Jun-26 / USD m); everything else is excluded by name and
+    kept out of the statistics.
+    """
+    base_period, base_units = "LTM Jun-26", "USD m"
     peers = [
-        ("ALPHA", 50, 100, 200, 500, 100, 60),
-        ("BETA", 25, 200, -50, 800, 160, 90),
-        ("GAMMA", 12, 150, 300, 400, -20, -30),
-        ("DELTA", 8, 400, 100, 1200, 240, 120),
-        ("EPSILON", 60, 50, 0, 200, 40, 25),
+        ("ALPHA", 50, 100, 200, 500, 100, 60, "LTM Jun-26", "USD m"),
+        ("BETA", 25, 200, -50, 800, 160, 90, "LTM Jun-26", "USD m"),
+        ("GAMMA", 12, 150, 300, 400, -20, -30, "FY25A", "USD m"),
+        ("DELTA", 8, 400, 100, 1200, 240, 120, "LTM Jun-26", "USD k"),
+        ("EPSILON", 60, 50, 0, 200, 40, 25, "LTM Jun-26", "USD m"),
     ]
     rows = {}
-    for name, price, shares, net_debt, revenue, ebitda, ni in peers:
+    for name, price, shares, net_debt, revenue, ebitda, ni, period, units in peers:
         market_cap = price * shares
         ev = market_cap + net_debt
+        if units != base_units:
+            flag = f"excluded: units {units}"
+        elif period != base_period:
+            flag = f"excluded: period {period}"
+        else:
+            flag = "comparable"
         rows[name] = {
             "market_cap": market_cap,
             "ev": ev,
             "ev_revenue": ev / revenue,
             "ev_ebitda": ev / ebitda if ebitda > 0 else "n/m",
             "pe": market_cap / ni if ni > 0 else "n/m",
+            "flag": flag,
         }
 
     def median(values: list[float]) -> float:
@@ -206,22 +220,27 @@ def comps_model() -> dict[str, float | str | int]:
             return ordered[int(position)]
         return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
 
-    numeric_ev_revenue = [r["ev_revenue"] for r in rows.values()]
-    numeric_ev_ebitda = [r["ev_ebitda"] for r in rows.values() if r["ev_ebitda"] != "n/m"]
-    numeric_pe = [r["pe"] for r in rows.values() if r["pe"] != "n/m"]
+    comparable = {n: r for n, r in rows.items() if r["flag"] == "comparable"}
+
+    def numeric(field: str) -> list[float]:
+        return [r[field] for r in comparable.values() if r[field] != "n/m"]
+
+    ev_revenue = numeric("ev_revenue")
+    ev_ebitda = numeric("ev_ebitda")
+    pe = numeric("pe")
     return {
         "rows": rows,
+        "comparable": sorted(comparable),
+        "excluded": {n: rows[n]["flag"] for n in rows if rows[n]["flag"] != "comparable"},
         "ev_revenue": {
-            "median": median(numeric_ev_revenue),
-            "q1": quartile(numeric_ev_revenue, 1),
-            "q3": quartile(numeric_ev_revenue, 3),
-            "count": len(numeric_ev_revenue),
+            "median": median(ev_revenue),
+            "q1": quartile(ev_revenue, 1),
+            "q3": quartile(ev_revenue, 3),
+            "count": len(ev_revenue),
+            "all_rows_median": median([r["ev_revenue"] for r in rows.values()]),
         },
-        "ev_ebitda": {
-            "median": median(numeric_ev_ebitda),
-            "count": len(numeric_ev_ebitda),
-        },
-        "pe": {"median": median(numeric_pe), "count": len(numeric_pe)},
+        "ev_ebitda": {"median": median(ev_ebitda), "count": len(ev_ebitda)},
+        "pe": {"median": median(pe), "count": len(pe)},
     }
 
 
@@ -427,11 +446,10 @@ def main() -> int:
     shutil.copy2(comps_original, comps_copy)
     comps_cells = [
         ("Comps", "F4"), ("Comps", "F5"), ("Comps", "F6"), ("Comps", "F7"), ("Comps", "F8"),
-        # statistics rows: 11 Maximum, 12 75th percentile, 13 Median, 14 25th percentile,
-        # 15 Minimum, 16 Count
-        ("Comps", "L5"), ("Comps", "L12"), ("Comps", "L13"), ("Comps", "L14"),
-        ("Comps", "M6"), ("Comps", "M13"), ("Comps", "M16"),
-        ("Comps", "N6"), ("Comps", "N13"), ("Comps", "N16"),
+        ("Comps", "L5"), ("Comps", "O4"), ("Comps", "O6"), ("Comps", "O7"),
+        ("Comps", "Q7"), ("Comps", "Q13"), ("Comps", "Q12"), ("Comps", "Q14"), ("Comps", "Q16"),
+        ("Comps", "M6"), ("Comps", "R13"), ("Comps", "R16"),
+        ("Comps", "N6"), ("Comps", "S13"), ("Comps", "S16"),
     ]
     comps_rb = readback_file(work / "comps-readback.tsv", comps_cells)
     comps_report = excel("recalc", f"workbook={comps_copy}", f"readback={comps_rb}")
@@ -462,45 +480,63 @@ def main() -> int:
         comps_raw.get("Comps!N6", "").strip().lower() in {"n/m", "#div/0!"},
         f"raw {comps_raw.get('Comps!N6')!r}",
     )
+
+    # The exclusion must be real: named per row, and the comparable-only columns
+    # must be empty for excluded rows. If the exclusion were dropped, the medians
+    # below change (see the contrast assertion).
     check(
-        "comps median EV/Revenue matches independent median",
-        close_to(comps_values["Comps!L13"], expected_comps["ev_revenue"]["median"], 0.0001),
-        f"{comps_values.get('Comps!L13')} vs {expected_comps['ev_revenue']['median']:.4f}",
+        "comps unit mismatch is flagged with its reason",
+        "excluded: units USD k" in comps_raw.get("Comps!O7", ""),
+        f"raw {comps_raw.get('Comps!O7')!r}",
     )
     check(
-        "comps quartiles match independent computation",
-        close_to(comps_values["Comps!L12"], expected_comps["ev_revenue"]["q3"], 0.0001)
-        and close_to(comps_values["Comps!L14"], expected_comps["ev_revenue"]["q1"], 0.0001),
-        f"q3 {comps_values.get('Comps!L12')} q1 {comps_values.get('Comps!L14')}",
+        "comps period mismatch is flagged with its reason",
+        "excluded: period FY25A" in comps_raw.get("Comps!O6", ""),
+        f"raw {comps_raw.get('Comps!O6')!r}",
     )
     check(
-        "comps median EV/EBITDA excludes the n/m peer",
-        close_to(comps_values["Comps!M13"], expected_comps["ev_ebitda"]["median"], 0.0001),
-        f"{comps_values.get('Comps!M13')} vs {expected_comps['ev_ebitda']['median']:.4f}",
+        "comps comparable rows are marked comparable",
+        comps_raw.get("Comps!O4", "").strip() == "comparable",
+        f"raw {comps_raw.get('Comps!O4')!r}",
     )
     check(
-        "comps median P/E excludes the loss-making peer",
-        close_to(comps_values["Comps!N13"], expected_comps["pe"]["median"], 0.0001),
-        f"{comps_values.get('Comps!N13')} vs {expected_comps['pe']['median']:.4f}",
+        "comps excluded rows carry no comparable-only value",
+        comps_raw.get("Comps!Q7", "").strip() == "" and comps_raw.get("Comps!M6", "").strip().lower() == "n/m",
+        f"Q7={comps_raw.get('Comps!Q7')!r} M6={comps_raw.get('Comps!M6')!r}",
     )
     check(
-        "comps numeric observation counts are reported and exclude n/m",
-        close_to(comps_values["Comps!M16"], float(expected_comps["ev_ebitda"]["count"]), 1e-9)
-        and close_to(comps_values["Comps!N16"], float(expected_comps["pe"]["count"]), 1e-9),
-        f"EV/EBITDA count {comps_values.get('Comps!M16')} P/E count {comps_values.get('Comps!N16')}",
-    )
-    comps_book = load_workbook(comps_copy, data_only=False)["Comps"]
-    periods = {comps_book[f"J{r}"].value for r in range(4, 9)}
-    units = {comps_book[f"K{r}"].value for r in range(4, 9)}
-    check(
-        "comps period mismatches are declared in the sheet (so they can be flagged)",
-        len(periods) >= 2,
-        str(sorted(periods)),
+        "comps median EV/Revenue is computed over comparable rows only",
+        close_to(comps_values["Comps!Q13"], expected_comps["ev_revenue"]["median"], 0.0001),
+        f"{comps_values.get('Comps!Q13')} vs {expected_comps['ev_revenue']['median']:.4f}",
     )
     check(
-        "comps unit mismatches are declared in the sheet (so they can be flagged)",
-        len(units) >= 2,
-        str(sorted(units)),
+        "comps exclusion changes the answer (so the safeguard is not decorative)",
+        not close_to(expected_comps["ev_revenue"]["median"], expected_comps["ev_revenue"]["all_rows_median"], 0.0001),
+        f"comparable median {expected_comps['ev_revenue']['median']:.4f} vs all-rows "
+        f"{expected_comps['ev_revenue']['all_rows_median']:.4f}",
+    )
+    check(
+        "comps quartiles match independent comparable-only computation",
+        close_to(comps_values["Comps!Q12"], expected_comps["ev_revenue"]["q3"], 0.0001)
+        and close_to(comps_values["Comps!Q14"], expected_comps["ev_revenue"]["q1"], 0.0001),
+        f"q3 {comps_values.get('Comps!Q12')} q1 {comps_values.get('Comps!Q14')}",
+    )
+    check(
+        "comps median EV/EBITDA excludes the n/m peer and the excluded rows",
+        close_to(comps_values["Comps!R13"], expected_comps["ev_ebitda"]["median"], 0.0001),
+        f"{comps_values.get('Comps!R13')} vs {expected_comps['ev_ebitda']['median']:.4f}",
+    )
+    check(
+        "comps median P/E excludes the loss-making peer and the excluded rows",
+        close_to(comps_values["Comps!S13"], expected_comps["pe"]["median"], 0.0001),
+        f"{comps_values.get('Comps!S13')} vs {expected_comps['pe']['median']:.4f}",
+    )
+    check(
+        "comps observation counts report the comparable subset",
+        close_to(comps_values["Comps!Q16"], float(expected_comps["ev_revenue"]["count"]), 1e-9)
+        and close_to(comps_values["Comps!R16"], float(expected_comps["ev_ebitda"]["count"]), 1e-9)
+        and close_to(comps_values["Comps!S16"], float(expected_comps["pe"]["count"]), 1e-9),
+        f"counts {comps_values.get('Comps!Q16')}/{comps_values.get('Comps!R16')}/{comps_values.get('Comps!S16')}",
     )
     check("comps original unchanged", sha256(comps_original) == comps_hash)
 
@@ -566,7 +602,7 @@ def main() -> int:
         f"{case_values['bull'].get('Model!B11')} / {base_values.get('Model!B11')} / {case_values['bear'].get('Model!B11')}",
     )
 
-    print("== scenario sensitivity grid, corners checked independently")
+    print("== scenario sensitivity grid: closed-form cross-check, corners verified independently")
     grid = {
         ("C15", "growth 5%, margin 32%"): scenario_case(0.05, 0.32),
         ("D15", "growth 5%, margin 40%"): scenario_case(0.05, 0.40),
@@ -577,7 +613,7 @@ def main() -> int:
     }
     for cell, label in grid:
         check(
-            f"sensitivity corner {cell} ({label}) matches independent computation",
+            f"cross-check corner {cell} ({label}) matches independent computation",
             close_to(base_values[f"Model!{cell}"], grid[(cell, label)]["net_income"], 0.01),
             f"{base_values.get(f'Model!{cell}')} vs {grid[(cell, label)]['net_income']:.2f}",
         )
@@ -585,7 +621,28 @@ def main() -> int:
         close_to(base_values[f"Model!{cell}"], case_values["bull"][f"Model!{cell}"], 1e-9)
         for cell, _ in grid
     )
-    check("sensitivity grid did not move with the case toggle", grid_unchanged)
+    check("cross-check grid does not depend on the case toggle", grid_unchanged)
+
+    # The grid above cannot detect a broken model linkage, because it recomputes the
+    # arithmetic itself. Prove the model path *can* fail: break EBIT's link to the
+    # fixed cost, and show the model-dependent expectation no longer holds.
+    broken = work / "scenario-broken.xlsx"
+    shutil.copy2(scenario_original, broken)
+    break_changes = work / "scenario-break.tsv"
+    break_changes.write_text("Model\tB8\tformula\t=B6\n")
+    break_report = excel("edit", f"workbook={broken}", f"changes={break_changes}", f"readback={scenario_rb}")
+    broken_values = cells(break_report)
+    check(
+        "a broken model linkage is detected (the check can fail)",
+        single(break_report, "STATUS") == "OK"
+        and not close_to(broken_values["Model!B11"], case_base["net_income"], 0.01),
+        f"broken NI {broken_values.get('Model!B11')} vs expected {case_base['net_income']:.2f}",
+    )
+    check(
+        "the closed-form grid does not notice that break (documented limitation)",
+        close_to(broken_values["Model!D15"], grid[("D15", "growth 5%, margin 40%")]["net_income"], 0.01),
+        f"grid corner {broken_values.get('Model!D15')}",
+    )
 
     delivery = work / "scenario-delivery.xlsx"
     shutil.copy2(scenario_original, delivery)

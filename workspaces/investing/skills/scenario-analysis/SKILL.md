@@ -81,10 +81,14 @@ When the user wants a grid (WACC × terminal growth, price × volume, growth ×
 margin), build it only from **supplied** axes, and make every cell a real
 recalculation of the model, not an approximation:
 
-- Recalculating a grid cell by cell means repeated `calculate full` runs, and
-  each run restores Excel's settings. Do them in one Excel session per axis value
-  rather than one per cell, and keep the number of cells small enough that you
-  can independently check at least the corners.
+- A grid cell must be **recalculated through the model** — that is the whole point
+  of a grid, and a cell that re-derives the arithmetic in closed form will stay
+  correct while the model is broken (verified on the fixture: severing a linkage
+  leaves a closed-form grid green). Recapture panel by panel: set the axis values
+  for one panel, `calculate full`, read the output cells, then move to the next.
+  Each panel costs one Excel run, so keep the grid small.
+- Verify the corners by hand, and if you also carry a closed-form cross-check,
+  label it as a cross-check of the arithmetic, never as a model sensitivity.
 - Independently verify the four corners by hand before presenting the grid.
 - If the workbook uses data tables (`autoNoTable`), say so: Excel's data-table
   exception is not addressable from AppleScript, so a stored table cache is not

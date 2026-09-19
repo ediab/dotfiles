@@ -54,9 +54,9 @@ on run argv
 	else if theCommand is "help" then
 		return usage()
 	else if theCommand is "recalc" then
-		return cmdProcess(argv, false)
+		return my runWithRetry(argv, false)
 	else if theCommand is "edit" then
-		return cmdProcess(argv, true)
+		return my runWithRetry(argv, true)
 	else if theCommand is "close" then
 		return cmdClose(argv, excelWasRunningAtStart())
 	else
@@ -151,6 +151,19 @@ on appSettings()
 		return {calc:calcSetting, alerts:(display alerts as text), askLinks:(ask to update links as text), autoSec:(automation security as text)}
 	end tell
 end appSettings
+
+-- Excel can be mid-launch or mid-quit when a command arrives, which surfaces as
+-- -609 (connection invalid) or -1712 (timeout). Both leave the workbook untouched
+-- (a failed run closes without saving), so retry once after a short pause and say so.
+on runWithRetry(argsList, doEdits)
+	set firstResult to my cmdProcess(argsList, doEdits)
+	if (firstResult contains "(-609)") or (firstResult contains "(-1712)") then
+		delay 3
+		set secondResult to my cmdProcess(argsList, doEdits)
+		return secondResult & "RETRY" & TABCHAR & "Excel connection dropped or timed out; the command was retried once" & my LF()
+	end if
+	return firstResult
+end runWithRetry
 
 on excelWasRunningAtStart()
 	return (application "Microsoft Excel" is running)

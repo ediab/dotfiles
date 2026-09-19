@@ -35,8 +35,11 @@ comps.xlsx
     including a peer with negative EBITDA/earnings and peers whose period and
     units differ, plus a ratios-only statistics block.
 scenario.xlsx
-    A switched base/bull/bear model plus a growth x margin sensitivity grid in
-    which every corner cell is a full recalculation of the model.
+    A switched base/bull/bear model plus a growth x margin sensitivity grid. The
+    grid cells recompute the same driver arithmetic in closed form, so they are a
+    cross-check of that arithmetic, NOT a recapture of the model's linkages - the
+    test asserts the distinction and separately proves that a broken model
+    linkage is detected.
 """
 
 from __future__ import annotations
@@ -409,16 +412,28 @@ def build_dcf(path: Path) -> None:
 
 
 def build_comps(path: Path) -> None:
-    """Five-peer comparables table with declared units and periods."""
+    """Five-peer comparables table with declared units and periods.
+
+    Comparability is mechanical rather than prose: one declared base period and
+    base unit sit at the top, a flag column names why each row is comparable or
+    excluded, and the statistics read "comparable-only" columns. Removing the
+    exclusion changes the medians, so the test can genuinely fail if the
+    safeguard is dropped.
+    """
     wb = Workbook()
     ws = wb.active
     ws.title = "Comps"
     ws["A1"] = "Synthetic comparables fixture - disposable, not financial data"
-    ws["A2"] = "All figures supplied. Units and periods are declared per company and are NOT harmonised automatically."
+    ws["A2"] = "All figures supplied. Comparability is decided against the declared base below."
+    ws["G2"] = "Base period"
+    ws["H2"] = "LTM Jun-26"
+    ws["I2"] = "Base units"
+    ws["J2"] = "USD m"
     headers = [
         "Company", "Price", "Diluted shares (m)", "Market cap", "Net debt (neg = net cash)",
         "Enterprise value", "Revenue", "EBITDA", "Net income", "Period", "Units",
         "EV/Revenue", "EV/EBITDA", "P/E",
+        "Comparable?", "", "EV/Revenue (comparable)", "EV/EBITDA (comparable)", "P/E (comparable)",
     ]
     for i, h in enumerate(headers, start=1):
         ws.cell(row=3, column=i, value=h)
@@ -444,8 +459,22 @@ def build_comps(path: Path) -> None:
         ws.cell(row=i, column=12, value=f"=F{i}/G{i}")
         ws.cell(row=i, column=13, value=f'=IF(H{i}<=0,"n/m",F{i}/H{i})')
         ws.cell(row=i, column=14, value=f'=IF(I{i}<=0,"n/m",D{i}/I{i})')
+        # the flag names its reason, so an exclusion is auditable rather than implicit
+        ws.cell(
+            row=i,
+            column=15,
+            value=(
+                f'=IF(K{i}<>$J$2,"excluded: units "&K{i},'
+                f'IF(J{i}<>$H$2,"excluded: period "&J{i},"comparable"))'
+            ),
+        )
+        # comparable-only columns: empty when the row is not comparable, so
+        # MEDIAN/COUNT ignore it exactly as they ignore text
+        ws.cell(row=i, column=17, value=f'=IF($O{i}="comparable",L{i},"")')
+        ws.cell(row=i, column=18, value=f'=IF($O{i}="comparable",M{i},"")')
+        ws.cell(row=i, column=19, value=f'=IF($O{i}="comparable",N{i},"")')
 
-    ws["A10"] = "Statistics (ratios only)"
+    ws["A10"] = "Statistics over comparable rows only"
     stats = [
         ("Maximum", "=MAX({r})"),
         ("75th percentile", "=QUARTILE({r},3)"),
@@ -456,10 +485,13 @@ def build_comps(path: Path) -> None:
     ]
     for i, (label, formula) in enumerate(stats, start=11):
         ws.cell(row=i, column=1, value=label)
-        for col in (12, 13, 14):
+        for col in (17, 18, 19):
             letter = get_column_letter(col)
             ws.cell(row=i, column=col, value=formula.format(r=f"{letter}4:{letter}8"))
+    ws["A18"] = "Excluded rows (named reason is in column O)"
+    ws["A19"] = "=TEXTJOIN(\", \",TRUE,IF($O$4:$O$8<>\"comparable\",$A$4:$A$8&\" \"&$O$4:$O$8,\"\"))"
     ws.column_dimensions["A"].width = 30
+    ws.column_dimensions["O"].width = 26
     wb.save(path)
 
 
@@ -508,7 +540,11 @@ def build_scenario(path: Path) -> None:
     m["A11"] = "Net income"
     m["B11"] = "=B8-B10"
 
-    m["A13"] = "Sensitivity: net income by revenue growth (rows) and gross margin (columns)"
+    m["A13"] = (
+        "Sensitivity cross-check: net income by revenue growth (rows) and gross margin (columns)"
+        " - closed-form recomputation of the driver arithmetic, not a model recapture;"
+        " a real grid must be recalculated through the model, axis value by axis value"
+    )
     m["B14"] = "growth \ margin"
     for i, margin in enumerate([0.32, 0.40, 0.45]):
         m.cell(row=14, column=3 + i, value=margin)
@@ -516,7 +552,10 @@ def build_scenario(path: Path) -> None:
         m.cell(row=15 + i, column=2, value=growth)
         for j in range(3):
             col = get_column_letter(3 + j)
-            # every corner is a full recalculation of the model, not an approximation
+            # closed form: the same growth/margin/opex/tax arithmetic, written directly.
+            # This is a cross-check of the driver maths; it does NOT flow through the
+            # model's linkages, so a linkage break would not show up here - the test
+            # proves that gap explicitly rather than papering over it.
             m.cell(
                 row=15 + i,
                 column=3 + j,
