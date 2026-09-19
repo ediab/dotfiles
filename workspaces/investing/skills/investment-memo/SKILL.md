@@ -87,8 +87,16 @@ Required sections, in this order:
 ## 3. Language discipline
 
 - Facts, assumptions, calculations and judgment stay visibly distinct.
-- Escape supplied text when it goes into HTML; quoted passages carry their file
-  and location.
+- Supplied text must be *mechanically* escaped before it enters HTML, not
+  by hand. Run each supplied string through the stdlib escaper and paste the
+  output:
+
+  ```sh
+  .venv/bin/python -c 'import html,sys; print(html.escape(sys.argv[1]))' 'supplied text'
+  ```
+
+  Verify a hostile sample (e.g. `<script>` in a company name) renders as text.
+  Quoted passages carry their file and location.
 - Never state a price, borrow fee, consensus figure, probability or catalyst
   that was not supplied. There is no "roughly", "approximately" or "the market
   implies" standing in for a missing input.

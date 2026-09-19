@@ -172,7 +172,8 @@ record (including catching a figure that disagrees).
    `calculate full` therefore recalculates *every* open workbook, which is why
    `recalc`/`edit` refuse to run while any unrelated workbook is open
    (`STATUS BLOCKED`). Work with Excel otherwise idle, or pass
-   `allowOtherWorkbooks=yes` only with the user's explicit permission.
+   `allowOtherWorkbooks=yes` only with the user's explicit permission — which
+   must then be recorded in `working/approval.md` (see `workflow-policy.md` §3).
 2. **AppleScript name collisions.** Inside `tell application "Microsoft Excel"`,
    an unqualified name that also exists in Excel's dictionary resolves to
    Excel's property. `kind` and `content` returned `missing value`; `ask`,

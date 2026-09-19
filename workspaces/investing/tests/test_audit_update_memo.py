@@ -335,6 +335,25 @@ def main() -> int:
         "No financial data, prices, consensus or catalysts were" in template,
     )
 
+    # Escaping supplied text must be mechanical, not agent discipline. Run a
+    # hostile supplied string through the documented stdlib escaper.
+    proc = subprocess.run(
+        [
+            sys.executable, "-c", "import html,sys; print(html.escape(sys.argv[1]))",
+            "<script>alert('VRT & Co')</script>",
+        ],
+        capture_output=True, text=True, timeout=30,
+    )
+    escaped = proc.stdout.strip()
+    check(
+        "the documented escaper neutralizes hostile supplied text",
+        proc.returncode == 0
+        and "&lt;script&gt;" in escaped
+        and "&amp;" in escaped
+        and "<script>" not in escaped,
+        f"rc={proc.returncode} out={escaped!r}",
+    )
+
     # A filled memo's figures must reconcile to the workbook the same way.
     memo = template
     memo = memo.replace("[Company] ([Ticker]) — [Long/Short]", "Sample Co (SMPL) - Long")

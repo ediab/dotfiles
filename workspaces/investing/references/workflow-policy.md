@@ -57,6 +57,11 @@ message reference if available, and the hash of the input it applies to. This is
 an **audit trail, not enforcement** — no file an agent writes can prove the user
 consented, so never describe it as authorization.
 
+The same rule covers a **run-scope exception**: `allowOtherWorkbooks=yes` is
+chat-spoken permission to recalculate while unrelated workbooks are open, so
+record it in `working/approval.md` too — what was permitted, for which run, and
+the input hash it applies to. An unrecorded exception is treated as none.
+
 ## 4. Edit with native Excel, then recalculate
 
 ```sh
@@ -94,6 +99,10 @@ Every real trial establishes three states:
   rather than treating a broken baseline as noise.
 - Sensitivity tables and `autoNoTable` workbooks are called out explicitly;
   an unchanged data-table cache is not a fresh sensitivity.
+- A `C` copy of an `autoNoTable` workbook inherits the demoted `automatic`
+  mode: AppleScript cannot re-express the data-table exception, so the save
+  reports a `WARNING` and every data-table cache in the delivered copy stays
+  stale. State this wherever the delivered workbook is presented.
 
 ## 6. Validate, then report
 

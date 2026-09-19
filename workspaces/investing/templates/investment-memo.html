@@ -5,7 +5,8 @@
   Replace every [SQUARE BRACKET] placeholder. Figures must reconcile to the
   delivered workbook via:
       inspect_workbook.py verify --workbook <C>.xlsx --evidence <assignment>-evidence.json
-  Escape supplied text; attribute quoted passages to their file and location.
+  Escape supplied text mechanically (`html.escape`), then attribute quoted
+  passages to their file and location — see `skills/investment-memo/SKILL.md` §3.
   Absent inputs stay visibly absent ("MISSING: source not supplied") - never
   substituted with an estimate or a remembered number.
 -->
