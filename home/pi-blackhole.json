@@ -16,7 +16,7 @@
   "compaction": "auto",
   "compactionEngine": "blackhole",
   "tailBehavior": "minimal",
-  "midRunCompaction": "off",
+  "midRunCompaction": "resume",
   "observeAfterTokens": 15000,
   "reflectAfterTokens": 25000,
   "compactAfterTokens": 81000,
