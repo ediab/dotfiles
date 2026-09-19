@@ -24,7 +24,7 @@ window-padding-color = extend
 window-save-state = always
 window-inherit-working-directory = true
 macos-option-as-alt = true
-macos-titlebar-style = tabs
+macos-titlebar-style = native
 # For a chrome-less window instead: macos-titlebar-style = hidden + window-decoration = none + macos-window-buttons = hidden
 resize-overlay = never
 
