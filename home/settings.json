@@ -31,7 +31,8 @@
     "npm:pi-commandcode-provider",
     "npm:@andrewjacop/pi-herdr",
     "npm:@lanlance/pi-btw",
-    "../../Dev/switchyard"
+    "../../Dev/switchyard",
+    "npm:@lll9p/pi-better-compaction"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish"
