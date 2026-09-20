@@ -1,50 +1,51 @@
 {
-	"lastChangelogVersion": "0.86.1",
-	"theme": "terminal",
-	"defaultProvider": "opencode-go",
-	"defaultModel": "muse-spark-1.3-contributor",
-	"defaultThinkingLevel": "high",
-	"tuiMode": "fullscreen",
-	"externalEditor": "druk",
-	"packages": [
-		"npm:pi-web-access",
-		"npm:pi-mcp-adapter",
-		"npm:@ff-labs/pi-fff",
-		"npm:pi-code-previews",
-		{
-			"source": "npm:@dietrichgebert/ponytail",
-			"skills": [
-				"!ponytail"
-			]
-		},
-		"npm:@saccolabs/pi-claude-cli",
-		"npm:@tintinweb/pi-subagents",
-		"npm:@juicesharp/rpiv-todo@2.9.0",
-		"npm:@juicesharp/rpiv-ask-user-question",
-		"https://github.com/cathrynlavery/diagram-design",
-		"npm:pi-zentui",
-		"npm:pi-terminal-theme",
-		"npm:@juicesharp/rpiv-advisor",
-		"npm:pi-intercom",
-		"git:github.com/earendil-works/pi-review",
-		"npm:pi-commandcode-provider",
-		"npm:@andrewjacop/pi-herdr",
-		"npm:@lll9p/pi-better-compaction",
-		"https://github.com/ayghri/i-have-adhd",
-		"npm:omp-codex-reserve",
-		"npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
-		"npm:pi-updater",
-		"npm:pi-opener",
-		"npm:pi-better-btw-plus"
-	],
-	"skills": [
-		"!**/.agents/skills/use-tinyfish",
-		"!**/.agents/skills/simplify"
-	],
-	"enableInstallTelemetry": false,
-	"defaultProjectTrust": "always",
-	"steeringMode": "one-at-a-time",
-	"followUpMode": "one-at-a-time",
-	"quietStartup": true,
-	"hideThinkingBlock": true
+  "lastChangelogVersion": "0.86.1",
+  "theme": "terminal",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "muse-spark-1.3-contributor",
+  "defaultThinkingLevel": "high",
+  "tuiMode": "fullscreen",
+  "externalEditor": "druk",
+  "packages": [
+    "npm:pi-web-access",
+    "npm:pi-mcp-adapter",
+    "npm:@ff-labs/pi-fff",
+    "npm:pi-code-previews",
+    {
+      "source": "npm:@dietrichgebert/ponytail",
+      "skills": [
+        "!ponytail"
+      ]
+    },
+    "npm:@saccolabs/pi-claude-cli",
+    "npm:@tintinweb/pi-subagents",
+    "npm:@juicesharp/rpiv-todo@2.9.0",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "https://github.com/cathrynlavery/diagram-design",
+    "npm:pi-zentui",
+    "npm:pi-terminal-theme",
+    "npm:@juicesharp/rpiv-advisor",
+    "npm:pi-intercom",
+    "git:github.com/earendil-works/pi-review",
+    "npm:pi-commandcode-provider",
+    "npm:@andrewjacop/pi-herdr",
+    "npm:@lll9p/pi-better-compaction",
+    "https://github.com/ayghri/i-have-adhd",
+    "npm:omp-codex-reserve",
+    "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
+    "npm:pi-updater",
+    "npm:pi-opener",
+    "npm:pi-better-btw-plus",
+    "npm:pi-codex-goal"
+  ],
+  "skills": [
+    "!**/.agents/skills/use-tinyfish",
+    "!**/.agents/skills/simplify"
+  ],
+  "enableInstallTelemetry": false,
+  "defaultProjectTrust": "always",
+  "steeringMode": "one-at-a-time",
+  "followUpMode": "one-at-a-time",
+  "quietStartup": true,
+  "hideThinkingBlock": true
 }
