@@ -35,7 +35,8 @@
     "npm:omp-codex-reserve",
     "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
     "npm:pi-updater",
-    "npm:pi-opener"
+    "npm:pi-opener",
+    "npm:pi-better-btw-plus"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
