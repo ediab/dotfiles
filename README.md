@@ -3,6 +3,20 @@
 Elias's personal [pi](https://github.com/earendil-works/pi) (coding-agent harness) setup.
 One repo, one command, and a fresh machine ends up with the same pi config every time.
 
+## Why this repo exists separately from `configs`
+
+Two repos, one rule: **if the app writes the live file at runtime → it lives here
+(copy-deployed). If the app only reads it → it lives in `configs` (symlinked).**
+
+pi manages `~/.pi/agent/` itself — it rewrites `settings.json` on every install and
+package code is written into `extensions/` and `skills/` — so a symlink would drag
+third-party package code into this repo. Files are **copied** on bootstrap/rebuild
+instead (see *How the sync works*). Shell, terminal, and editor configs are read-only
+from the app's perspective, so symlinks are fine and simpler — those are `configs`.
+
+This keeps this repo a shareable template ("Make it yours" below) while `configs`
+stays plainly personal.
+
 ## What you get
 
 Running the bootstrap installs:
@@ -214,6 +228,10 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).
   Normally invoked automatically by the configs repo's `com.diab.sync-vps` launch agent
   (change-gated, every 15 minutes); run it by hand when you want the VPS updated now.
+  Stable interface: `deploy-vps.sh [host]`. It reads only its own `home/` plus the live
+  `~/.pi/agent/` files noted here (`settings.json`, `auth.json`, `code-previews.json`) —
+  nothing outside this repo — and takes the target host as `$1` (default `vps`), so the
+  configs orchestrator can call it without knowing its internals.
 - `CONCEPTS.md` — shared domain vocabulary (glossary, tracked). `docs/specs/` holds
   saved briefs/plans (tracked); `docs/plans/` is gitignored scaffolding recreated on demand.
   All historical documents were removed on 2026-09-16 as stale — the workflow spec had

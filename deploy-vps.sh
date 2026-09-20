@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 # deploy-vps.sh — push local pi config to VPS, sync packages/skills/extensions.
+#
+# Stable interface for the configs repo's sync-vps.sh orchestrator:
+#   deploy-vps.sh [host]   (default host: vps)
+# Reads only this repo's home/ plus the live ~/.pi/agent/ files noted below
+# (settings.json, auth.json, code-previews.json) — nothing outside this repo.
 set -euo pipefail
 
 VPS_HOST="${1:-vps}"
