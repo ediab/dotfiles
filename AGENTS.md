@@ -17,7 +17,6 @@ Dotfiles and configs for shell, terminal, editor, and Firefox. This is the sourc
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 | `vscode/keybindings.json` | `~/Library/Application Support/Code/User/keybindings.json` |
-| `nvim/` | _(VPS-only — deploy via `nvim/deploy-vps.sh`; no longer symlinked on the Mac)_ |
 
 ## Firefox (not symlinked — sync via script)
 
@@ -77,13 +76,8 @@ These are pushed to the VPS by script (not symlinked — nothing on the VPS read
 | `vps/systemd/*.service`, `vps/systemd/*.timer` | `vps/deploy-vps.sh` | `~/.config/systemd/user/` |
 | `vps/apt/51-vps-auto-updates` | `vps/deploy-vps.sh` | `/etc/apt/apt.conf.d/` (sudo) |
 | `vps/apps-AGENTS.md` | `vps/deploy-vps.sh` | `~/apps/AGENTS.md` |
-| `nvim/` | `nvim/deploy-vps.sh` | `~/.config/nvim` |
 
 The `vps/` files are captured byte-for-byte from the box, so `diff` against the VPS shows drift. Run the deploy with no local edits to re-align it.
-
-The Neovim config is pushed as files only: plugins, LSP servers and state live in
-`~/.local/share/nvim` and are machine-local, so a fresh VPS needs one
-`nvim --headless "+Lazy! sync" +qa` against the network.
 
 ### VPS upkeep on the box
 
@@ -111,7 +105,7 @@ launchctl load ~/Library/LaunchAgents/com.diab.sync-vps.plist
 ```
 
 `bin/sync-vps.sh` gates on the deployed source paths (`~/dev/pi-dotfiles/home`,
-`~/dev/pi-dotfiles/deploy-vps.sh`, `vps/`, `herdr/config.vps.toml`, `nvim/`) against
+`~/dev/pi-dotfiles/deploy-vps.sh`, `vps/`, `herdr/config.vps.toml`) against
 `~/.cache/sync-vps.stamp`, so a tick with no edits costs nothing:
 
 ```sh

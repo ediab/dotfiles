@@ -28,8 +28,8 @@ export PATH="$HOME/.local/bin:$PATH"
 
 if command -v code >/dev/null 2>&1; then
   export EDITOR="code"
-elif command -v nvim >/dev/null 2>&1; then
-  export EDITOR="nvim"
+elif command -v druk >/dev/null 2>&1; then
+  export EDITOR="druk"
 elif command -v vim >/dev/null 2>&1; then
   export EDITOR="vim"
 else

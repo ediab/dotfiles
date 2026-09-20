@@ -5,7 +5,7 @@
 #   1. pi-dotfiles harness  (skills, extensions, settings, AGENTS.md, package reconcile)
 #   2. configs VPS dotfiles (.zshrc, .zshenv, .p10k.zsh, .tmux.conf)
 #   3. Herdr VPS config     (config.vps.toml + server reload-config)
-#   4. Neovim config        (init.lua, lua/, lazy-lock.json, lazyvim.json)
+#   4. druk editor config   (settings partial, market extensions, pi-opener)
 #
 # Installed as the launchd agent com.diab.sync-vps (every 15 minutes). When no source
 # file changed since the last successful run it exits without touching the network.
@@ -14,7 +14,7 @@
 #   sync-vps.sh --force    deploy unconditionally
 #
 # Every step runs even if an earlier one fails. The stamp is advanced only when all
-# three succeeded, so a failure is retried on the next tick.
+# steps succeeded, so a failure is retried on the next tick.
 #
 # NOTE: launchd runs this with /bin/bash (3.2) and a minimal PATH — keep it 3.2-safe.
 
@@ -30,14 +30,14 @@ LOG="/tmp/com.diab.sync-vps.out"
 # launchd starts agents with a minimal PATH; Homebrew is needed for terminal-notifier.
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 
-# Watched inputs = exactly the sources the four deploys read. `.git` is deliberately
+# Watched inputs = exactly the sources the deploys read. `.git` is deliberately
 # excluded: the autocommit agent churns it every 15 minutes and nothing deploys from it.
 INPUTS=(
   "$PI_DOTFILES/home"
   "$PI_DOTFILES/deploy-vps.sh"
   "$REPO/vps"
   "$REPO/herdr/config.vps.toml"
-  "$REPO/nvim"
+  "$REPO/druk"
 )
 
 # One host, three spellings: pi-dotfiles takes it as $1, the configs scripts as env vars.
@@ -92,11 +92,11 @@ fi
 run_step pi-dotfiles "$PI_DOTFILES/deploy-vps.sh" "$VPS_HOST"
 run_step vps-dotfiles "$REPO/vps/deploy-vps.sh"
 run_step herdr "$REPO/herdr/deploy-vps.sh"
-run_step nvim "$REPO/nvim/deploy-vps.sh"
+run_step druk "env" "DEPLOY_DRUK_HOST=$VPS_HOST" "$REPO/druk/deploy-druk.sh"
 
 if [ -z "$failed" ]; then
   touch "$STAMP"
-  echo "==> deployed: pi-dotfiles, vps-dotfiles, herdr, nvim (stamp $STAMP)"
+  echo "==> deployed: pi-dotfiles, vps-dotfiles, herdr, druk (stamp $STAMP)"
   exit 0
 fi
 

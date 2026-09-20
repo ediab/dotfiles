@@ -1,0 +1,7 @@
+# Source for ~/.config/pi-opener/config.yaml (deployed by bin/sync-vps.sh).
+# pi-opener opens files in the real editor from pi's /open command.
+wrapperCommand: herdr
+
+opener:
+  code: druk %p:%l
+  dir: druk %p
