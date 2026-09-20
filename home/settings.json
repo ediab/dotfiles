@@ -17,7 +17,6 @@
         "!ponytail"
       ]
     },
-    "npm:@saccolabs/pi-claude-cli",
     "npm:@tintinweb/pi-subagents",
     "npm:@juicesharp/rpiv-todo@2.9.0",
     "npm:@juicesharp/rpiv-ask-user-question",
