@@ -5,6 +5,7 @@ tap "morantron/tmux-fingers"
 tap "steipete/tap"
 tap "tw93/tap"
 tap "updatest/tap", "https://github.com/updatest/tap.git"
+tap "letstri/tap"
 # Tool for generating GNU Standards-compliant Makefiles
 brew "automake"
 # Clone of cat(1) with syntax highlighting and Git integration
@@ -21,6 +22,8 @@ brew "colima"
 brew "docker"
 # Isolated development environments using Docker
 brew "docker-compose"
+# Terminal code editor
+brew "letstri/tap/druk"
 # YAML Parser
 brew "libyaml"
 # Perl lib for reading and writing EXIF metadata

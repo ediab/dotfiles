@@ -17,7 +17,7 @@ Dotfiles and configs for shell, terminal, editor, and Firefox. This is the sourc
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json` | `~/Library/Application Support/Code/User/settings.json` |
 | `vscode/keybindings.json` | `~/Library/Application Support/Code/User/keybindings.json` |
-| `nvim/` | `~/.config/nvim` |
+| `nvim/` | _(VPS-only — deploy via `nvim/deploy-vps.sh`; no longer symlinked on the Mac)_ |
 
 ## Firefox (not symlinked — sync via script)
 

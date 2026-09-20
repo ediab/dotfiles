@@ -19,14 +19,14 @@ Dotfiles and terminal/editor configuration, versioned for sync across machines.
 | `herdr/plugins.txt` | _(none — regenerated via `herdr plugin list`)_ | Installed Herdr plugin list |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` | Herdr config (keybindings, UI) |
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` | Pi advisor extension: reviewer model, effort, model blocklist, guidance |
-| `nvim/` | `~/.config/nvim` | Neovim config (LazyVim: `init.lua`, `lua/`, pinned `lazy-lock.json`) |
+| `nvim/` | _(VPS-only — deploy via `nvim/deploy-vps.sh`; no longer symlinked on the Mac)_ | Neovim config for `ssh vps` (LazyVim: `init.lua`, `lua/`, pinned `lazy-lock.json`) |
 | `herdr/config.vps.toml` | _(none — deploy via `herdr/deploy-vps.sh`)_ | Herdr config for the VPS (`ssh vps`), headless toast delivery |
 | `vps/` | _(none — deploy via `vps/deploy-vps.sh`)_ | VPS shell dotfiles (`.zshrc`, `.zshenv`, `.p10k.zsh`, `.tmux.conf`) — the rows below cover the rest of `vps/` |
 | `vps/vps-cleanup.sh`, `vps/vps-update-images.sh` | _(none — deployed to `~/bin`, run by user timers)_ | Weekly VPS disk cleanup and third-party container image refresh |
 | `vps/systemd/*.{service,timer}` | _(none — deployed to `~/.config/systemd/user`)_ | Timers for those two jobs, plus `herdr-server.service` |
 | `vps/apt/51-vps-auto-updates` | _(none — deployed to `/etc/apt/apt.conf.d`)_ | unattended-upgrades policy: origins, 03:30 auto-reboot, kernel cleanup |
 | `vps/apps-AGENTS.md` | _(none — deployed to `~/apps/AGENTS.md`)_ | VPS app-root process doc (deploys, auto-updates, weekly upkeep) |
-| `nvim/` | _(also symlinked above — deploy via `nvim/deploy-vps.sh`)_ | Neovim config for `ssh vps` (plugins stay in the VPS `~/.local/share/nvim`) |
+| `nvim/` | _(VPS-only — deploy via `nvim/deploy-vps.sh`)_ | Neovim config for `ssh vps` (plugins stay in the VPS `~/.local/share/nvim`) |
 | `bin/sync-vps.sh` | _(none — runs as `com.diab.sync-vps`)_ | Syncs the `pi-dotfiles`, `vps/`, `herdr/`, and `nvim/` deploys to `ssh vps` |
 | `firefox/` | _(none — sync via `firefox/sync.sh`)_ | Firefox profile configs (prefs, chrome CSS, extensions, bookmarks) |
 
@@ -87,7 +87,6 @@ ln -s ~/dev/configs/.tmux.conf ~/.tmux.conf
 ln -s ~/dev/configs/starship.toml ~/.config/starship.toml
 ln -s ~/dev/configs/ghostty/config ~/.config/ghostty/config
 ln -s ~/dev/configs/herdr/config.toml ~/.config/herdr/config.toml
-ln -s ~/dev/configs/nvim ~/.config/nvim
 mkdir -p ~/.config/rpiv-advisor
 ln -s ~/dev/configs/rpiv-advisor/advisor.json ~/.config/rpiv-advisor/advisor.json
 ln -s ~/dev/configs/vscode/settings.json ~/Library/Application\ Support/Code/User/settings.json

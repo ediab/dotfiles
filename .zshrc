@@ -70,9 +70,9 @@ export LANG=en_US.UTF-8
 # `open -a "open -a Safari" url` and failed).
 export BROWSER="/usr/bin/open"
 
-# nvim blocks the terminal by nature, so no --wait flag needed
+# druk blocks the terminal by nature, so no --wait flag needed
 # (the old `code --wait` needed --wait or git commits aborted instantly).
-export EDITOR='nvim'
+export EDITOR='druk'
 export VISUAL="$EDITOR"
 
 export ENABLE_TOOL_SEARCH=true
@@ -150,7 +150,7 @@ alias hconfig="$EDITOR ~/.config/herdr/config.toml"
 alias cheat='open -a markemark ~/Desktop/cheatsheet.md'
 alias reload="exec zsh"        # exec beats re-sourcing: no duplicated state
 alias c="clear"
-alias v="nvim"
+alias v="druk"
 
 # --- modern replacements (brew install eza bat) ---
 alias ls="eza --icons --group-directories-first"

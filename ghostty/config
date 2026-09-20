@@ -33,7 +33,7 @@ resize-overlay = never
 # Opacity is also disabled automatically in macOS native fullscreen.
 background-opacity = 0.85
 background-blur = macos-glass-regular
-# Makes Neovim/tmux backgrounds respect background-opacity too (they're opaque by design otherwise).
+# Makes tmux backgrounds respect background-opacity too (it's opaque by design otherwise).
 background-opacity-cells = true
 
 # --- Split Appearance ---
