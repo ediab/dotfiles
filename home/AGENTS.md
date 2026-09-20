@@ -64,11 +64,11 @@ Project-level `AGENTS.md` / `CLAUDE.md` files layer on top of this one and take 
 
 ## Model routing
 
-Model IDs live in the agent profiles (`~/.pi/agent/agents/*.md`); this section states routing policy only.
-
-* Implementation runs in the main session, whatever model it uses; there is no mandatory main → `worker` implementation hop. Delegate implementation to `worker` only for genuinely independent parallel workstreams under the Delegation rules — never through `general-purpose`, a model override, or workflow `model`/`effort` values.
-* Before delegating, check the pinned model's availability. If it is unavailable, report the blocker — do not silently substitute another model, resume with an override, or retry on a second model as a quality-driven fallback. A failed dispatch is reported, not re-routed.
-* Limits: distinguish an unavailable/unresolvable pinned model from an omitted model — the package may use the same model under another provider, then inherit the parent if the pin cannot resolve. Routing is policy, not enforcement; `Agent` profile pins do have enforcement. Workflow `agent()` dispatch lets script `model`/`effort` values override profile pins — so never pass `model` or `effort` alongside a model-pinned role, and always pass an explicit existing `agentType` (workflows default to `general-purpose`).
+* Explicit model requests win: the `model` parameter on an `Agent` dispatch outranks every default. When the user names a model, pass it verbatim (`provider/model`, e.g. `opencode-go/omen-alpha` — get the provider right) and report if it cannot resolve; never silently substitute another model. Note the precedence rule in pi-subagents: an agent profile's `model:` frontmatter outranks the dispatch's `model` parameter, which is why only `worker` keeps a pin.
+* `worker` is the only model-pinned profile (`deepseek/deepseek-flash`); its pin outranks the dispatch's `model` parameter. Implementation runs in the main session, whatever model it uses; there is no mandatory main → `worker` implementation hop. Delegate implementation to `worker` only for genuinely independent parallel workstreams under the Delegation rules — never through `general-purpose`, a model override, or workflow `model`/`effort` values.
+* Unpinned roles (reviewer, explorer, researcher, general-purpose) inherit the parent's model when no `model` is passed. Pass an explicit cheap default unless the user requested one or the task justifies the parent model: `opencode-go/glm-5.3-flash` for reviewer, `opencode-go/muse-spark-1.3-contributor` for explorer/researcher/general-purpose.
+* Before delegating with an explicit model, check its availability. If it is unavailable, report the blocker — do not silently substitute another model, resume with an override, or retry on a second model as a quality-driven fallback. A failed dispatch is reported, not re-routed.
+* Workflow `agent()` dispatch lets script `model`/`effort` values override profile pins — never pass `model` or `effort` alongside the pinned `worker` role, and always pass an explicit existing `agentType` (workflows default to `general-purpose`).
 
 ## Git
 

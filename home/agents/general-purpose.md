@@ -4,7 +4,6 @@
 name: general-purpose
 description: General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. Pinned to the cheap default model; never use it to run implementation on an expensive model.
 tools: all
-model: opencode-go/muse-spark-1.3-contributor
 extensions: true
 skills: true
 prompt_mode: append
