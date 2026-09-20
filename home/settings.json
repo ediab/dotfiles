@@ -20,7 +20,16 @@
     "npm:@tintinweb/pi-subagents",
     "npm:@juicesharp/rpiv-todo@2.9.0",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "https://github.com/cathrynlavery/diagram-design",
+    {
+      "source": "https://github.com/cathrynlavery/diagram-design",
+      "skills": [
+        "-skills/diagram-design/SKILL.md"
+      ],
+      "prompts": [
+        "-prompts/doctor.md",
+        "-prompts/export-diagram.md"
+      ]
+    },
     "npm:pi-zentui",
     "npm:pi-terminal-theme",
     "npm:@juicesharp/rpiv-advisor",
