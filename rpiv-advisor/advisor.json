@@ -1,6 +1,6 @@
 {
-  "modelKey": "openai-codex/gpt-6-astra",
-  "effort": "low",
+  "modelKey": "openai-codex/gpt-5.6-sol",
+  "effort": "medium",
   "disabledForModels": [
     "openai-codex/gpt-6-astra",
     { "model": "openai-codex/gpt-5.6-sol", "minEffort": "high" },
