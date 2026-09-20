@@ -93,5 +93,10 @@ keybind = cmd+shift+f=toggle_split_zoom
 # Reload config
 keybind = cmd+shift+comma=reload_config
 
+# --- macOS British layout ---
+# macos-option-as-alt = true (set above) swallows Option-composed characters,
+# so Option+3 arrives as Alt+3 instead of #. Restore it explicitly.
+keybind = alt+3=text:#
+
 # --- Performance ---
 scrollback-limit = 25000000
