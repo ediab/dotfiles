@@ -36,7 +36,7 @@
     "npm:pi-updater",
     "npm:pi-opener",
     "npm:pi-codex-goal",
-    "npm:@juicesharp/rpiv-pi"
+    "npm:@juicesharp/rpiv-btw"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
