@@ -27,7 +27,10 @@
       ],
       "prompts": [
         "-prompts/doctor.md",
-        "-prompts/export-diagram.md"
+        "-prompts/export-diagram.md",
+        "-prompts/import-excalidraw.md",
+        "-prompts/import-mermaid.md",
+        "-prompts/profile.md"
       ]
     },
     "npm:pi-zentui",
