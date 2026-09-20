@@ -19,6 +19,7 @@
       ]
     },
     "npm:@tintinweb/pi-subagents",
+    "npm:@tintinweb/pi-tasks",
     "npm:@juicesharp/rpiv-ask-user-question",
     {
       "source": "https://github.com/cathrynlavery/diagram-design",
