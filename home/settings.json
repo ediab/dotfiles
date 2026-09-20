@@ -37,7 +37,15 @@
     "npm:pi-zentui",
     "npm:pi-terminal-theme",
     "npm:@juicesharp/rpiv-advisor",
-    "npm:pi-intercom",
+    {
+      "source": "npm:pi-intercom",
+      "extensions": [
+        "-index.ts"
+      ],
+      "skills": [
+        "-skills/pi-intercom/SKILL.md"
+      ]
+    },
     "git:github.com/earendil-works/pi-review",
     "npm:pi-commandcode-provider",
     "npm:@andrewjacop/pi-herdr",
@@ -52,7 +60,12 @@
     },
     "npm:pi-updater",
     "npm:pi-opener",
-    "npm:pi-codex-goal",
+    {
+      "source": "npm:pi-codex-goal",
+      "prompts": [
+        "+prompts/create-goal.md"
+      ]
+    },
     "npm:xz-pi-btw"
   ],
   "skills": [
