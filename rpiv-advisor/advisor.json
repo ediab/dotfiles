@@ -3,7 +3,7 @@
   "effort": "medium",
   "disabledForModels": [
     "openai-codex/gpt-6-astra",
-    { "model": "openai-codex/gpt-5.6-sol", "minEffort": "high" },
+    "openai-codex/gpt-5.6-sol",
     { "model": "openai-codex/gpt-5.6-terra", "minEffort": "high" },
     "opencode-go/glm-5.3",
     "opencode-go/grok-4.6",
