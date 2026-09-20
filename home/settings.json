@@ -14,7 +14,8 @@
     {
       "source": "npm:@dietrichgebert/ponytail",
       "skills": [
-        "!ponytail"
+        "!ponytail",
+        "+skills/ponytail/SKILL.md"
       ]
     },
     "npm:@tintinweb/pi-subagents",
