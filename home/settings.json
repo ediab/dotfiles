@@ -38,7 +38,8 @@
     "npm:pi-opener"
   ],
   "skills": [
-    "!**/.agents/skills/use-tinyfish"
+    "!**/.agents/skills/use-tinyfish",
+    "!**/.agents/skills/simplify"
   ],
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",

@@ -166,15 +166,15 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   dir is deployed automatically.
 - **Extensions**: add/remove a file (`.ts`/`.js`) or a directory (`index.ts`/`index.js`)
   under `home/extensions/` — auto-discovered, no script edit needed.
-- `home/settings.json` carries one hand-written `skills` entry,
-  `"!**/.agents/skills/use-tinyfish"`. The TinyFish CLI installs its bundled skill into
-  every harness dir it recorded — including the canonical `~/.agents/skills/` that serves
-  codex/opencode — and pi scans that dir too, so the same skill loaded twice and pi opened
-  with a `[Skill conflict]` warning. The `!` glob hides the shared copy from pi (`~` is not
-  expanded in these patterns, so the glob form is required); drop it if you don't use TinyFish.
-  The pi-side copy in `~/.pi/agent/skills/use-tinyfish/` is mirrored into
-  `home/skills/use-tinyfish/` and deployed like any other skill. `tinyfish connect` rewrites the
-  live copy when TinyFish updates, so copy it back
+- `home/settings.json` carries hand-written `skills` exclusions,
+  `"!**/.agents/skills/use-tinyfish"` and `"!**/.agents/skills/simplify"`.
+  External installers drop their bundled skills into every harness dir they recorded —
+  including the canonical `~/.agents/skills/` that serves codex/opencode — and pi scans
+  that dir too, so the same skill loads twice and pi opens with a `[Skill conflict]`
+  warning. The `!` globs hide the shared copies from pi (`~` is not expanded in these
+  patterns, so the glob form is required); drop one if you stop using that skill elsewhere.
+  The pi-side copies in `~/.pi/agent/skills/` are mirrored into `home/skills/` and deployed
+  like any other skill. `tinyfish connect` rewrites the live copy when TinyFish updates, so copy it back
   (`cp ~/.pi/agent/skills/use-tinyfish/SKILL.md ~/Dev/pi-dotfiles/home/skills/use-tinyfish/`)
   before the next `./rebuild.sh`, which would otherwise push the older snapshot over it.
 
