@@ -35,8 +35,7 @@
     "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
     "npm:pi-updater",
     "npm:pi-opener",
-    "npm:pi-codex-goal",
-    "npm:@juicesharp/rpiv-btw"
+    "npm:pi-codex-goal"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
