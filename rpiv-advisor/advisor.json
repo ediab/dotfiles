@@ -13,7 +13,7 @@
     "anthropic/claude-fable-5"
   ],
   "guidance": {
-    "promptSnippet": "Escalate to the GPT-6 Astra reviewer when an approach isn't converging or a decision is expensive to reverse",
+    "promptSnippet": "Escalate to the GPT-5.6 Sol reviewer when an approach isn't converging or a decision is expensive to reverse",
     "promptGuidelines": [
       "Call `advisor` when choosing between approaches that are expensive to reverse — schema, API shape, file layout, a new dependency.",
       "Call `advisor` when the same failure recurs twice, or results contradict what you read in the code.",
