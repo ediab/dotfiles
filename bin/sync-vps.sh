@@ -40,6 +40,15 @@ INPUTS=(
   "$REPO/druk"
 )
 
+failed=""
+
+# pi-dotfiles is a dependency with a stable interface: deploy-vps.sh [host],
+# reading only its own home/ plus the live ~/.pi/agent/ config files (its README
+# documents the contract) — never paths inside this repo. So the only inputs
+# watched here for that step are its script and its home/ (plus a checkout guard).
+PI_DOTFILES_DEP="$PI_DOTFILES/deploy-vps.sh"
+[ -x "$PI_DOTFILES_DEP" ] || { echo "missing: $PI_DOTFILES_DEP (pi-dotfiles checkout?)" >&2; failed="pi-dotfiles(checkout)"; }
+
 # One host, three spellings: pi-dotfiles takes it as $1, the configs scripts as env vars.
 VPS_HOST="${VPS_HOST:-vps}"
 export VPS_HOST
@@ -69,8 +78,6 @@ notify() {
   fi
 }
 
-failed=""
-
 run_step() {
   local name="$1" status=0
   shift
@@ -89,7 +96,11 @@ if [ "${1:-}" != "--force" ] && ! changed; then
   exit 0
 fi
 
-run_step pi-dotfiles "$PI_DOTFILES/deploy-vps.sh" "$VPS_HOST"
+if [ -z "$failed" ]; then
+  run_step pi-dotfiles "$PI_DOTFILES_DEP" "$VPS_HOST"
+else
+  echo "==> pi-dotfiles SKIPPED (checkout missing)"
+fi
 run_step vps-dotfiles "$REPO/vps/deploy-vps.sh"
 run_step herdr "$REPO/herdr/deploy-vps.sh"
 run_step druk "env" "DEPLOY_DRUK_HOST=$VPS_HOST" "$REPO/druk/deploy-druk.sh"

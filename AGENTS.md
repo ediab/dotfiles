@@ -23,10 +23,11 @@ Dotfiles and configs for shell, terminal, editor, and Firefox. This is the sourc
 Firefox actively writes to its profile files, so they're synced one-way into this repo:
 
 ```sh
-cd ~/dev/configs/firefox && ./sync.sh
+cd ~/dev/configs/firefox && ./sync.sh            # full sync incl. latest bookmark backup
+./firefox/sync.sh --latest                       # bookmark backup only (gitignored)
 ```
 
-The sync script copies: `prefs.js`, extension prefs/settings, `containers.json`, `handlers.json`, `search.json.mozlz4`, `chrome/userChrome.css`, `chrome/userContent.css`, `chrome/theme/`, and `bookmarkbackups/`.
+The sync script copies: `prefs.js`, extension prefs/settings, `containers.json`, `handlers.json`, `search.json.mozlz4`, `chrome/userChrome.css`, `chrome/userContent.css`, `chrome/theme/`, and the latest bookmark backup (`sync.sh --latest` refreshes just that; `bookmarkbackups/` is gitignored, the live profile is the real backup).
 
 Sensitive files (cookies, logins, certs) and large auto-generated data (storage, favicons, extensions XPI) are never synced.
 

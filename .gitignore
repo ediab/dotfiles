@@ -1,3 +1,8 @@
 .DS_Store
 *.swp
 *~
+
+# Firefox's own dated bookmark snapshots (firefox/sync.sh --latest pulls the
+# newest on demand). The live profile is the real backup; versioning all 15+
+# dated copies just churns the autocommit log.
+firefox/bookmarkbackups/

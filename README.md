@@ -2,6 +2,16 @@
 
 Dotfiles and terminal/editor configuration, versioned for sync across machines.
 
+## Why this repo exists separately from `pi-dotfiles`
+
+Two repos, one rule: **if the app writes the live file at runtime → it lives in
+`pi-dotfiles` (copy-deployed). If the app only reads it → it lives here (symlinked).**
+
+Shell, terminal, editor, Herdr, and VPS configs are read-only from the app's
+perspective, so a symlink (Mac) or a push script (VPS, which can't read this repo)
+is enough — no copy-back dance needed. pi's `~/.pi/agent/`, which pi itself rewrites,
+is the exception, and it gets its own repo so it stays a shareable template.
+
 ## Files
 
 | File | Symlink target | Purpose |
@@ -55,11 +65,17 @@ cp ~/dev/configs/launchd/com.diab.sync-vps.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.diab.sync-vps.plist
 ```
 
-`bin/sync-vps.sh` runs the three deploys — `~/dev/pi-dotfiles/deploy-vps.sh` (pi harness),
-`vps/deploy-vps.sh`, `herdr/deploy-vps.sh` — but only when something
-under their source paths changed since the last successful run, so an idle tick makes no
-SSH connection. (There used to be a fourth step, `nvim/deploy-vps.sh`; Neovim was removed
-from the Mac and the VPS in favour of druk.)
+`bin/sync-vps.sh` is the single orchestrator for all VPS deploys. It runs four steps —
+`~/dev/pi-dotfiles/deploy-vps.sh` (pi harness), `vps/deploy-vps.sh`, `herdr/deploy-vps.sh`,
+`druk/deploy-druk.sh` — but only when something under their source paths changed since the
+last successful run, so an idle tick makes no SSH connection. (There used to be a step
+`nvim/deploy-vps.sh`; Neovim was removed from the Mac and the VPS in favour of druk.)
+
+`pi-dotfiles` is treated as a dependency with a stable interface: the orchestrator calls
+`deploy-vps.sh [host]` and watches its `home/` for changes, without knowing its
+internals (its per-step contract is documented in the pi-dotfiles README). The other
+three steps are this repo's own scripts, configured via env (`VPS_HOST`,
+`HERDR_VPS_HOST`, `DEPLOY_DRUK_HOST`).
 
 ```sh
 ~/dev/configs/bin/sync-vps.sh            # deploy now if anything changed
@@ -67,7 +83,7 @@ from the Mac and the VPS in favour of druk.)
 ```
 
 A failing step never blocks the others, the stamp (`~/.cache/sync-vps.stamp`) only advances
-when all three succeeded, and a failure raises a macOS notification at most once an hour.
+when all four succeeded, and a failure raises a macOS notification at most once an hour.
 Logs: `/tmp/com.diab.sync-vps.{out,err}`.
 
 `vps/deploy-vps.sh` does more than dotfiles: it also installs the VPS's own weekly upkeep
@@ -106,9 +122,13 @@ launchctl load ~/Library/LaunchAgents/com.diab.sync-vps.plist
 ## Firefox
 
 Firefox configs are backed up via a sync script (not symlinked, since Firefox actively writes to these files).
+Bookmark backups (`firefox/bookmarkbackups/`, Firefox's own dated snapshots) are gitignored —
+only the latest is pulled on demand (`./firefox/sync.sh --latest`); the versioned backup is
+the live profile plus `prefs.js`, `chrome/`, and extension/container data below.
 
 ```sh
-cd ~/dev/configs/firefox && ./sync.sh   # pull latest from profile
+cd ~/dev/configs/firefox && ./sync.sh            # full sync incl. latest bookmark backup
+./firefox/sync.sh --latest                       # bookmark backup only
 ```
 
 To restore on a new machine, close Firefox and copy the files into a fresh profile directory:
@@ -124,7 +144,7 @@ cp ~/dev/configs/firefox/search.json.mozlz4 "$PROFILE/"
 cp ~/dev/configs/firefox/chrome/userChrome.css "$PROFILE/chrome/"
 cp ~/dev/configs/firefox/chrome/userContent.css "$PROFILE/chrome/"
 cp -r ~/dev/configs/firefox/chrome/theme/ "$PROFILE/chrome/theme/"
-cp -r ~/dev/configs/firefox/bookmarkbackups/ "$PROFILE/"
+cp ~/dev/configs/firefox/bookmarkbackups/*.jsonlz4 "$PROFILE/bookmarkbackups/"
 ```
 
 ## Tmux plugins
