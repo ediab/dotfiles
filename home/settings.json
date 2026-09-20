@@ -70,7 +70,9 @@
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
-    "!**/.agents/skills/simplify"
+    "!**/.agents/skills/simplify",
+    "+skills/simplify/SKILL.md",
+    "+skills/use-tinyfish/SKILL.md"
   ],
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
