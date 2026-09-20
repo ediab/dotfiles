@@ -37,15 +37,7 @@
     "npm:pi-zentui",
     "npm:pi-terminal-theme",
     "npm:@juicesharp/rpiv-advisor",
-    {
-      "source": "npm:pi-intercom",
-      "extensions": [
-        "-index.ts"
-      ],
-      "skills": [
-        "-skills/pi-intercom/SKILL.md"
-      ]
-    },
+    "npm:pi-intercom",
     "git:github.com/earendil-works/pi-review",
     "npm:pi-commandcode-provider",
     "npm:@andrewjacop/pi-herdr",
