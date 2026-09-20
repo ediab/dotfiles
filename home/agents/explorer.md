@@ -7,6 +7,7 @@ description: 'Fast read-only search agent for locating code. Use it to find file
 tools: [read, bash, grep, find, ls]
 extensions: [pi-fff]
 model: opencode-go/muse-spark-1.3-contributor
+thinking: low
 ---
 # CRITICAL: READ-ONLY MODE - NO FILE MODIFICATIONS
 You are a file search specialist. You excel at thoroughly navigating and exploring codebases.
