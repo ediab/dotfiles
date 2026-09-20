@@ -6,7 +6,6 @@
 # 2026-09-11 — they described the July setup and had drifted; find them in git history.
 docs/plans/*
 docs/solutions/
-CONCEPTS.md
 HANDOFF.md
 
 # macOS

@@ -36,7 +36,7 @@ Running the bootstrap installs:
   agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
   implementation).
 - **Ponytail default** — `home/ponytail.json` deployed to `~/.config/ponytail/config.json`
-  (`defaultMode: off`, so ponytail is on-demand via `/ponytail`, e.g. `/ponytail lite` or
+  (`defaultMode: off`, so ponytail stays off unless you opt in via `/ponytail`, e.g. `/ponytail lite` or
   `/ponytail full`). This is the same file
   pi's `/ponytail default` command writes. The package's broad main skill
   (`ponytail`, "use on ANY coding task") is excluded from discovery in
@@ -214,11 +214,10 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).
   Normally invoked automatically by the configs repo's `com.diab.sync-vps` launch agent
   (change-gated, every 15 minutes); run it by hand when you want the VPS updated now.
-- `docs/solutions/`, `CONCEPTS.md` — archival notes and planning records, kept
-  **local-only** and gitignored (not canonical config; find them in git history).
+- `CONCEPTS.md` — shared domain vocabulary (glossary, tracked). `docs/specs/` holds
+  saved briefs/plans (tracked); `docs/plans/` is gitignored scaffolding recreated on demand.
   All historical documents were removed on 2026-09-16 as stale — the workflow spec had
-  been fully implemented and the rest described retired setups. `docs/specs/` and
-  `docs/plans/` are recreated on demand when a brief or plan is saved.
+  been fully implemented and the rest described retired setups.
 
 ## How the sync works
 

@@ -151,9 +151,9 @@ else
   echo "    AGENTS.md  already present — left untouched (local edits preserved)"
 fi
 
-# i-have-adhd always-on config. Repo copy is the source of truth.
+# i-have-adhd output style (opt-in via /i-have-adhd). Repo copy is the source of truth.
 cp "$SCRIPT_DIR/home/i-have-adhd.json" "$HOME/.pi/agent/i-have-adhd.json" \
-  && echo "    i-have-adhd.json  installed (alwaysOn)"
+  && echo "    i-have-adhd.json  installed (alwaysOn off)"
 
 echo "==> 4/4  launchd auto-sync agent (settings.json live -> repo)"
 # com.pi-dotfiles.sync-settings.plist is a template: bootstrap.sh substitutes the repo
