@@ -9,6 +9,13 @@ Project-level `AGENTS.md` / `CLAUDE.md` files layer on top of this one and take 
 * Prefer simple implementations over additional abstractions unless complexity is justified by the task.
 * If the task is sufficiently specified, proceed. Ask only when unresolved ambiguity would materially change the implementation.
 
+## Task tracking
+
+* Track multi-step work with the task tools from `@tintinweb/pi-tasks` (`TaskCreate`, `TaskUpdate`, `TaskList`, `TaskGet`, `TaskExecute`, `TaskStop`, `TaskOutput`) — not the retired `todo` tool.
+* Keep the task list current: mark a task `in_progress` before starting it and `completed` immediately when done; never batch completions.
+* Expect `<system-reminder>` nudges when the list goes stale — treat one as an instruction to sync the list before continuing.
+* Project `.pi/tasks/tasks.json` is shared state between sessions and belongs in `.gitignore` unless the project explicitly versions it.
+
 ## Repository Navigation
 
 * Search for relevant files and symbols before reading large parts of the repository.
