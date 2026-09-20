@@ -3,8 +3,8 @@ name: reviewer
 description: Fresh-context code review of a diff or changeset — correctness, security, architecture, performance. Report-only, never fixes. Use when the user explicitly requests a review subagent, or automatically after a substantial implementation when the owner supplies the agreed intent and changeset; ordinary review requests stay in the current session.
 color: cyan
 tools: [read, bash, grep, find, ls]
-model: opencode-go/muse-spark-1.3-contributor
-thinking: max
+model: opencode-go/glm-5.3-flash
+thinking: high
 skills: false
 extensions: false
 ---

@@ -2,9 +2,9 @@
 name: worker
 description: Implementation agent for delegated parallel workstreams. Use it to execute an already-approved direction with narrow, coherent edits — not to review code (the parent reviews inline by default and arranges an automatic reviewer pass for substantial changes; never dispatch a reviewer yourself) and not to make unapproved product or architecture decisions.
 tools: [read, grep, find, ls, bash, edit, write]
-model: opencode-go/muse-spark-1.3-contributor
+model: deepseek/deepseek-flash
 extensions: false
-thinking: high
+thinking: max
 inherit_context: true
 skills: false
 ---
