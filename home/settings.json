@@ -73,5 +73,8 @@
   "quietStartup": true,
   "hideThinkingBlock": true,
   "editorPaddingX": 2,
-  "outputPad": 1
+  "outputPad": 1,
+  "markdown": {
+    "mermaid": "streaming"
+  }
 }
