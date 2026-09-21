@@ -51,7 +51,6 @@
         "+dist/index.js"
       ]
     },
-    "npm:pi-updater",
     "npm:pi-opener",
     {
       "source": "npm:pi-codex-goal",
