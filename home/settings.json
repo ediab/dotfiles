@@ -68,7 +68,7 @@
   ],
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
-  "steeringMode": "one-at-a-time",
+  "steeringMode": "all",
   "followUpMode": "all",
   "quietStartup": true,
   "hideThinkingBlock": true,
