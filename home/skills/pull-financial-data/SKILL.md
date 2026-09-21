@@ -51,8 +51,9 @@ it: read the release and transcribe figures by hand.
 
 ## Cost before a fresh pull
 
-- SEC: ~22 requests for the 11 statements filings, ~1 more per 8-K filing, and the
-  preserved originals run to ~100 MB per ticker. Needs `EDGAR_IDENTITY` in `.env`.
+- SEC: ~22 requests for the 11 statements filings, ~1 more per 8-K filing, plus a
+  few for the filing index, and the preserved originals run to ~100 MB per ticker.
+  Needs `EDGAR_IDENTITY` in `.env`.
 - Alpha Vantage free tier is tightly limited: the estimates cost one request;
   transcripts are opt-in, one request per quarter, spaced and retried.
   `--ceiling alpha_vantage=10,sec=40` caps a run (requests are reported either way).
