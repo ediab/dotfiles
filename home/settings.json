@@ -71,7 +71,7 @@
   "steeringMode": "one-at-a-time",
   "followUpMode": "all",
   "quietStartup": true,
-  "hideThinkingBlock": false,
+  "hideThinkingBlock": true,
   "editorPaddingX": 2,
   "outputPad": 1,
   "markdown": {
