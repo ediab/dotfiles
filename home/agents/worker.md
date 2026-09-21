@@ -4,7 +4,6 @@ description: Implementation agent for delegated parallel workstreams. Use it to 
 tools: [read, grep, find, ls, bash, edit, write]
 model: deepseek/deepseek-flash
 extensions: false
-thinking: max
 inherit_context: true
 skills: false
 ---
