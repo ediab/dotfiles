@@ -18,40 +18,14 @@ ssh "$VPS_HOST" 'cp ~/.pi/agent/settings.json ~/.pi/agent/settings.json.pre-depl
 rsync -az "$PI_DIR/settings.json" "$VPS_HOST:~/.pi/agent/settings.json"
 rsync -az "$PI_DIR/auth.json" "$VPS_HOST:~/.pi/agent/auth.json"
 ssh "$VPS_HOST" 'chmod 600 ~/.pi/agent/auth.json'
-# VPS package exclusions (versioned in home/vps-package-exclude.txt): strip excluded
-# ids from the VPS live settings.json right after the push, so step 4's reconcile
-# uninstalls them as surplus (the pre-deploy snapshot still lists them) and never
-# installs them. All other VPS live settings are left untouched.
-if [ -f "$REPO_DIR/home/vps-package-exclude.txt" ]; then
-  rsync -az "$REPO_DIR/home/vps-package-exclude.txt" "$VPS_HOST:/tmp/vps-package-exclude.txt"
-  ssh "$VPS_HOST" bash -s <<'REMOTE'
-    set -euo pipefail
-    python3 <<'PY'
-import json, os
-path = os.path.expanduser("~/.pi/agent/settings.json")
-exc = {l.strip() for l in open("/tmp/vps-package-exclude.txt") if l.strip() and not l.startswith("#")}
-d = json.load(open(path))
-kept, dropped = [], []
-for p in d.get("packages", []):
-    (dropped if isinstance(p, str) and p in exc else kept).append(p)
-d["packages"] = kept
-json.dump(d, open(path, "w"), indent=2)
-open(path, "a").write("\n")
-for p in dropped:
-    print(f"  ! {p} (vps-excluded)")
-PY
-    rm -f /tmp/vps-package-exclude.txt
-REMOTE
-fi
 # Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
 # Deploys the repo copy so fresh machines get the same default; mirrors it as
 # the live file (the same file Pi's /ponytail default command writes).
 ssh "$VPS_HOST" 'mkdir -p ~/.config/ponytail'
 rsync -az "$REPO_DIR/home/ponytail.json" "$VPS_HOST:~/.config/ponytail/config.json"
 
-echo "==> 2/4  skills + prompts + agents + AGENTS.md + configs"
+echo "==> 2/4  skills + agents + AGENTS.md + configs"
 rsync -az --delete "$REPO_DIR/home/skills/" "$VPS_HOST:~/.pi/agent/skills/"
-rsync -az --delete --exclude=.gitkeep "$REPO_DIR/home/prompts/" "$VPS_HOST:~/.pi/agent/prompts/"
 rsync -az --delete "$REPO_DIR/home/agents/" "$VPS_HOST:~/.pi/agent/agents/"
 rsync -az "$REPO_DIR/home/models.json" "$VPS_HOST:~/.pi/agent/models.json"
 rsync -az "$REPO_DIR/home/subagents.json" "$VPS_HOST:~/.pi/agent/subagents.json"

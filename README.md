@@ -59,7 +59,6 @@ Running the bootstrap installs:
   keep working.
 - **Custom models** — `home/models.json` deployed to `~/.pi/agent/models.json`
   (provider + model defs).
-- **Prompt templates** — every `.md` under `home/prompts/`, copied to `~/.pi/agent/prompts/`.
 - **Web-search config** — `home/web-search.json` deployed to `~/.pi/agent/web-search.json`
   (pi-web-access routing: TinyFish primary, Exa fallback). The TinyFish key is a macOS
   Keychain lookup (`!security find-generic-password …`), so `bootstrap.sh` leaves the file
@@ -116,7 +115,7 @@ Edit the config files under `home/` in place, then re-apply:
 ```
 
 That's `pi update --all` plus a re-sync of `home/skills/`, `home/extensions/`,
-`home/agents/`, `home/subagents.json`, `home/models.json`, `home/prompts/`,
+`home/agents/`, `home/subagents.json`, `home/models.json`,
 `home/web-search.json`, `home/settings.json` into `~/.pi/agent/`.
 
 ### Code review
@@ -162,7 +161,7 @@ Also: the built-in `general-purpose` profile is overridden and model-pinned; `wo
 | What | Direction | How |
 |---|---|---|
 | `settings.json` (provider, model, theme, packages) | live → repo, **automatic** | launchd agent (installed by `bootstrap.sh` step 4) watches the live file; `sync-settings.sh` commits any `pi`-made change within seconds |
-| `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/models.json`, `home/prompts/`, `home/web-search.json`, `home/ponytail.json`, `home/open-tui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
+| `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/models.json`, `home/web-search.json`, `home/ponytail.json`, `home/open-tui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
 | `home/AGENTS.md` | repo → live (seed only) | the live copy keeps your local-only sections (e.g. VPS access) — the one file that intentionally drifts |
 | `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS) |
 
@@ -178,8 +177,7 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `packages` list directly.
 - **Skills**: add/remove a directory under `home/skills/` — no script edit needed, every
   dir is deployed automatically.
-- **Extensions**: add/remove a file (`.ts`/`.js`) or a directory (`index.ts`/`index.js`)
-  under `home/extensions/` — auto-discovered, no script edit needed.
+- **Extensions**: everything under `home/extensions/` is copied; no script edit needed.
 - `home/settings.json` carries hand-written `skills` exclusions,
   `"!**/.agents/skills/use-tinyfish"` and `"!**/.agents/skills/simplify"`.
   External installers drop their bundled skills into every harness dir they recorded —
@@ -208,7 +206,6 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `home/extensions/` -> `~/.pi/agent/extensions/`, `home/agents/` -> `~/.pi/agent/agents/`,
   `home/subagents.json` -> `~/.pi/agent/subagents.json`,
   `home/models.json` -> `~/.pi/agent/models.json`,
-  `home/prompts/` -> `~/.pi/agent/prompts/`,
   `home/web-search.json` -> `~/.pi/agent/web-search.json`,
   `home/open-tui.json` -> `~/.pi/agent/open-tui.json`,
   `home/ponytail.json` -> `~/.config/ponytail/config.json` (ponytail's own config dir, not pi's),
@@ -222,7 +219,7 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `com.pi-dotfiles.sync-settings.plist` (a template in this repo, installed and path-substituted
   by `bootstrap.sh` step 4; watch path: `~/.pi/agent/settings.json`).
 - `deploy-vps.sh` — mirrors the local harness onto the VPS (`ssh vps`): settings, auth,
-  skills, prompts, agents, `home/AGENTS.md`, extensions, models/subagents, the per-machine
+  skills, agents, `home/AGENTS.md`, extensions, models/subagents, the per-machine
   package configs (`open-tui.json`, `code-previews.json`), a Linux variant of `web-search.json`
   plus its key file, then reconciles installed packages against the canonical list.
   `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).

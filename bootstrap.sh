@@ -6,25 +6,12 @@ set -euo pipefail
 # Skills bundled in this repo under home/skills (whole directories, including subdocs).
 # Add/remove a skill by adding/removing its directory under home/skills/; no script edit needed.
 
-# Custom extensions bundled in this repo under home/extensions — auto-discovered like
-# home/skills: every top-level .ts/.js file is a single-file extension, every subdirectory
-# with an index.ts/index.js is a directory extension. Add/remove by file/dir; no script edit.
+# Custom extensions bundled in this repo under home/extensions.
+# Everything under that directory is copied to pi's extensions directory; no script edit needed.
 
 # Resolve the repo root (works for clone+run and curl|bash via $0).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PI_SKILLS_DIR="$HOME/.pi/agent/skills"   # note: 'agent' singular — the path pi scans
-
-shopt -s nullglob
-CUSTOM_EXTENSIONS=()
-for src in "$SCRIPT_DIR/home/extensions/"*.ts "$SCRIPT_DIR/home/extensions/"*.js; do
-  CUSTOM_EXTENSIONS+=("$(basename "${src%.*}")")
-done
-CUSTOM_EXTENSION_DIRS=()
-for src in "$SCRIPT_DIR/home/extensions/"*/; do
-  [ -f "$src/index.ts" ] || [ -f "$src/index.js" ] || continue
-  CUSTOM_EXTENSION_DIRS+=("$(basename "$src")")
-done
-shopt -u nullglob
 
 echo "==> 1/4  pi harness"
 if command -v pi >/dev/null 2>&1; then
@@ -77,7 +64,7 @@ for pkg in "${APT_PACKAGES[@]}"; do
   fi
 done
 
-echo "==> 3/4  skills (every dir in $SCRIPT_DIR/home/skills/) + extensions (${#CUSTOM_EXTENSIONS[@]} total) + AGENTS.md seed + ponytail default"
+echo "==> 3/4  skills (every dir in $SCRIPT_DIR/home/skills/) + extensions + AGENTS.md seed + ponytail default"
 mkdir -p "$PI_SKILLS_DIR"
 shopt -s nullglob
 for src in "$SCRIPT_DIR/home/skills"/*/; do
@@ -89,19 +76,11 @@ done
 shopt -u nullglob
 
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
-mkdir -p "$PI_EXTENSIONS_DIR"
-for ext in "${CUSTOM_EXTENSIONS[@]}"; do
-  src="$SCRIPT_DIR/home/extensions/$ext.ts"
-  [ -f "$src" ] || src="$SCRIPT_DIR/home/extensions/$ext.js"
-  cp "$src" "$PI_EXTENSIONS_DIR/$(basename "$src")"
-  echo "    $ext  installed"
-done
-for ext in "${CUSTOM_EXTENSION_DIRS[@]}"; do
-  src="$SCRIPT_DIR/home/extensions/$ext"
-  mkdir -p "$PI_EXTENSIONS_DIR/$ext"
-  cp -R "$src/". "$PI_EXTENSIONS_DIR/$ext/"
-  echo "    $ext/  installed"
-done
+if [ -d "$SCRIPT_DIR/home/extensions" ]; then
+  mkdir -p "$PI_EXTENSIONS_DIR"
+  cp -R "$SCRIPT_DIR/home/extensions/." "$PI_EXTENSIONS_DIR/"
+  echo "    extensions  installed"
+fi
 
 # Custom agents (pi-subagents): every .md in home/agents/ → ~/.pi/agent/agents/. Add/remove by file; no script edit needed.
 PI_AGENTS_DIR="$HOME/.pi/agent/agents"
@@ -131,16 +110,6 @@ cp "$SCRIPT_DIR/home/open-tui.json" "$HOME/.pi/agent/open-tui.json" \
 # fresh copy must exist for the versioned defaults to take effect.
 cp "$SCRIPT_DIR/home/pi-btw.json" "$HOME/.pi/agent/pi-btw.json" \
   && echo "    pi-btw.json  installed"
-
-# Prompt templates: every .md in home/prompts/ → ~/.pi/agent/prompts/. Add/remove by file; no script edit needed.
-PI_PROMPTS_DIR="$HOME/.pi/agent/prompts"
-mkdir -p "$PI_PROMPTS_DIR"
-shopt -s nullglob
-for src in "$SCRIPT_DIR/home/prompts/"*.md; do
-  cp "$src" "$PI_PROMPTS_DIR/"
-  echo "    $(basename "$src")  installed"
-done
-shopt -u nullglob
 
 # Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
 # Repo copy is the source of truth; Pi's /ponytail default command also writes
@@ -195,20 +164,12 @@ for src in "$SCRIPT_DIR/home/skills"/*/; do
   [ -f "$PI_SKILLS_DIR/$skill/SKILL.md" ] && echo "    ok: $skill" || echo "    MISSING: $skill"
 done
 shopt -u nullglob
-for ext in "${CUSTOM_EXTENSIONS[@]}"; do
-  if [ -f "$HOME/.pi/agent/extensions/$ext.ts" ] || [ -f "$HOME/.pi/agent/extensions/$ext.js" ]; then
-    echo "    ok: $ext"
-  else
-    echo "    MISSING: $ext"
-  fi
+shopt -s nullglob
+for src in "$SCRIPT_DIR/home/extensions"/*; do
+  extension="$(basename "$src")"
+  [ -e "$PI_EXTENSIONS_DIR/$extension" ] && echo "    ok: $extension" || echo "    MISSING: $extension"
 done
-for ext in "${CUSTOM_EXTENSION_DIRS[@]}"; do
-  if [ -f "$HOME/.pi/agent/extensions/$ext/index.ts" ] || [ -f "$HOME/.pi/agent/extensions/$ext/index.js" ]; then
-    echo "    ok: $ext/"
-  else
-    echo "    MISSING: $ext"
-  fi
-done
+shopt -u nullglob
 [ -f "$HOME/.pi/agent/AGENTS.md" ] && echo "    ok: AGENTS.md" || echo "    MISSING: AGENTS.md"
 
 echo "==> done."

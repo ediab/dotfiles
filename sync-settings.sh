@@ -19,4 +19,4 @@ fi
 cp "$LIVE" "$DEST"
 cd "$REPO"
 git add home/settings.json
-git commit -m "auto: sync settings.json from pi" --allow-empty
+git diff --cached --quiet || git commit -q -m "auto: sync settings.json from pi"

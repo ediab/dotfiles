@@ -1,6 +1,0 @@
-# VPS package exclusions — one package id per line.
-# These packages stay in home/settings.json (for Mac/fresh machines) but are stripped
-# from the live settings.json on the VPS, where they are useless or unwanted.
-# Honored by deploy-vps.sh (after the settings push, before the package reconcile)
-# and rebuild.sh (after the repo→live settings copy, Linux only).
-npm:@saccolabs/pi-claude-cli
