@@ -1,7 +1,8 @@
 {
   "transparent": true,
   "trimOnSave": true,
-  "respectGitignore": true,
+  "showDotfiles": true,
+  "respectGitignore": false,
   "diffView": "split",
   "sidebarWidth": "auto",
   "autoSaveOnBlur": true,
