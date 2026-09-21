@@ -112,12 +112,3 @@ key = "prefix+shift+o"
 type = "plugin_action"
 command = "annotate.last"
 description = "review the agent's last reply"
-
-# reviewr (persiyanov/herdr-reviewr)
-# The Mac binds cmd+r; no Cmd key exists over SSH/Linux, so prefix+r keeps the
-# same mnemonic. (No ohmyzsh block here — that plugin is Mac-only.)
-[[keys.command]]
-key = "prefix+r"
-type = "plugin_action"
-command = "persiyanov.reviewr.toggle"
-description = "toggle reviewr pane"

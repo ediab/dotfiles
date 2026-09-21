@@ -121,13 +121,6 @@ type = "plugin_action"
 command = "ohmyzsh.shell.reload-all"
 description = "reload Oh My Zsh in idle panes"
 
-# reviewr (persiyanov/herdr-reviewr)
-[[keys.command]]
-key = "cmd+r"
-type = "plugin_action"
-command = "persiyanov.reviewr.toggle"
-description = "toggle reviewr pane"
-
 [experimental]
 # Allow launching herdr (e.g. herdr --remote vps) from inside a herdr-managed pane.
 allow_nested = true
