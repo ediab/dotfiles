@@ -14,6 +14,7 @@
 	<key>WatchPaths</key>
 	<array>
 		<string>__PI_HOME__/.pi/agent/settings.json</string>
+		<string>__PI_HOME__/.pi/agent/open-tui.json</string>
 	</array>
 	<key>StandardOutPath</key>
 	<string>/tmp/com.pi-dotfiles.sync-settings.out</string>
