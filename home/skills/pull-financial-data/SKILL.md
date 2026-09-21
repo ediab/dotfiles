@@ -1,6 +1,6 @@
 ---
 name: pull-financial-data
-description: Fetch a company's financial data into a local immutable cache (SEC statements, Yahoo prices and analyst datasets, Alpha Vantage estimates and call transcripts, Item 2.02 earnings 8-K press releases), or read what is already held as CSV. Use when a task needs financial statements, prices, analyst estimates, earnings-call transcripts, or an earnings press release for a ticker.
+description: Fetch a company's financial data into a local immutable cache (SEC statements, Yahoo prices and analyst datasets, Alpha Vantage estimates and call transcripts, Item 2.02 earnings 8-K press releases), or read what is already held as CSV, readable documents or a per-cell dump of the release tables. Use when a task needs financial statements, prices, analyst estimates, earnings-call transcripts, an earnings press release, or a figure from one.
 ---
 
 # Pull financial data
@@ -14,6 +14,7 @@ cd ~/Dev/financial_data_pull
 .venv/bin/financial-data-pull VRT --refresh           # add a new snapshot version
 .venv/bin/financial-data-pull VRT --sources sec --earnings-8k 10
 .venv/bin/financial-data-pull VRT --export-csv        # CSVs from what is held, no network
+.venv/bin/financial-data-pull VRT --export-views      # readable release + cell dump, no network
 ```
 
 Data lands under `data/` in that checkout (or `FINANCIAL_DATA_PULL_ROOT`).
@@ -43,11 +44,25 @@ when nothing is held for that scope.
 
 ## Earnings documents
 
-`data/csv/VRT/sec_8k.csv` has one row per Item 2.02 earnings 8-K: ticker, filing
-date, accession, items, exhibit file, exhibit path. Open that path — the cached
-Exhibit 99.1 press release (HTML, occasionally PDF) is where the non-GAAP
-reconciliations, segment bridges and guidance live. Nothing extracts numbers from
-it: read the release and transcribe figures by hand.
+Run `--export-views` once (offline, seconds) and read `data/derived/VRT/`:
+
+- `documents/8-k/<date>-<accession>-<exhibit>.htm` — the ten Item 2.02 releases, Exhibit
+  99.1, under readable names (open in a browser).
+- `documents/transcript/<quarter>.md` — each held call as Markdown, one speaker turn per
+  paragraph.
+- `8k_cells.csv` — one row per cell of every table of every held release:
+  `accession, filing_date, exhibit_sha256, table_index, caption, row_kind, row_index,
+  col_index, row_label, column_label, raw_text, value, unit`. Filter
+  `row_kind == "data"`, match on `row_label` (`Net sales`, `Adjusted diluted EPS(1)`,
+  `Free cash flow`), read `value`/`unit`, and use `column_label`/`col_index` for the
+  period. Guidance ranges do not parse: they stay in `raw_text` with a blank `value`.
+  `data/csv/VRT/sec_8k.csv` is still the index (per filing: date, accession, items,
+  exhibit file and path).
+
+The derived files are rewritable views, never evidence: cite the snapshot or the original
+`data/raw/.../payload.htm`, and re-run `--export-views` after a refresh. This library ships
+no per-ticker metric map — `8k_cells.csv` is cells, and mapping cells to metrics is the
+consumer's job.
 
 ## Cost before a fresh pull
 
