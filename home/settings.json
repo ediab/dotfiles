@@ -63,7 +63,8 @@
         "+prompts/create-goal.md"
       ]
     },
-    "npm:@narumitw/pi-btw"
+    "npm:@narumitw/pi-btw",
+    "npm:pi-open-tui"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
