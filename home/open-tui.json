@@ -1,5 +1,6 @@
 {
   "enabled": true,
+  "inlineFooter": true,
   "settingsLanguage": "en",
   "cursorStyle": "block",
   "fullscreen": {
@@ -11,11 +12,11 @@
   "footerSegments": {
     "cwd": true,
     "hostname": false,
-    "sessionName": false,
+    "sessionName": true,
     "gitBranch": true,
     "gitStatus": true,
     "gitCommit": false,
-    "runtime": true,
+    "runtime": false,
     "context": true,
     "tokens": false,
     "cost": true,
@@ -32,6 +33,6 @@
     "cost": true
   },
   "thinkingPeek": {
-    "lines": 1
+    "lines": 2
   }
 }
