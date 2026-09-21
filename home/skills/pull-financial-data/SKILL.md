@@ -56,6 +56,8 @@ Run `--export-views` once (offline, seconds) and read `data/derived/VRT/`:
   `row_kind == "data"`, match on `row_label` (`Net sales`, `Adjusted diluted EPS(1)`,
   `Free cash flow`), read `value`/`unit`, and use `column_label`/`col_index` for the
   period. Guidance ranges do not parse: they stay in `raw_text` with a blank `value`.
+  A release whose exhibit is not HTML (a PDF) has no rows and is named on stderr — read
+  its copy under `documents/8-k/` instead.
   `data/csv/VRT/sec_8k.csv` is still the index (per filing: date, accession, items,
   exhibit file and path).
 
