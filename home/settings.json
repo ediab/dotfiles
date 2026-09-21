@@ -34,12 +34,6 @@
         "-prompts/profile.md"
       ]
     },
-    {
-      "source": "npm:pi-zentui",
-      "extensions": [
-        "-extensions/zentui/index.ts"
-      ]
-    },
     "npm:pi-terminal-theme",
     "npm:@juicesharp/rpiv-advisor",
     "npm:pi-intercom",
@@ -75,7 +69,7 @@
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
   "steeringMode": "one-at-a-time",
-  "followUpMode": "one-at-a-time",
+  "followUpMode": "all",
   "quietStartup": true,
   "hideThinkingBlock": true,
   "editorPaddingX": 2,
