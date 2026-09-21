@@ -34,7 +34,12 @@
         "-prompts/profile.md"
       ]
     },
-    "npm:pi-zentui",
+    {
+      "source": "npm:pi-zentui",
+      "extensions": [
+        "-extensions/zentui/index.ts"
+      ]
+    },
     "npm:pi-terminal-theme",
     "npm:@juicesharp/rpiv-advisor",
     "npm:pi-intercom",
