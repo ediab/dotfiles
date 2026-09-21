@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.86.1",
   "theme": "terminal",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "muse-spark-1.3-contributor",
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-flash",
   "defaultThinkingLevel": "high",
   "tuiMode": "fullscreen",
   "externalEditor": "druk",
