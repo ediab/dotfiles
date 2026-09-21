@@ -76,5 +76,6 @@
   "outputPad": 1,
   "markdown": {
     "mermaid": "streaming"
-  }
+  },
+  "showCacheMissNotices": true
 }
