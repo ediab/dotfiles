@@ -131,15 +131,16 @@ cp "$SCRIPT_DIR/home/subagents.json" "$HOME/.pi/agent/subagents.json" \
 cp "$SCRIPT_DIR/home/web-search.json" "$HOME/.pi/agent/web-search.json" \
   && echo "    web-search.json  re-synced"
 
-# Zentui TUI config (custom editor off; footer/theme and all other
-# components stay as configured). Repo copy is the source of truth.
-cp "$SCRIPT_DIR/home/zentui.json" "$HOME/.pi/agent/zentui.json" \
-  && echo "    zentui.json  re-synced"
-
 # Open-TUI config (footer segments, telemetry toggles, thinking peek).
 # Repo copy is the source of truth.
 cp "$SCRIPT_DIR/home/open-tui.json" "$HOME/.pi/agent/open-tui.json" \
   && echo "    open-tui.json  re-synced"
+
+# pi-btw side-thread config (model, thinking level). Repo copy is the source
+# of truth. Unlike settings.json this flows repo → live (rebuild overwrites
+# live), so tune it in the repo and re-run rebuild.sh.
+cp "$SCRIPT_DIR/home/pi-btw.json" "$HOME/.pi/agent/pi-btw.json" \
+  && echo "    pi-btw.json  re-synced"
 
 # Prompt templates: every .md in home/prompts/ → ~/.pi/agent/prompts/. Add/remove by file; no script edit needed.
 PI_PROMPTS_DIR="$HOME/.pi/agent/prompts"

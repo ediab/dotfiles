@@ -40,8 +40,8 @@ Running the bootstrap installs:
 - **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
   (`backgroundByDefault`, `reportUsage`, `showCost`, `maxConcurrent: 4` — at most
   4 active leaf agents per task; reviewers and follow-ups count).
-- **Zentui TUI config** — `home/zentui.json` deployed to `~/.pi/agent/zentui.json`. The custom
-  editor is off; footer, theme, and the other components stay as configured.
+- **Open-TUI config** — `home/open-tui.json` deployed to `~/.pi/agent/open-tui.json`
+  (footer segments, telemetry toggles, thinking peek).
 - **Plan skill** — `home/skills/plan/` (`/skill:plan` or automatic for substantial
   architectural choices: read-only investigation, right-sized plan, offer to save
   to `docs/plans/` unless saving was already requested).
@@ -162,7 +162,7 @@ Also: the built-in `general-purpose` profile is overridden and model-pinned; `wo
 | What | Direction | How |
 |---|---|---|
 | `settings.json` (provider, model, theme, packages) | live → repo, **automatic** | launchd agent (installed by `bootstrap.sh` step 4) watches the live file; `sync-settings.sh` commits any `pi`-made change within seconds |
-| `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/models.json`, `home/prompts/`, `home/web-search.json`, `home/ponytail.json`, `home/zentui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
+| `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/models.json`, `home/prompts/`, `home/web-search.json`, `home/ponytail.json`, `home/open-tui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
 | `home/AGENTS.md` | repo → live (seed only) | the live copy keeps your local-only sections (e.g. VPS access) — the one file that intentionally drifts |
 | `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS) |
 
@@ -210,7 +210,7 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `home/models.json` -> `~/.pi/agent/models.json`,
   `home/prompts/` -> `~/.pi/agent/prompts/`,
   `home/web-search.json` -> `~/.pi/agent/web-search.json`,
-  `home/zentui.json` -> `~/.pi/agent/zentui.json`,
+  `home/open-tui.json` -> `~/.pi/agent/open-tui.json`,
   `home/ponytail.json` -> `~/.config/ponytail/config.json` (ponytail's own config dir, not pi's),
   `home/AGENTS.md` -> `~/.pi/agent/AGENTS.md`.
   Editing a file here is editing your deployed config.
@@ -223,7 +223,7 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   by `bootstrap.sh` step 4; watch path: `~/.pi/agent/settings.json`).
 - `deploy-vps.sh` — mirrors the local harness onto the VPS (`ssh vps`): settings, auth,
   skills, prompts, agents, `home/AGENTS.md`, extensions, models/subagents, the per-machine
-  package configs (`zentui.json`, `code-previews.json`), a Linux variant of `web-search.json`
+  package configs (`open-tui.json`, `code-previews.json`), a Linux variant of `web-search.json`
   plus its key file, then reconciles installed packages against the canonical list.
   `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).
   Normally invoked automatically by the configs repo's `com.diab.sync-vps` launch agent
