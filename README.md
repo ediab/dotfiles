@@ -50,11 +50,11 @@ Running the bootstrap installs:
   agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
   implementation).
 - **Ponytail default** — `home/ponytail.json` deployed to `~/.config/ponytail/config.json`
-  (`defaultMode: off`, so ponytail stays off unless you opt in via `/ponytail`, e.g. `/ponytail lite` or
-  `/ponytail full`). This is the same file
+  (`defaultMode: lite`, so ponytail is active on coding tasks and names the lazier alternative in one line —
+  switch levels with `/ponytail full`/`/ponytail ultra`, off with `stop ponytail`). This is the same file
   pi's `/ponytail default` command writes. The package's broad main skill
   (`ponytail`, "use on ANY coding task") is excluded from discovery in
-  `home/settings.json` so off stays off; the extension, its `/ponytail` mode
+  `home/settings.json` so activation comes only from the default mode (no double-trigger); the extension, its `/ponytail` mode
   commands, and the companion skills (`ponytail-review/-audit/-debt/-gain/-help`)
   keep working.
 - **Custom models** — `home/models.json` deployed to `~/.pi/agent/models.json`

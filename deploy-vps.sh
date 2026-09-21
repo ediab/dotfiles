@@ -43,9 +43,9 @@ PY
     rm -f /tmp/vps-package-exclude.txt
 REMOTE
 fi
-# Ponytail default mode (off = on-demand via /ponytail full). Deploys the repo copy
-# so fresh machines get the same default; mirrors it as the live file (the same
-# file Pi's /ponytail default command writes).
+# Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
+# Deploys the repo copy so fresh machines get the same default; mirrors it as
+# the live file (the same file Pi's /ponytail default command writes).
 ssh "$VPS_HOST" 'mkdir -p ~/.config/ponytail'
 rsync -az "$REPO_DIR/home/ponytail.json" "$VPS_HOST:~/.config/ponytail/config.json"
 

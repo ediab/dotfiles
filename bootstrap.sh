@@ -142,12 +142,12 @@ for src in "$SCRIPT_DIR/home/prompts/"*.md; do
 done
 shopt -u nullglob
 
-# Ponytail default mode (off = on-demand via /ponytail full).
+# Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
 # Repo copy is the source of truth; Pi's /ponytail default command also writes
 # ~/.config/ponytail/config.json on this machine.
 mkdir -p "$HOME/.config/ponytail"
 cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
-  && echo "    ponytail.json  installed (defaultMode off)"
+  && echo "    ponytail.json  installed (defaultMode lite)"
 
 # Seed ~/.pi/agent/AGENTS.md from the sanitized repo copy. Only when absent — never clobber
 # local-only sections like VPS access details.
