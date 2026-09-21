@@ -25,6 +25,7 @@ cd ~/Dev/financial_data_pull
 .venv/bin/financial-data-pull VRT --ceiling alpha_vantage=10,sec=40
 .venv/bin/financial-data-pull VRT --export-csv            # CSVs from what is held, no network
 .venv/bin/financial-data-pull VRT --export-views          # readable releases + cell dump, no network
+.venv/bin/financial-data-pull --index                     # what is held, every ticker, no network
 ```
 
 Every run prints the JSON result on **stdout** and one human status line on
@@ -60,8 +61,11 @@ rewritable — cite the snapshot or the original under `data/raw/`, never the vi
 
 Do this first, always:
 
-1. Run `.venv/bin/financial-data-pull <TICKER> --cache-only` (zero network) and read
-   the status line: it says whether the scope is held (`CACHED`) or not
+1. Run `.venv/bin/financial-data-pull --index` (zero network) to see every issuer's
+   holdings — last pull time, filing range, 8-K dates, transcript quarters, degraded
+   rows. For one issuer, name its ticker (`--index VRT`). Then run
+   `.venv/bin/financial-data-pull <TICKER> --cache-only` when the index leaves scope
+   doubt: its status line says whether that exact scope is held (`CACHED`) or not
    (`no data held … (cache-only)`).
 2. Report to the user what is held before acquiring anything.
 3. **Ask the user before any live pull.** A plain pull can spend ~22 SEC requests and
