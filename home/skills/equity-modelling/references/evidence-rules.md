@@ -1,0 +1,16 @@
+# Evidence rules
+
+These are reusable evidence conventions. Schemas and locator syntax live in
+`interfaces.md`; workbook presentation lives in `model-rules.md`.
+
+1. Build only from the frozen source boundary in `model_spec.json`. A web result may challenge a value but never becomes model evidence until it is supplied and frozen.
+2. Record every canonical fact once with its metric, period, unit, basis, locator, immutable lineage terminus, transformation, and missing reason. `(metric, period, dimension)` is unique. A period the frozen pack cannot map is an explicit blank row with a specific reason (a fact-map `unavailable` entry), never an omitted row — a metric's declared period coverage must appear in the freeze.
+3. Missing evidence is unavailable, never zero. Dependent workbook formulas remain blank rather than coercing a blank to zero.
+4. Resolve facts through declared locators and transforms only. Do not infer a company metric from labels, positions, or inline Python logic.
+5. Match segmented disclosures on stable dimension tokens, not display labels.
+6. Retain reported GAAP and adjusted measures separately. Read adjusted measures from the disclosed reconciliation, not XBRL, and do not invent an adjustment bridge.
+7. De-accumulate filing YTD flows and derive Q4 only as FY less nine-month YTD when the needed facts exist. Expose the derivation as a workbook formula.
+8. Apply annual conventions by metric: sum complete quarterly flows, use fiscal-year-end stocks, and recompute ratios and per-share values from the stated annual inputs. Keep published annual figures as a visible cross-check.
+9. Keep guidance, consensus, and dated price in a benchmark register with source, as-of date, period, unit, basis, analyst count, and range. They are comparisons, never forecast inputs.
+10. Preserve restatements: retain the prior value and a change reason; preserve prior source packs and workbooks unchanged.
+11. Take every period-end date from `model_spec.json.periods.period_end_dates` when the spec declares it; a non-calendar fiscal year must map each canonical period to its ISO end date, and a requested period the mapping omits is an error, not a calendar guess. Specs without the mapping use the calendar-quarter fallback.

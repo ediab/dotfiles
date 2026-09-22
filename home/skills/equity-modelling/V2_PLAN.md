@@ -1,11 +1,12 @@
 # equity-modelling v2 — plan
 
-**Status:** agreed direction, not yet implemented. This file is the single source of truth and
-**supersedes `PROPOSAL-V2.md`**, whose measured baseline, diagnosis, staged order and import lists
-have been absorbed below. Delete `PROPOSAL-V2.md` once this is reviewed.
+**Status:** Stages 0–4 are complete for the bounded prepared-artifact core: both VRT and AVGO have reproducible evidence freezes, inactive governed forecasts, generic builds/checks, recalculation, and rendered proof workbooks. V1 is diagnostic only, not a release-parity target. Stage 5's generic driver-rollover command is implemented and tested, but its real next-quarter source-pack exercise remains pending. Stage 6 is blocked only on that live rollover proof and native Microsoft Excel automation, which remains environment-blocked. `V2_PROGRESS.md` is the append-only execution record; this file owns the design and stage gates.
+`PROPOSAL-V2.md` has been absorbed (baseline, diagnosis, staged order, import lists) and deleted.
 
 Incorporates the review in `/tmp/findings_v2.md` (nine required revisions, all accepted except
 where §11 records a disagreement) and corrects the errors in this plan's own first draft (§4).
+
+**Start at §18.**
 
 ---
 
@@ -43,6 +44,33 @@ VRT work folder total: 59 sessions, **22.3 hours**, 427M tokens.
 
 Data registers are rows, not bytes: `forecast_inputs.csv` **158 rows**, `historical_inputs.csv`
 **507 rows**, `sources.csv` **58 rows**.
+
+### Stage 1 benchmark — process wall-clock (2026-09-22)
+
+Measured against a scratch copy of the live VRT project (`~/Desktop/equity-models/VRT/`, never
+run with `--force` in place), current v1 code, 3 runs each after a cold first run, `/usr/bin/time -p`:
+
+| Command | Run | Wall-clock |
+|---|---|---|
+| `build.py` (no existing xlsx) | 1 (cold) | 0.65s |
+| `build.py --force` | 2 | 0.62s |
+| `build.py --force` | 3 | 0.58s |
+| `check.py` (full, 637 checks) | 1 | 0.78s |
+| `check.py` (full, 637 checks) | 2 | 0.68s |
+| `check.py --historicals-only` (633 checks) | 1 | 0.49s |
+
+v1 has no `--fast` flag; `--historicals-only` is the closest analog and is timed above. Both
+scripts read only `historical_inputs.csv` / `forecast_inputs.csv` plus a handful of already-extracted
+store views (`derived/VRT/8k_cells.csv`, `csv/VRT/income_quarterly_0.csv`) — neither does a full
+filings-store reparse per invocation.
+
+**Finding: process cost is not the bottleneck.** Each `build.py` / `check.py` invocation completes
+in under a second. The measured session cost (91 min, 342 tool calls, 519K output tokens, `build.py`
+×37, `check.py` ×44 — §2 above) comes from **invocation count and per-call context**, not per-process
+wall-clock: every one of those 81 calls sat inside an agent turn that re-read large context (39k-row
+scans, provenance registers, 13–20 PNGs — §3.3), and the agent chose to re-invoke rather than reuse
+a frozen result because no frozen intermediate existed to check against (§3.1). Stage 2's evidence
+layer targets *invocation count and context re-reads*, not per-process speed, which is already fine.
 
 ---
 
@@ -237,14 +265,36 @@ Write `references/interfaces.md` containing:
 
 - the `model_spec.json` schema;
 - the `fact_map.json` schema;
-- the company driver-module contract;
-- the canonical facts and lineage schemas;
-- `modelkit` public entry points;
-- the structured locator and transform vocabulary; and
-- one worked example of each.
+- the `drivers.csv` schema, including the approval manifest;
+- the `model_<TICKER>.py` company-module contract;
+- the `actuals.csv` / `benchmarks.csv` canonical facts and lineage schemas;
+- the public entry points of each `scripts/` module (§5);
+- the structured locator grammar and the transform registry (below); and
+- one worked example of each, taken from VRT.
 
 Gate 1 keeps its **2–3 checkable success examples** — approval is of a blueprint with concrete
 expectations, not of an undefined JSON artifact.
+
+### Transform registry — closed set, seeded here
+
+No transform outside this list may appear in a `fact_map.json`. Adding one is a deliberate change to
+the registry and its tests, never an inline lambda.
+
+| id | Meaning |
+|---|---|
+| `direct` | Reported value, used as filed |
+| `unit_scale` | Multiply by a declared power of ten |
+| `sign_flip` | Reverse the filed sign convention |
+| `ytd_deaccumulate` | Period value = YTD − prior YTD within the same fiscal year |
+| `q4_from_fy_minus_9m` | Q4 = FY − first nine months; no Q4 filing exists |
+| `sum_quarters` | Annual flow, only when all four fiscal quarters are present |
+| `period_end_stock` | Annual balance = fiscal-year-end stock |
+| `recompute_ratio` | Ratio recomputed from annual numerator ÷ denominator |
+| `recompute_per_share` | Per-share recomputed from annual NI ÷ stated share convention |
+| `segment_axis_filter` | Select one dimension member from a segmented table |
+
+Every transform must be expressible as a **visible Excel formula** in the workbook (§6). A transform
+that can only be done in Python is a signal the metric is mis-mapped.
 
 ---
 
@@ -347,15 +397,14 @@ Seven steps and both gates stay. What changes inside them:
 
 ### Docs hygiene
 
-`AGENTS.md`, `HANDOFF.md` and `SPEC.md:5` still describe an unimplemented skeleton with model
-invocation disabled — false since `f68878a` / `87d298d`. `SPEC.md:59–111` duplicates the `SKILL.md`
-workflow and has already drifted. Fix all three, delete the duplicated workflow, and rewrite the
-frontmatter description: "Pilot-only workflow…" is inaccurate and carries no trigger vocabulary
-(no *earnings model*, *forecast*, *consensus*, *valuation*). The skill stays model-invoked, with its
-two branches named.
+**Done in Stage 0.** `SPEC.md` and `HANDOFF.md` are deleted; their unique content moved per the §18
+ownership table. `SKILL.md` carries a description with real trigger vocabulary, and `AGENTS.md` is
+maintainer notes plus the ownership map. The skill stays model-invoked.
 
-Sheet renames (`Outlook`→`InvestmentView`, `Assumptions`→`Drivers`, `Sources & Checks`→`Checks`)
-must land consistently across `SKILL.md`, `SPEC.md`, `references/`, helper defaults and tests.
+Still outstanding: sheet renames (`Outlook`→`InvestmentView`, `Assumptions`→`Drivers`,
+`Sources & Checks`→`Checks`) must land consistently across `SKILL.md`, `references/`, helper
+defaults and tests. Do this in Stage 3, with the atomic runtime switch — not before, or the live
+contract will name sheets the v1 builder does not produce.
 
 ---
 
@@ -382,8 +431,8 @@ Neither existing model has these; both are asked for in `Building a model 101.md
 |---|---|---|
 | **0** | Correct stale status/baseline docs; delete `PROPOSAL-V2.md`; name the source of truth for each contract. Do **not** change the active `SKILL.md` execution contract to reference v2 scripts yet | Docs describe the current executable v1 accurately |
 | **1** | Benchmark a current VRT `build.py` and `check.py --fast`; record iterations and seconds each | Numbers on record |
-| **2** | Write `references/interfaces.md`; build the evidence layer: dataset manifest, `fact_map.json` schema, transform registry, `actuals.csv` / `benchmarks.csv` / `availability.md`, approval manifest | Canonical evidence matches v1 historical inputs and provenance; evidence checks pass; no workbook parity is claimed yet |
-| **3** | Extract proven plumbing from the pilots into `scripts/` — grid, references, style, checks, CLI, overrides — then atomically update `SKILL.md` and its runtime references to v2 | VRT rebuilds through the extracted core; the active skill points only to files that exist |
+| **2** | Write `references/interfaces.md`; build the evidence layer: dataset manifest, `fact_map.json` schema, transform registry, `actuals.csv` / `benchmarks.csv` / `availability.md`, approval manifest | Every populated V2 actual or benchmark has frozen snapshot/raw-payload lineage and every unavailable fact has a visible reason; evidence checks pass. The v1 input comparison is a diagnostic ledger, not a release gate: it may identify a V2 mapping gap or an unsupported v1 placeholder, but never authorizes copying an unsupported value. |
+| **3** | Extract proven plumbing from the pilots into `scripts/` — grid, references, style, checks, CLI, overrides — then atomically update `SKILL.md` and its runtime references to v2 | VRT rebuilds through the extracted core; the active skill points only to files that exist; the core model has source-backed actuals, controlled forecast activation, regional-to-consolidated earnings/FCF/valuation propagation, checks, and rollover proof. |
 | **4** | **Second-company proof: build AVGO** (already in the store). If it requires a core change, return to Stage 3, rebuild VRT and retry AVGO | Final AVGO pass requires zero further infrastructure changes |
 | **5** | Rollover proof: update VRT for a new quarter; preserve only valid overrides and narrative; invalidate changed approvals; produce the estimate-change bridge | Rollover clean |
 | **6** | **Deprecate** `company-model` (redirect, invocation off). Delete only after real usage confirms nothing unique remains | — |
@@ -399,8 +448,11 @@ fixture. VRT alone cannot demonstrate every disclosure pattern.
    YTD de-accumulation, `Q4 = FY − 9M`, key-based refs, driver activation, approval-manifest
    invalidation, hardcode scan, blank propagation, plus the reconciled override tests. No Excel
    required.
-2. **VRT parity** — rebuild through v2; workbook content matches or improves on v1; source parity
-   and accounting identities hold.
+2. **Source-backed VRT core**, defined so it can fail: every populated V2 actual and benchmark has
+   frozen lineage; unavailable facts stay visibly unavailable with a reason; V2 never copies a V1
+   value merely because it existed there. The V1 comparison remains a diagnostic ledger for finding
+   missing mappings and regressions, not a release-parity requirement. Core accounting identities
+   for the V2 model must hold.
 3. **No positional cross-sheet references survive**; engine APIs resolve by key and emitted
    cross-sheet formulas use Excel defined names or structured table references, never raw A1 links.
 4. Controlled-driver test: move Americas organic growth; revenue, EBIT, EPS, FCF and implied value
@@ -415,6 +467,20 @@ fixture. VRT alone cannot demonstrate every disclosure pattern.
    recalculation still needs an external engine. The target is that assumption-only iterations stop
    touching raw filings.
 
+### Acceptance patterns (carried from the retired `SPEC.md`)
+
+All three must pass before Stage 6.
+
+1. **Operationally disclosed company** — the interview selects unit and price/mix drivers, segment
+   forecasts drive consolidated earnings, YoY and annual views reconcile, and consensus remains a
+   comparison rather than an input. *Covered by VRT (Stage 3) and AVGO (Stage 4).*
+2. **Sparse-disclosure company** — unavailable operational history stays visible, reasoned
+   assumptions are clearly labelled and scenario-sensitive, and the model invents no sourced facts.
+   *Needs a real company exhibiting it or a deliberate fixture; VRT alone cannot demonstrate it.*
+3. **Earnings update** — a newly reported quarter replaces the forecast on the latest reported
+   basis, designated overrides and investment-view text survive, estimate changes are explained, and
+   a new dated workbook is produced without altering the prior version. *Covered by Stage 5.*
+
 ---
 
 ## 17. Out of scope
@@ -422,3 +488,102 @@ fixture. VRT alone cannot demonstrate every disclosure pattern.
 Mandatory three-statement integration · a DCF engine · sector driver templates · automatic web
 ingestion · HTML dashboards · financial-sector business models in the generic spine. Web research
 may challenge a number but never supplies one.
+
+---
+
+## 18. Implementation start
+
+### Document ownership — settles Stage 0's "name the source of truth"
+
+| File | Owns | Action |
+|---|---|---|
+| `V2_PLAN.md` | The v2 design, diagnosis and staged sequence | Live until Stage 6, then archive |
+| `SKILL.md` | The **executable** workflow an agent follows at runtime | Keep describing v1 until Stage 3's atomic switch |
+| `references/interfaces.md` | **New.** All schemas, entry points, locator grammar, transform registry | Create in Stage 2 |
+| `references/evidence-rules.md` | **New.** §10's ten conventions, as rules | Create in Stage 2 |
+| `references/model-rules.md` | Workbook contract only: sheets, periods, presentation, hardcode policy, decision integrity | **Shrink.** Move evidence rules out to `evidence-rules.md`, schemas out to `interfaces.md`. No rule lives in two files |
+| `references/update-model.md` | The rollover branch | Rewrite in Stage 5 against the shipped `overrides.py` |
+| `AGENTS.md` | Maintainer notes and the ownership map | Done in Stage 0 |
+| ~~`SPEC.md`~~ | — | **Deleted in Stage 0.** Principles, defaults table and web-challenge policy → `SKILL.md`; acceptance patterns → §16; exclusions → §17; workflow copy was duplicated drift |
+| ~~`HANDOFF.md`~~ | — | **Deleted in Stage 0.** Every claim was false; its locked decisions all live in `SKILL.md` |
+
+Rule: a contract appears in exactly one file. Everything else links to it.
+
+### First three tasks, in order
+
+**Task 1 — Stage 0, docs only. ✅ DONE.** `SPEC.md` and `HANDOFF.md` deleted after folding their
+unique content out; `SKILL.md` frontmatter rewritten with trigger vocabulary and the pilot framing
+removed; `AGENTS.md` rewritten as maintainer notes plus the ownership map. The v1 execution contract
+is unchanged — no reference to scripts that do not exist. Verified: `grep -rn "not been
+implemented\|design skeleton\|Pilot-only\|implementation has not started"` returns nothing.
+
+**Task 2 — Stage 1, benchmark before optimising.** Time a current VRT `build.py` and
+`check.py --fast` from `~/Desktop/equity-models/VRT/`. Record seconds per run, wall-clock, and the
+iteration counts already known (`build.py` ×37, `check.py` ×44). Write the numbers into this file's
+§2. No behaviour change. This is the only baseline the §16.8 benchmark can be measured against —
+taking it after refactoring is worthless.
+
+**Task 3 — Stage 2, interfaces first, then evidence.** Write `references/interfaces.md` from §8 and
+the transform registry before any code. Then implement `scripts/evidence.py` plus VRT's
+`fact_map.json` and freeze `evidence/actuals.csv`, `benchmarks.csv`, `availability.md`. Exit on the
+Stage 2 criterion in §15 — a row-level comparison against v1's 507 historical inputs, not a
+visual scan.
+
+### Known unknowns to resolve during Stage 2, not before
+
+- **Dated price.** The Yahoo CSV view has no date column (§6). Decide: fix the export upstream, read
+  the raw payload, or require a user-supplied dated price. Blocks `Valuation`.
+- **10-K/10-Q text.** Not in the store. Decide whether Step 2's business read is limited to 8-K
+  exhibits plus the two held transcripts, or whether documents get fetched and frozen.
+- **`historical_inputs.csv` → `actuals.csv` schema mapping.** v1's 507 rows use their own column
+  names; the canonical schema is new. Write the mapping down before comparing.
+- **Segment label stability.** §10.5 requires matching on a stable token. Confirm VRT's segment
+  labels are stable across all 12 quarters before relying on it.
+
+### Immutable parity baseline
+
+v1's VRT project is the measuring stick for Stages 2–4 and is **not** under version control, so it
+is protected outside the working tree:
+
+```text
+~/Desktop/equity-models/VRT_v1_baseline/        chflags uchg, directory + contents
+~/Desktop/equity-models/VRT_v1_baseline.tar.gz  chflags uchg, sha256 beside it
+```
+
+Workbook sha256 `bbb6389b…98487cd`. Recover with:
+
+```sh
+chflags -R nouchg VRT_v1_baseline && rm -rf VRT_v1_baseline && tar -xzf VRT_v1_baseline.tar.gz
+```
+
+`chmod -R a-w` is **not** sufficient — it blocks content writes but still permits `rm`. Verified.
+
+Never run `build.py --force` in `~/Desktop/equity-models/VRT/`. Its overwrite guard
+(`build.py:751`) is the only thing protecting the live copy, and `--force` defeats it. Benchmark
+and rebuild from a scratch copy.
+
+### Resuming across sessions
+
+Stage 2 is larger than one comfortable context. Maintain `V2_PROGRESS.md` in this folder — append
+only, newest last:
+
+```markdown
+## <date> — Stage N, <task>
+Done: …            (what is finished and verified, with the command that proves it)
+In flight: …       (what is half-done, and where the edge is)
+Blocked: …         (what stopped, and what decision is needed)
+Next: …            (the single next action)
+```
+
+Write an entry before context runs low, not after. A session that ends without one has to be
+re-derived from scratch. Delete the file at Stage 6 with `V2_PLAN.md`.
+
+### Stop conditions
+
+Halt and report rather than working around:
+
+- Stage 2 divergences that are not explainable by a declared transform — that is a mis-mapped
+  metric, not a tolerance problem.
+- Any need to write a Python-computed value into a cell where a formula belongs.
+- Stage 4 requiring a third or later core change — the invariant boundary was wrong, and §11.3
+  should be revisited rather than patched around.
