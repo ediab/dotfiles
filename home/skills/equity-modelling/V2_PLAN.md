@@ -1,6 +1,6 @@
 # equity-modelling v2 — plan
 
-**Status:** Stages 0–4 are complete for the bounded prepared-artifact core: both VRT and AVGO have reproducible evidence freezes, inactive governed forecasts, generic builds/checks, recalculation, and rendered proof workbooks. V1 is diagnostic only, not a release-parity target. Stage 5's generic driver-rollover command is implemented and tested, but its real next-quarter source-pack exercise remains pending. Stage 6 is blocked only on that live rollover proof and native Microsoft Excel automation, which remains environment-blocked. `V2_PROGRESS.md` is the append-only execution record; this file owns the design and stage gates.
+**Status:** VRT and AVGO proof workbooks exist, but this is **not release-ready**: the required final review found active evidence-resolver and prepared-project contract defects. V1 is diagnostic only, not a release-parity target. Generic rollover exists but lacks the real next-quarter source-pack exercise, narrative preservation, and an estimate-change bridge. Native Microsoft Excel automation also remains environment-blocked. `V2_PROGRESS.md` is the append-only execution record; this file owns the design and stage gates.
 `PROPOSAL-V2.md` has been absorbed (baseline, diagnosis, staged order, import lists) and deleted.
 
 Incorporates the review in `/tmp/findings_v2.md` (nine required revisions, all accepted except

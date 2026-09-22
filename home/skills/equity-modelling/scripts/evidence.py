@@ -95,7 +95,22 @@ UNAVAILABLE_LOCATOR = "unavailable"
 def load_fact_map(path: Path) -> list[FactMapping]:
     raw = json.loads(path.read_text())
     out = []
+    covered: dict[str, Optional[set[str]]] = {}
     for f in raw["facts"]:
+        metric = f["metric"]
+        if not re.fullmatch(r"[a-z][a-z0-9_]*", metric):
+            raise ValueError(f"invalid metric identifier {metric!r}")
+        periods = f.get("periods")
+        prior = covered.get(metric, set())
+        if periods is None:
+            if metric in covered:
+                raise ValueError(f"{metric}: unrestricted mapping overlaps another mapping")
+            covered[metric] = None
+        else:
+            period_set = set(periods)
+            if prior is None or set(prior).intersection(period_set):
+                raise ValueError(f"{metric}: mapping periods overlap another mapping")
+            covered[metric] = set(prior).union(period_set)
         if f["transform"] not in TRANSFORM_REGISTRY:
             raise ValueError(f"{f['metric']}: transform {f['transform']!r} is not in the closed registry")
         missing_reason = f.get("missing_reason")
@@ -109,7 +124,7 @@ def load_fact_map(path: Path) -> list[FactMapping]:
             metric=f["metric"], dimension=f.get("dimension"), basis=f["basis"],
             units=f["units"], locator=f["locator"], period_kind=f.get("period_kind", "fiscal_quarter"),
             transform=f["transform"], missing_treatment=f.get("missing_treatment", "unavailable"),
-            scale=f.get("scale", 0), periods=f.get("periods"), period_hashes=f.get("period_hashes"),
+            scale=f.get("scale", 0), periods=periods, period_hashes=f.get("period_hashes"),
             missing_reason=missing_reason,
         ))
     return out
@@ -228,23 +243,21 @@ def _resolve_sec_snapshot(mapping: FactMapping, period: str, spec: dict, issuer:
 
     if mapping.transform == "q4_from_fy_minus_9m" and period.endswith("Q4"):
         fy_label = period_end_date(fiscal_year(period) + "Q4", explicit) + " (FY)"
-        fy_row, fy_col, fy_val = _find_in_quarterly_or_annual(issuer, f"{statement}_annual", run_id, fy_label, concept, dim)
+        fy_table, fy_col, fy_val = _find_in_quarterly_or_annual(issuer, f"{statement}_annual", run_id, fy_label, concept, dim)
         q3_period = fiscal_year(period) + "Q3"
-        ytd_row, ytd_col, ytd_val = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, q3_period, concept, dim, want_ytd=True, explicit=explicit)
+        ytd_table, ytd_col, ytd_val = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, q3_period, concept, dim, want_ytd=True, explicit=explicit)
         if fy_val is None or ytd_val is None:
-            return None, None
-        value = fy_val - ytd_val
-        table_used = f"{statement}_annual + {statement}_quarterly (Q3 YTD)"
-        return value, table_used
+            return None, None, None
+        return fy_val - ytd_val, (fy_table, ytd_table), (fy_col, ytd_col)
     if mapping.transform in ("sum_quarters", "recompute_ratio", "recompute_per_share", "period_end_stock"):
         # These act on already-frozen quarterly actuals, not a single store read;
         # evidence.py resolves the direct quarterly facts, engine.py (Stage 3) applies the annual roll-up as an Excel formula.
-        return None, "annual-convention transform applied in workbook, not at freeze time"
+        return None, None, None
 
-    table_row, table_col, value = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, period, concept, dim, explicit=explicit)
+    table, col, value = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, period, concept, dim, explicit=explicit)
     if value is None:
-        table_row, table_col, value = _find_in_annual(issuer, f"{statement}_annual", run_id, period, concept, dim, explicit=explicit)
-    return value, table_col
+        table, col, value = _find_in_annual(issuer, f"{statement}_annual", run_id, period, concept, dim, explicit=explicit)
+    return value, table, col
 
 
 def _find_in_quarterly(issuer, table_prefix, run_id, period, concept, dim, want_ytd: bool = False,
@@ -451,17 +464,14 @@ def _resolve_8k_exhibit(mapping: FactMapping, period: str, spec: dict, store_roo
     col_regex = col_pat.format(month=month_name, day=d, year=y)
     cells = _load_8k_cells(store_root, issuer)
     for row in cells:
-        if row["accession"] != accession:
-            continue
-        if row["row_kind"] != "data":
+        if row["accession"] != accession or row["row_kind"] != "data":
             continue
         if not re.search(row_label_pat, row["row_label"], re.IGNORECASE):
             continue
         if not re.search(col_regex, row["column_label"]):
             continue
-        if row["value"] in ("", None):
-            continue
-        return float(row["value"]), row["exhibit_sha256"], (row["accession"], row["table_index"], row["row_index"], row["col_index"])
+        if row["value"] not in ("", None):
+            return float(row["value"]), row["exhibit_sha256"], (row["accession"], row["table_index"], row["row_index"], row["col_index"])
     return None, None, None
 
 
@@ -504,11 +514,15 @@ def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
                             notes=mapping.missing_reason or "")
 
     if mapping.locator.startswith("sec_snapshot:"):
-        value, col = _resolve_sec_snapshot(mapping, period, spec, issuer, explicit)
+        value, table, col = _resolve_sec_snapshot(mapping, period, spec, issuer, explicit)
         if value is not None and mapping.scale:
             value = value * (10 ** mapping.scale)
-        lineage_path = f"data/tables/{issuer}/{run_id}/<resolved-table>.parquet"
-        lineage_key = f"col={col}"
+        if isinstance(table, tuple):
+            lineage_path = ";".join(f"data/tables/{issuer}/{run_id}/{name}.parquet" for name in table)
+            lineage_key = ";".join(f"col={name}" for name in col)
+        else:
+            lineage_path = f"data/tables/{issuer}/{run_id}/{table}.parquet" if table else ""
+            lineage_key = f"col={col}" if col else ""
         status = "verified" if value is not None else "unresolved"
         return ResolvedFact(mapping.metric, period, value, mapping.units, mapping.basis,
                              mapping.dimension, mapping.transform, mapping.locator,
@@ -521,8 +535,8 @@ def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
         status = "verified" if value is not None else "unresolved"
         return ResolvedFact(mapping.metric, period, value, mapping.units, mapping.basis,
                             mapping.dimension, mapping.transform, mapping.locator,
-                            "sec_snapshot", f"data/tables/{issuer}/{run_id}/<resolved-table>.parquet",
-                            f"table={table};label=issued_and_outstanding_shares", status)
+                            "sec_snapshot", f"data/tables/{issuer}/{run_id}/{table}.parquet" if table else "",
+                            f"table={table};label=issued_and_outstanding_shares" if table else "", status)
 
     if mapping.locator.startswith("8k_exhibit_role:"):
         effective = _materialize_role_locator(mapping, period)
@@ -576,8 +590,7 @@ def build_actuals(fact_map: list[FactMapping], spec: dict, periods: list[str]) -
             try:
                 r = resolve(m, p, spec)
             except Exception as e:
-                r = ResolvedFact(m.metric, p, None, m.units, m.basis, m.dimension,
-                                  m.transform, m.locator, "error", "", "", "error", notes=str(e))
+                raise ValueError(f"{m.metric} {p}: evidence resolution failed") from e
             # A declared reason is the frozen row's visible, specific missing reason for any
             # non-error unavailable/unresolved result of this mapping (interfaces.md §2/§5).
             if r.value is None and r.provenance_status != "error" and not r.notes \

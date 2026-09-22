@@ -349,3 +349,7 @@ Open gates:
 - Stage 5 still needs a real post-earnings source-pack rollover, not merely generic fixture/smoke coverage.
 - Native Microsoft Excel automation remains blocked: a final isolated VRT gate copy exceeded its 180-second automation limit. Formualizer and native-raster rendering are strong non-native evidence, not a substitute for that gate.
 - VRT forecast activation remains intentionally inactive until a future explicit approval manifest covers the complete regional-first dependency set.
+
+## 2026-09-22 — Final reviewer remediation reopened release gates
+
+The required independent review of commit `29e0375` found release-blocking defects. The SEC resolver now records concrete resolved parquet paths (not the former `<resolved-table>` placeholder); refreshed VRT and AVGO freezes contain zero placeholder paths and both deliveries still pass `check --full`. Remaining release blockers are: the generic `8k_exhibit` resolver can select the first of multiple matching cells; `check --full` does not perform the raw-store/source-replay checks still promised by older plan sections; the update guide and approval-manifest production path do not yet match the shipped prepared-project runtime; and rollover does not yet preserve narrative or produce an estimate-change bridge. Stage 6 must remain open until each is remediated and independently rechecked.

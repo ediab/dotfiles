@@ -45,7 +45,7 @@ _ACTUALS_COLUMNS = (
     "lineage_scheme", "lineage_path", "lineage_key", "provenance_status", "notes",
 )
 _LINEAGE_COLUMNS = ("lineage_scheme", "lineage_path", "lineage_key")
-_UNAVAILABLE_STATUSES = frozenset({"unresolved", "unavailable", "missing", "error"})
+_UNAVAILABLE_STATUSES = frozenset({"unresolved", "unavailable", "missing"})
 
 
 def _row_problems(row: dict[str, Any], line: int) -> list[str]:
@@ -61,8 +61,12 @@ def _row_problems(row: dict[str, Any], line: int) -> list[str]:
         blank = [c for c in _LINEAGE_COLUMNS if not str(row.get(c) or "").strip()]
         if blank:
             problems.append(f"{label}: populated value lacks lineage ({', '.join(blank)})")
-        if status in _UNAVAILABLE_STATUSES:
+        if "<resolved-table>" in str(row.get("lineage_path") or ""):
+            problems.append(f"{label}: populated value has placeholder lineage path")
+        if status in _UNAVAILABLE_STATUSES or status == "error":
             problems.append(f"{label}: populated value marked {status}")
+    elif status == "error":
+        problems.append(f"{label}: evidence resolver error is not an unavailable fact")
     elif not notes or notes.lower() in _UNAVAILABLE_STATUSES:
         # A specific reason, not a bare status token, must be visible on every blank fact.
         problems.append(f"{label}: unavailable value has no specific missing reason")

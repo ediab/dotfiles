@@ -197,6 +197,9 @@ def rollover(prior_project: Path, new_project: Path, output_project: Path,
 
     if output_project.exists():
         raise RolloverError(f"refusing to overwrite existing output project: {output_project}")
+    output_resolved = output_project.resolve()
+    if output_resolved.is_relative_to(prior_project.resolve()) or output_resolved.is_relative_to(new_project.resolve()):
+        raise RolloverError("output project must be outside both input projects")
 
     prior = _read_drivers(prior_project)
     new = _read_drivers(new_project)
