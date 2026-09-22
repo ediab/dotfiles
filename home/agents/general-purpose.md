@@ -1,8 +1,9 @@
 ---
 # Override of the builtin general-purpose profile: same parent-twin scope (all
-# tools, all extensions, discoverable skills, appended prompt), pinned model.
+# tools, all extensions, discoverable skills, appended prompt); no model set,
+# so it inherits the session's model.
 name: general-purpose
-description: General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks. Pinned to the cheap default model; never use it to run implementation on an expensive model.
+description: General-purpose agent for researching complex questions, searching for code, and executing multi-step tasks that fit no specialist. Workflow `agent()` defaults to this profile when no `agentType` is passed.
 tools: all
 extensions: true
 skills: true

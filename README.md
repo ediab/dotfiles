@@ -34,7 +34,7 @@ Running the bootstrap installs:
   copied to `~/.pi/agent/extensions/`. Herdr's integration file is deliberately not vendored
   here (see *What it does NOT install*).
 - **Custom agents** — every `.md` under `home/agents/`, copied to `~/.pi/agent/agents/`
-  (user agents for `@tintinweb/pi-subagents`, e.g. `explorer` with a custom model).
+  (user agents for `@tintinweb/pi-subagents`).
   `explorer` replaces the built-in `Explore`; disabled overrides keep `Explore`
   and `Plan` from reappearing. Planning runs in the main session via the `plan` skill.
 - **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
@@ -65,8 +65,7 @@ Running the bootstrap installs:
   alone; `deploy-vps.sh` writes a Linux variant that reads `~/.pi/agent/tinyfish-api-key`
   (0600, managed directly on the VPS — deploy never overwrites it).
 - **Agent config** — `home/settings.json` deployed as the canonical pi agent settings, and
-  `home/AGENTS.md` seeded to `~/.pi/agent/AGENTS.md` (only when absent, so local-only
-  sections like VPS access survive).
+  `home/AGENTS.md` seeded to `~/.pi/agent/AGENTS.md` (only when absent).
 
 ## What it does NOT install
 
@@ -132,8 +131,7 @@ A `REVIEW_GUIDELINES.md` beside the project's `.pi/` directory is appended to th
 prompt, so a repo carries its own review rules without touching this harness.
 
 `home/agents/reviewer.md` is the complementary path, not a duplicate: `/review` runs the
-review in the current session, while `reviewer` is a fresh-context, report-only subagent on
-its own pinned review model, used when you explicitly request review delegation — or
+review in the current session, while `reviewer` is a fresh-context, report-only subagent, used when you explicitly request review delegation — or
 automatically after a substantial implementation under the agreed workflow (the owner
 supplies the agreed intent, acceptance examples, and exact changeset; tiny mechanical
 edits stay inline). “Review this”, `/review`, and generic orchestration requests keep
@@ -144,17 +142,13 @@ The same explicit-delegation rule applies to research evidence: the owner synthe
 
 Primaries run cheap; implementation happens in the main session — subagents are for
 independent parallel work and fresh second opinions, not a default implementation hop.
-Each profile pins its model; there are no backup profiles and no automatic failover. If a
-pinned model is unavailable, the dispatch is reported as a blocker — not silently retried
-on another model. Profile pins win on `Agent` calls; never pass a `model`/`effort` override
-alongside a pinned profile (in workflows, always pass an explicit existing `agentType` —
+No profile sets `model:`; subagents inherit the dispatching session's model. There are no
+backup profiles and no automatic failover — a failed dispatch is reported as a blocker, not
+silently retried on another model. Never pass a `model`/`effort` override unless the user
+explicitly names a model (in workflows, always pass an explicit existing `agentType` —
 workflows default to `general-purpose`, and orchestrators are forbidden in workflows).
 
-| Roles | Pinned model |
-|---|---|
-| `worker`, `explorer`, `researcher`, `reviewer`, `general-purpose` | `opencode-go/muse-spark-1.3-contributor` |
-
-Also: the built-in `general-purpose` profile is overridden and model-pinned; `worker-astra`, `agent-orchestrator`, and `planner` are retired (implementation runs in the main session; use main-session orchestration via `/skill:orchestrate` and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
+Also: the built-in `general-purpose` profile is overridden; `worker-astra`, `agent-orchestrator`, and `planner` are retired (implementation runs in the main session; use main-session orchestration via `/skill:orchestrate` and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
 
 ### Keeping the repo in sync
 
@@ -162,7 +156,7 @@ Also: the built-in `general-purpose` profile is overridden and model-pinned; `wo
 |---|---|---|
 | `settings.json` (provider, model, theme, packages) | live → repo, **automatic** | launchd agent (installed by `bootstrap.sh` step 4) watches the live file; `sync-settings.sh` commits any `pi`-made change within seconds |
 | `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/models.json`, `home/web-search.json`, `home/ponytail.json`, `home/open-tui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
-| `home/AGENTS.md` | repo → live (seed only) | the live copy keeps your local-only sections (e.g. VPS access) — the one file that intentionally drifts |
+| `home/AGENTS.md` | repo → live (seed only) | seeded only when absent — local-only environment facts (VPS, symlinks, deploy) live in the `local-env` skill, not in this file |
 | `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS) |
 
 Bottom line: your settings reflect into the repo by themselves; the repo is the source of
