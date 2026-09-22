@@ -22,6 +22,14 @@ deliberately not copied (repo-wide removal — pi has no use for them).
 | `diagnosing-bugs/` | `skills/engineering/diagnosing-bugs/SKILL.md`, `skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh` | Added a "Light or full path" section at the top of `SKILL.md`: a clear low-risk fix takes a light path, the full phased process is for hard/recurring/intermittent/performance bugs. Script is verbatim. Upstream's secret-redaction section already incorporated. |
 | `writing-for-agents/` | `skills/productivity/writing-for-agents/SKILL.md`, `skills/productivity/writing-for-agents/SKILL-MECHANICS.md` | None — verbatim copies. |
 
+## excel
+
+- Upstream sources (pinned):
+  - https://github.com/openai/skills @ `7b548893` — `skills/.curated/spreadsheet/` (Apache-2.0; later removed upstream by commit `fdf90d6`). Bundled license: `excel/LICENSE.openai-skills.txt`.
+  - https://github.com/openai/role-specific-plugins @ `ebf5795` — `plugins/data-analytics/skills/spreadsheets/` (MIT). Bundled license: `excel/LICENSE.openai-role-specific-plugins.txt`.
+- Local: `excel/` — original skill, not a copy. Conventions adapted from the pinned sources: formulas for derived values, restrained professional formatting, sources/attribution, charts, bounded edits, QA loops. Nothing from the unavailable `@oai/artifact-tool` tooling or plugin routing is used; commands are `asp` (agent-spreadsheet) and local `openpyxl`/`xlwings` scripts.
+- **No Anthropic material**: Anthropic's public `skills/xlsx` was reviewed for comparison only; its license prohibits derivatives, and no text, scripts, assets, or structure from it were copied.
+
 ## humanlayer/skills
 
 - Upstream: https://github.com/humanlayer/skills
