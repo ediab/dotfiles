@@ -116,9 +116,10 @@ Default sheets, combined or omitted only when the approved blueprint warrants it
 8. one controlled driver change on a copy: expected revenue, earnings, cash, and valuation outputs
    move; actuals, guidance, consensus, and unrelated outputs stay fixed.
 
-Use `asp workbook recalculate` and require `0 unsupported` and `state: clean`. Then run the Excel
-skill's native gate and inspect every requested PNG. A passing script is not evidence that an
-unrendered workbook is readable.
+Use `asp workbook recalculate` and require `0 unsupported` and `state: clean`. Skip the Excel
+skill's native gate in the standard run; use it only for non-vanilla formulas or on request. Then
+inspect the asp-rendered PNGs — a passing script is not evidence that an unrendered workbook is
+readable.
 
 ## Web challenge record
 

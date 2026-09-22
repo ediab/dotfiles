@@ -169,7 +169,7 @@ A generated company project should initially need no more than:
 - `build.py` writes the formula-driven workbook.
 - `check.py` independently reparses supplied evidence and validates the workbook.
 
-Use Python's standard library for JSON, CSV, hashing, and file operations; `openpyxl` for workbook construction; and the existing Excel skill's ASP/native Excel gate for recalculation and rendering. Reuse small proven helpers from `company-model` where they fit. Do not create a formula DSL, database, generic model engine, or duplicated calculation graph.
+Use Python's standard library for JSON, CSV, hashing, and file operations; `openpyxl` for workbook construction; and the Excel skill's ASP recalculation for validation, with asp-rendered PNGs for visual review. The native Microsoft Excel gate is optional in the standard run — reserve it for non-vanilla formulas (dynamic arrays, LAMBDA, newer functions) or explicit user request. Reuse small proven helpers from `company-model` where they fit. Do not create a formula DSL, database, generic model engine, or duplicated calculation graph.
 
 ## Trust contract
 

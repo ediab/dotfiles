@@ -1,7 +1,6 @@
 ---
 name: equity-modelling
 description: Pilot-only workflow for building or updating a source-driven public-equity earnings model from a user-supplied source pack.
-disable-model-invocation: true
 ---
 
 # Equity modelling
@@ -107,8 +106,10 @@ valuation basis.
 
 ### 7. Validate and deliver
 
-Run the generated project's `check.py`, then the `excel` skill's prompt-free ASP recalculation and
-native Excel gate. Inspect the routine renders for `Outlook`, `Drivers`, `Scenarios`, `Valuation`,
+Run the generated project's `check.py`, then the `excel` skill's prompt-free ASP recalculation.
+Skip the native Excel gate in the standard run — it is slow and needs Excel closed. Run it only
+when the workbook uses non-vanilla formulas (dynamic arrays, LAMBDA, newer functions) or the user
+asks. Inspect the routine renders for `Outlook`, `Drivers`, `Scenarios`, `Valuation`,
 and `Sources & Checks`; render the full workbook when the release risk warrants it.
 
 Validation must cover source reconciliation, provenance coverage, unexpected hardcodes, formula
