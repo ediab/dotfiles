@@ -5,9 +5,8 @@ description: Pilot-only workflow for building or updating a source-driven public
 
 # Equity modelling
 
-Build or update one editable, formula-driven public-equity earnings model. This skill is
-**pilot-only**: invoke it manually and keep `company-model` available until the exit criteria in
-`SPEC.md` pass.
+Build or update one editable, formula-driven public-equity earnings model. The VRT pilot passed
+its exit criteria in `SPEC.md`; `company-model` remains available until retired.
 
 Read `references/model-rules.md` before building. For an earnings update, also read
 `references/update-model.md` before changing anything. Use the `excel` skill for workbook
