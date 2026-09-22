@@ -62,7 +62,12 @@
     "npm:pi-open-tui",
     "npm:pi-rtk-optimizer",
     "npm:pi-observational-memory",
-    "npm:pi-jev-model-router"
+    {
+      "source": "npm:pi-jev-model-router",
+      "extensions": [
+        "-extensions/pi-jev-model-router/index.ts"
+      ]
+    }
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
