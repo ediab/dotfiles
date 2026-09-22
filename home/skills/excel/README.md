@@ -12,13 +12,14 @@ A Pi skill for working with Excel workbooks (`.xlsx`): creating new ones, editin
 ## What it won't do
 
 - Write `.xlsm`, `.xls`, or `.xlsb` files.
-- Edit workbooks with VBA, external links, Power Query, or pivot-table internals — it detects these and stops with an explanation instead of silently flattening the file.
+- Edit workbooks with VBA, external links, Power Query, connections, pivot-table internals, or slicers — preflight (`asp read workbook` plus the gate's package inventory) detects these and stops before any write, with an explanation, instead of silently flattening the file.
 - Invent business assumptions. Structure, formulas, and formatting are the agent's job; the numbers behind them are yours.
 
 ## Requirements
 
 - Microsoft Excel (macOS). The first run may ask for automation permission — approve it once.
-- `asp` (agent-spreadsheet) and `uv`, installed automatically or on demand.
+- `asp` 0.16.0 (agent-spreadsheet): `npm i -g agent-spreadsheet@0.16.0`.
+- `uv`, installed and available on `PATH`. The gate runs via `uv run --script`, which installs the gate's pinned Python packages from its PEP 723 header — it does not install `uv` itself.
 
 ## Files
 

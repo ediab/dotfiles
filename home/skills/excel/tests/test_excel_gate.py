@@ -51,21 +51,43 @@ class TestSplitTarget(unittest.TestCase):
             gate.split_target("Sheet!")
 
 
-class TestErrorValues(unittest.TestCase):
-    def test_all_excel_errors_detected(self):
-        for err in ("#REF!", "#DIV/0!", "#VALUE!", "#NAME?", "#N/A", "#NULL!", "#NUM!"):
-            self.assertTrue(gate.is_error_value(err), err)
+def _make_error_workbook() -> str:
+    """Workbook with error-typed cells (#SPILL!, #CALC!, #REF!) plus a plain
+    string that merely looks like an error, saved into a temp dir."""
+    import openpyxl
 
-    def test_normal_values_not_errors(self):
-        for v in (5, 0.0, "hello", None, True, "#temp", "N/A"):
-            self.assertFalse(gate.is_error_value(v), v)
+    path = os.path.join(tempfile.mkdtemp(), "errors.xlsx")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "S"
+    ws["A1"] = "#SPILL!"
+    ws["A1"].data_type = "e"
+    ws["B2"] = "#CALC!"
+    ws["B2"].data_type = "e"
+    ws["C3"] = "#REF!"
+    ws["C3"].data_type = "e"
+    # plain string that looks like an error but is not error-typed
+    ws["D4"] = "#SPILL!"
+    wb.save(path)
+    return path
 
-    def test_scan_errors_counts(self):
-        counts = gate.scan_errors(["#REF!", "#REF!", 5, "#N/A", None])
-        self.assertEqual(counts, {"#REF!": 2, "#N/A": 1})
 
-    def test_scan_errors_empty(self):
-        self.assertEqual(gate.scan_errors([1, "ok", None]), {})
+class TestErrorDetection(unittest.TestCase):
+    def test_modern_and_classic_errors_detected_with_addresses(self):
+        _, errors = gate.read_cached_state(_make_error_workbook(), [])
+        self.assertEqual(
+            errors,
+            {"S!A1!#SPILL!", "S!B2!#CALC!", "S!C3!#REF!"},
+        )
+
+    def test_plain_string_error_lookalike_not_detected(self):
+        _, errors = gate.read_cached_state(_make_error_workbook(), [])
+        self.assertNotIn("S!D4!#SPILL!", errors)
+
+    def test_extract_error_kinds_aggregates_modern_errors(self):
+        kinds = gate.extract_error_kinds(
+            {"S!A1!#SPILL!", "S!B2!#SPILL!", "S!C3!#CALC!", "S!C4!#REF!"})
+        self.assertEqual(kinds, {"#SPILL!": 2, "#CALC!": 1, "#REF!": 1})
 
 
 class TestPackageInventory(unittest.TestCase):
@@ -166,6 +188,14 @@ class TestComputeErrorDelta(unittest.TestCase):
         kinds = gate.extract_error_kinds({"S!A1!#REF!", "S!B2!#REF!", "S!C3!#N/A"})
         self.assertEqual(kinds, {"#REF!": 2, "#N/A": 1})
 
+    def test_modern_error_new_cell_is_added(self):
+        # A fresh #SPILL! in B2 (not present at baseline) must surface as added,
+        # not net out against an unrelated classic error.
+        added, removed = gate.compute_error_delta(
+            {"S!B2!#SPILL!"}, {"S!A1!#REF!"})
+        self.assertEqual(added, ["S!B2!#SPILL!"])
+        self.assertEqual(removed, ["S!A1!#REF!"])
+
 
 class TestInventoryLostCounts(unittest.TestCase):
     def test_renumbered_part_not_lost(self):
@@ -224,9 +254,8 @@ class TestReadCachedState(unittest.TestCase):
         ws["A3"] = "text"
         wb.save(path)
         _, errors = gate.read_cached_state(path, [])
-        # without recalculation no cached errors exist yet
+        # without recalculation no cached error-typed cells exist yet
         self.assertEqual(errors, set())
-        # but the detector itself is covered by TestErrorValues
 
 
 class TestFormatReport(unittest.TestCase):

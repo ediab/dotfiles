@@ -16,7 +16,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PI_SKILLS_DIR="$HOME/.pi/agent/skills"
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
-# Skills deployed below = every dir in $SCRIPT_DIR/home/skills/ (whole-dir copies).
+# Skills deployed below = every dir in $SCRIPT_DIR/home/skills/ (whole-dir copies) plus any
+# top-level files such as ATTRIBUTION.md.
 # Everything under home/extensions/ is copied recursively; no script edit needed.
 
 if [ "$SYNC_ONLY" = "1" ]; then
@@ -35,7 +36,7 @@ else
     || echo "    FAILED: home/settings.json"
 fi
 
-echo "==> 3/3  skills (every dir in $SCRIPT_DIR/home/skills/) + extensions"
+echo "==> 3/3  skills (every dir + top-level file in $SCRIPT_DIR/home/skills/) + extensions"
 mkdir -p "$PI_SKILLS_DIR"
 shopt -s nullglob
 for src in "$SCRIPT_DIR/home/skills"/*/; do
@@ -43,6 +44,13 @@ for src in "$SCRIPT_DIR/home/skills"/*/; do
   rm -rf "$PI_SKILLS_DIR/$skill"
   cp -R "$SCRIPT_DIR/home/skills/$skill" "$PI_SKILLS_DIR/"
   echo "    $skill  re-synced"
+done
+# Top-level files in home/skills/ (e.g. ATTRIBUTION.md) deploy beside the skill dirs.
+for src in "$SCRIPT_DIR/home/skills/"*; do
+  if [ -f "$src" ]; then
+    cp "$src" "$PI_SKILLS_DIR/"
+    echo "    $(basename "$src")  re-synced"
+  fi
 done
 shopt -u nullglob
 

@@ -50,10 +50,6 @@ import sys
 import tempfile
 import zipfile
 
-EXCEL_ERROR_VALUES = {
-    "#REF!", "#DIV/0!", "#VALUE!", "#NAME?", "#N/A", "#NULL!", "#NUM!",
-}
-
 UNSUPPORTED_EXTENSIONS = {
     ".xlsm", ".xls", ".xlsb", ".xltm", ".xlt", ".xla", ".xlam", ".csv", ".ods",
 }
@@ -101,21 +97,6 @@ def _require_single_cell(ref: str, spec: str) -> None:
             f"--target must be a single cell (Sheet!A1); use --render for ranges: {spec!r}")
     if not re.fullmatch(r"[A-Za-z]{1,3}\d+", ref):
         raise GateError(f"--target must be a single cell, got {spec!r}")
-
-
-def is_error_value(value) -> bool:
-    """True when a cell value is an Excel error string like '#REF!'."""
-    return isinstance(value, str) and value.strip() in EXCEL_ERROR_VALUES
-
-
-def scan_errors(values) -> dict[str, int]:
-    """Count Excel error values in an iterable of cell values."""
-    counts: dict[str, int] = {}
-    for v in values:
-        if is_error_value(v):
-            key = v.strip()
-            counts[key] = counts.get(key, 0) + 1
-    return counts
 
 
 def compute_error_delta(final_cells: set, baseline_cells: set) -> tuple[list, list]:
@@ -268,8 +249,10 @@ def read_cached_state(path: str, targets: list[str]) -> tuple[dict, set]:
     """Return (targets: {spec: {formula, value}}, error_cells: set).
 
     error_cells is a set of 'Sheet!Ref!ERROR' keys for per-cell provenance.
-    Two openpyxl read-only passes (formulas preserved, then data_only);
-    values_only=True for the scan. Never saves either workbook.
+    Two openpyxl read-only passes (formulas preserved, then data_only); the
+    scan iterates cell objects and detects errors via OpenPyXL's error data
+    type (`cell.data_type == 'e'`), so modern errors (#SPILL!, #CALC!, ...)
+    are caught alongside classic ones. Never saves either workbook.
     """
     from openpyxl import load_workbook
     from openpyxl.utils import get_column_letter
@@ -299,10 +282,11 @@ def read_cached_state(path: str, targets: list[str]) -> tuple[dict, set]:
                 "value": wb_v[sheet_name][ref].value,
             }
         for ws in wb_v.worksheets:
-            for r_idx, row in enumerate(ws.iter_rows(values_only=True), 1):
-                for c_idx, value in enumerate(row, 1):
-                    if is_error_value(value):
-                        error_cells.add(f"{ws.title}!{get_column_letter(c_idx)}{r_idx}!{value.strip()}")
+            for r_idx, row in enumerate(ws.iter_rows(), 1):
+                for c_idx, cell in enumerate(row, 1):
+                    if cell.data_type == "e":
+                        token = str(cell.value).strip()
+                        error_cells.add(f"{ws.title}!{get_column_letter(c_idx)}{r_idx}!{token}")
     finally:
         wb_v.close()
 
@@ -310,15 +294,16 @@ def read_cached_state(path: str, targets: list[str]) -> tuple[dict, set]:
 
 
 def extract_error_kinds(error_cells: set) -> dict[str, int]:
+    """Count 'Sheet!Ref!ERROR' keys by their trailing error token.
+
+    Keys are ``Sheet!Ref!ERROR``; the ERROR token is everything after the
+    second '!' (some tokens contain '!' themselves, e.g. #REF!), so split at
+    the first two separators only.
+    """
     counts: dict[str, int] = {}
     for cell in error_cells:
-        # error kinds themselves end with '!', so match suffixes explicitly
-        for kind in sorted(EXCEL_ERROR_VALUES, key=len, reverse=True):
-            if cell.endswith(kind):
-                counts[kind] = counts.get(kind, 0) + 1
-                break
-        else:
-            counts[cell.rsplit("!", 1)[1]] = counts.get(cell.rsplit("!", 1)[1], 0) + 1
+        kind = cell.split("!", 2)[2]
+        counts[kind] = counts.get(kind, 0) + 1
     return counts
 
 

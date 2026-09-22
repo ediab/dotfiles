@@ -3,7 +3,8 @@
 # Does NOT install MCPs, auth keys, or provider/model settings.
 set -euo pipefail
 
-# Skills bundled in this repo under home/skills (whole directories, including subdocs).
+# Skills bundled in this repo under home/skills (whole directories, including subdocs, plus any
+# top-level files such as ATTRIBUTION.md).
 # Add/remove a skill by adding/removing its directory under home/skills/; no script edit needed.
 
 # Custom extensions bundled in this repo under home/extensions.
@@ -64,7 +65,7 @@ for pkg in "${APT_PACKAGES[@]}"; do
   fi
 done
 
-echo "==> 3/4  skills (every dir in $SCRIPT_DIR/home/skills/) + extensions + AGENTS.md seed + ponytail default"
+echo "==> 3/4  skills (every dir + top-level file in $SCRIPT_DIR/home/skills/) + extensions + AGENTS.md seed + ponytail default"
 mkdir -p "$PI_SKILLS_DIR"
 shopt -s nullglob
 for src in "$SCRIPT_DIR/home/skills"/*/; do
@@ -72,6 +73,13 @@ for src in "$SCRIPT_DIR/home/skills"/*/; do
   rm -rf "$PI_SKILLS_DIR/$skill"
   cp -R "$SCRIPT_DIR/home/skills/$skill" "$PI_SKILLS_DIR/"
   echo "    $skill  installed"
+done
+# Top-level files in home/skills/ (e.g. ATTRIBUTION.md) deploy beside the skill dirs.
+for src in "$SCRIPT_DIR/home/skills/"*; do
+  if [ -f "$src" ]; then
+    cp "$src" "$PI_SKILLS_DIR/"
+    echo "    $(basename "$src")  installed"
+  fi
 done
 shopt -u nullglob
 
@@ -162,6 +170,12 @@ shopt -s nullglob
 for src in "$SCRIPT_DIR/home/skills"/*/; do
   skill="$(basename "$src")"
   [ -f "$PI_SKILLS_DIR/$skill/SKILL.md" ] && echo "    ok: $skill" || echo "    MISSING: $skill"
+done
+for src in "$SCRIPT_DIR/home/skills/"*; do
+  file="$(basename "$src")"
+  if [ -f "$src" ]; then
+    [ -f "$PI_SKILLS_DIR/$file" ] && echo "    ok: $file" || echo "    MISSING: $file"
+  fi
 done
 shopt -u nullglob
 shopt -s nullglob
