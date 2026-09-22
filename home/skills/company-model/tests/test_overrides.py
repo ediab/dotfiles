@@ -5,6 +5,7 @@ Run: python3 -m unittest discover -s tests -v   (from the skill directory)
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 from pathlib import Path
 import tempfile
@@ -17,11 +18,22 @@ import overrides as O  # noqa: E402
 
 PERIODS = ["Q3 2026E", "Q4 2026E", "Q1 2027E"]
 DRIVERS = ["Revenue growth", "Adjusted margin"]
+OUTLOOK_TEXT = {"thesis": "Growth stalls if the backlog does not convert.",
+                "key_debate": "How fast does growth fade?",
+                "catalysts": "Q3 release; hyperscaler capex commentary.",
+                "risks": "Cancellations; margin mix.",
+                "falsifying_evidence": "Two quarters near the trailing average."}
 
 
 def make_workbook(path: Path, periods=PERIODS, drivers=DRIVERS, first_col=3,
-                  first_block_row=8, overrides=None, definition=None, header_row=6):
-    """Build a contract-shaped override sheet.  ``overrides`` maps (driver, period) -> value."""
+                  first_block_row=8, overrides=None, definition=None, header_row=6,
+                  outlook=False, outlook_text=None, outlook_first_row=9, outlook_step=2,
+                  outlook_labels=None, outlook_text_col=2, outlook_label_col=1,
+                  extra_sheet=None):
+    """Build a contract-shaped override sheet (and an Outlook sheet when asked).
+
+    ``overrides`` maps (driver, period) -> value.  ``outlook_text`` maps field id -> text.
+    """
     workbook = Workbook()
     ws = workbook.active
     ws.title = "Assumptions"
@@ -41,6 +53,18 @@ def make_workbook(path: Path, periods=PERIODS, drivers=DRIVERS, first_col=3,
     for (driver, period), value in (overrides or {}).items():
         row = first_block_row + drivers.index(driver) * 4 + 1
         ws.cell(row, first_col + periods.index(period), value)
+    if outlook:
+        sheet = workbook.create_sheet("Outlook")
+        sheet.cell(1, 1, "Company | Outlook")
+        labels = outlook_labels or O.DEFAULT_OUTLOOK_FIELDS
+        for index, (field_id, label) in enumerate(labels.items()):
+            row = outlook_first_row + index * outlook_step
+            sheet.cell(row, outlook_label_col, label)
+            value = (outlook_text or OUTLOOK_TEXT).get(field_id)
+            if value:
+                sheet.cell(row, outlook_text_col, value)
+    if extra_sheet:
+        workbook.create_sheet(extra_sheet)
     workbook.save(path)
     return path
 
@@ -56,6 +80,21 @@ class OverrideTests(unittest.TestCase):
     def digest(self, path):
         return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
+    def payload(self, overrides, outlook_text=None, drivers=None, **extra):
+        """A hand-written payload for the load-path tests."""
+        mapping = {name: {"name": name, "driver_id": O.driver_slug(name), "default_row": 8 + 4 * index,
+                          "override_row": 9 + 4 * index, "active_row": 10 + 4 * index,
+                          "number_format": "0.0%"}
+                   for index, name in enumerate(drivers or DRIVERS)}
+        return {"schema_version": O.SCHEMA_VERSION, "sheet": "Assumptions", "header_row": 6,
+                "label_col": 2, "periods": {"3": "2026Q3E"}, "drivers": mapping,
+                "assumption_overrides": [
+                    {"driver": name, "driver_id": O.driver_slug(name), "period": "2026Q3E",
+                     "value": value, "cell": "C9", "number_format": "0.0%", "definition": "x"}
+                    for name, value in overrides],
+                "outlook_text": outlook_text or {},
+                "outlook_fields": dict(O.DEFAULT_OUTLOOK_FIELDS), **extra}
+
     # ---------------------------------------------------------------- extraction
     def test_extract_records_identity_not_coordinates(self):
         src = make_workbook(self.tmp / "src.xlsx",
@@ -66,6 +105,7 @@ class OverrideTests(unittest.TestCase):
         self.assertEqual(found.get("Revenue growth", "Q1 2027E").value, 0.25)
         self.assertEqual(found.get("Revenue growth", "2027Q1E").value, 0.25)   # canonical accepted
         self.assertEqual(found.drivers["Adjusted margin"].override_row, 13)
+        self.assertEqual(found.drivers["Adjusted margin"].driver_id, "adjusted_margin")
         self.assertEqual(sorted(found.periods.values()), ["2026Q3E", "2026Q4E", "2027Q1E"])
 
     def test_zero_is_a_valid_override_and_blank_is_not(self):
@@ -158,17 +198,154 @@ class OverrideTests(unittest.TestCase):
         forced = make_workbook(self.tmp / "forced.xlsx", definition=different)
         report = O.restore(forced, self.tmp / "forced-out.xlsx", found, allow_definition_change=True)
         self.assertEqual(len(report.restored), 1)
-        self.assertEqual(report.definition_changed, [])
+        # an allowed change is restored *and still reported*, so the category is never
+        # silently cleared (this was the pre-V1 discrepancy)
+        self.assertEqual([item.driver for item in report.definition_changed], ["Revenue growth"])
+        self.assertEqual([item.driver for item in report.definition_change_allowed], ["Revenue growth"])
         self.assertEqual(load_workbook(self.tmp / "forced-out.xlsx")["Assumptions"].cell(9, 3).value, 0.30)
+
+    # ------------------------------------------------------------------ Outlook
+    def test_outlook_text_round_trip_including_multiline_unicode(self):
+        text = dict(OUTLOOK_TEXT)
+        text["thesis"] = "Growth is capacity-led — but margins decide the multiple.\nSecond line."
+        text["risks"] = "Risks: ① mix, ② cancellations, ③ FX."
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True, outlook_text=text)
+        found = O.extract(original)
+        self.assertEqual(found.outlook_text, text)
+
+        template = make_workbook(self.tmp / "rebuild.xlsx", outlook=True, outlook_first_row=30,
+                                 outlook_step=3)
+        out = self.tmp / "updated.xlsx"
+        report = O.restore(template, out, found)
+        rebuilt = O.extract(out)
+        self.assertEqual(rebuilt.outlook_text, text)
+        self.assertEqual(sorted(report.outlook_restored), sorted(text))
+        self.assertEqual(report.outlook_missing, [])
+
+    def test_blank_outlook_text_is_an_intentional_value(self):
+        text = dict(OUTLOOK_TEXT)
+        text["catalysts"] = ""
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True, outlook_text=text)
+        found = O.extract(original)
+        self.assertEqual(found.outlook_text["catalysts"], "")
+
+        template = make_workbook(self.tmp / "rebuild.xlsx", outlook=True,
+                                 outlook_text={**text, "catalysts": "stale text from the rebuild"})
+        out = self.tmp / "updated.xlsx"
+        O.restore(template, out, found)
+        workbook = load_workbook(out)
+        row = next(r for r in range(1, workbook["Outlook"].max_row + 1)
+                   if workbook["Outlook"].cell(r, 1).value == "Catalysts")
+        self.assertIsNone(workbook["Outlook"].cell(row, 2).value)
+        self.assertEqual(O.extract(out).outlook_text["catalysts"], "")
+
+    def test_outlook_fields_are_found_by_label_not_position(self):
+        labels = dict(reversed(list(O.DEFAULT_OUTLOOK_FIELDS.items())))
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True, outlook_labels=labels)
+        found = O.extract(original)
+        self.assertEqual(found.outlook_text, OUTLOOK_TEXT)
+
+        template = make_workbook(self.tmp / "rebuild.xlsx", outlook=True,
+                                 outlook_first_row=40, outlook_step=1)
+        out = self.tmp / "updated.xlsx"
+        report = O.restore(template, out, found)
+        rebuilt = O.extract(out)
+        self.assertEqual(rebuilt.outlook_text, OUTLOOK_TEXT)
+        self.assertEqual(len(report.outlook_restored), 5)
+
+    def test_duplicate_or_missing_outlook_labels_are_rejected(self):
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True)
+        workbook = load_workbook(original)
+        workbook["Outlook"].cell(20, 1, "Risks")          # duplicate label
+        workbook.save(original)
+        with self.assertRaises(O.OverrideError):
+            O.extract(original)
+
+        missing = make_workbook(self.tmp / "missing.xlsx", outlook=True)
+        workbook = load_workbook(missing)
+        workbook["Outlook"].cell(17, 1, "Something else")  # 'Falsifying evidence' label removed
+        workbook.save(missing)
+        with self.assertRaises(O.OverrideError):
+            O.extract(missing)
+
+    def test_restore_rejects_a_duplicate_outlook_label_in_the_rebuild(self):
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True)
+        found = O.extract(original)
+        template = make_workbook(self.tmp / "rebuild.xlsx", outlook=True)
+        workbook = load_workbook(template)
+        workbook["Outlook"].cell(20, 1, "Catalysts")
+        workbook.save(template)
+        with self.assertRaises(O.OverrideError):
+            O.restore(template, self.tmp / "out.xlsx", found)
+
+    # ---------------------------------------------------------- payload contract
+    def test_payload_round_trip_carries_version_and_identities(self):
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True,
+                                 overrides={("Revenue growth", "Q1 2027E"): 0.25})
+        found = O.extract(original)
+        path = found.save(self.tmp / "payload.json")
+        payload = json.loads(path.read_text())
+        self.assertEqual(payload["schema_version"], O.SCHEMA_VERSION)
+        self.assertEqual(payload["assumption_overrides"][0]["driver_id"], "revenue_growth")
+        self.assertEqual(sorted(payload["outlook_text"]), sorted(OUTLOOK_TEXT))
+        again = O.OverrideSet.load(path)
+        self.assertEqual(again.outlook_text, found.outlook_text)
+        self.assertEqual(again.get("Revenue growth", "Q1 2027E").value, 0.25)
+
+    def test_unsupported_payload_versions_are_rejected(self):
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True)
+        path = O.extract(original).save(self.tmp / "payload.json")
+        payload = json.loads(path.read_text())
+        payload["schema_version"] = 1
+        path.write_text(json.dumps(payload))
+        with self.assertRaises(O.OverrideError):
+            O.OverrideSet.load(path)
+
+    def test_unknown_driver_and_field_ids_are_rejected(self):
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True)
+        path = O.extract(original).save(self.tmp / "payload.json")
+
+        payload = json.loads(path.read_text())
+        payload["assumption_overrides"].append(
+            {"driver": "Ghost", "driver_id": "ghost_driver", "period": "2026Q3E", "value": 1.0,
+             "cell": "C9", "number_format": "0.0%", "definition": "x"})
+        path.write_text(json.dumps(payload))
+        with self.assertRaises(O.OverrideError):
+            O.OverrideSet.load(path)
+
+        payload = json.loads(path.read_text())
+        payload["assumption_overrides"] = []
+        payload["outlook_text"]["mystery"] = "text"
+        path.write_text(json.dumps(payload))
+        with self.assertRaises(O.OverrideError):
+            O.OverrideSet.load(path)
+
+    def test_duplicate_payload_override_identity_is_rejected(self):
+        original = make_workbook(self.tmp / "original.xlsx",
+                                 overrides={("Revenue growth", "Q3 2026E"): 0.30})
+        path = O.extract(original).save(self.tmp / "payload.json")
+        payload = json.loads(path.read_text())
+        payload["assumption_overrides"].append(dict(payload["assumption_overrides"][0]))
+        path.write_text(json.dumps(payload))
+        with self.assertRaises(O.OverrideError):
+            O.OverrideSet.load(path)
+
+    def test_driver_id_mapping_is_validated(self):
+        src = make_workbook(self.tmp / "src.xlsx")
+        with self.assertRaises(O.OverrideError):            # id map lists an absent driver
+            O.extract(src, driver_ids={"Ghost": "ghost"})
+        found = O.extract(src, driver_ids={"Revenue growth": "rev_yoy",
+                                           "Adjusted margin": "adj_margin"})
+        self.assertEqual(found.drivers["Revenue growth"].driver_id, "rev_yoy")
 
     # --------------------------------------------------------- safety and errors
     def test_originals_are_never_written(self):
-        original = make_workbook(self.tmp / "original.xlsx",
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True,
                                  overrides={("Revenue growth", "Q3 2026E"): 0.30})
         found = O.extract(original)
         before = self.digest(original)
 
-        template = make_workbook(self.tmp / "rebuild.xlsx")
+        template = make_workbook(self.tmp / "rebuild.xlsx", outlook=True)
         template_before = self.digest(template)
         report = O.restore(template, self.tmp / "updated.xlsx", found)
 
@@ -229,17 +406,14 @@ class OverrideTests(unittest.TestCase):
         with self.assertRaises(O.OverrideError):
             O.restore(duplicate, self.tmp / "out2.xlsx", found)
 
-    def test_json_round_trip(self):
-        original = make_workbook(self.tmp / "original.xlsx",
-                                 overrides={("Adjusted margin", "Q1 2027E"): 0.231})
-        O.extract(original).save(self.tmp / "overrides.json")
-        loaded = O.OverrideSet.load(self.tmp / "overrides.json")
-        self.assertEqual(loaded.get("Adjusted margin", "Q1 2027E").value, 0.231)
-
-        template = make_workbook(self.tmp / "rebuild.xlsx", periods=["Q4 2026E", "Q1 2027E"])
-        report = O.restore(template, self.tmp / "updated.xlsx", loaded)
-        self.assertEqual(len(report.restored), 1)
-        self.assertEqual(load_workbook(self.tmp / "updated.xlsx")["Assumptions"].cell(13, 4).value, 0.231)
+    def test_restore_reports_a_missing_outlook_sheet(self):
+        original = make_workbook(self.tmp / "original.xlsx", outlook=True,
+                                 overrides={("Revenue growth", "Q3 2026E"): 0.30})
+        found = O.extract(original)
+        template = make_workbook(self.tmp / "rebuild.xlsx")     # no Outlook sheet at all
+        report = O.restore(template, self.tmp / "out.xlsx", found)
+        self.assertEqual(sorted(report.outlook_missing), sorted(OUTLOOK_TEXT))
+        self.assertEqual(report.outlook_restored, {})
 
 
 if __name__ == "__main__":
