@@ -82,7 +82,7 @@
     "mermaid": "streaming"
   },
   "observational-memory": {
-    "showWorkerNotifications": false
+    "showWorkerNotifications": true
   },
   "showCacheMissNotices": false
 }
