@@ -331,17 +331,27 @@ def run_gate(draft: str, baseline: str | None, targets: list[str],
     except GateError as e:
         return format_report(False, stage="preflight", error=str(e))
 
-    state = _excel_has_file_open(os.path.abspath(draft))
+    state, detail = _excel_has_file_open(os.path.abspath(draft))
     if state == "open":
         return format_report(
             False, stage="preflight",
             error="the draft workbook is already open in Excel; close it before running the gate")
     if state == "undetermined":
-        return format_report(
-            False, stage="preflight",
-            error="could not determine whether the draft is already open in Excel "
-                  "(Apple Events permission may be missing). Grant permission or confirm "
-                  "no Excel instance has the file open, then rerun.")
+        lowered = detail.lower()
+        if "-1743" in detail or "not authorized" in lowered or "not allowed" in lowered or "not permitted" in lowered:
+            error = (
+                "macOS refused Apple Events control of Microsoft Excel for the app hosting "
+                "this run. Click Allow on the consent dialog, or enable the host app under "
+                "System Settings > Privacy & Security > Automation > Microsoft Excel. A cached "
+                "denial clears with `tccutil reset AppleEvents` (then rerun and click Allow). "
+                f"osascript said: {detail}")
+        else:
+            error = (
+                "could not determine whether the draft is already open in Excel — no "
+                f"AppleScript answer within {OPEN_CHECK_TIMEOUT}s. Confirm no Excel instance "
+                "has the file open, or answer the macOS consent dialog, then rerun. "
+                f"osascript said: {detail or 'no output'}")
+        return format_report(False, stage="preflight", error=error)
 
     worker_result: dict = {}
     # Checks run against gate_copy inside the temp dir; the draft is only
@@ -459,12 +469,23 @@ def _atomic_copy(src: str, dst: str) -> None:
     os.replace(tmp_dst, dst)
 
 
-def _excel_has_file_open(abspath: str) -> str:
+# macOS shows an Automation (Apple Events) consent dialog the first time this
+# client drives Excel, and again whenever the client's code identity changes
+# (e.g. a Homebrew upgrade of an ad-hoc-signed host). That dialog has to be
+# clicked by a human, so the check below must wait long enough for one: a short
+# clamp aborts the gate before Allow is clicked and surfaces as a bogus
+# "permission missing, go grant it manually" report.
+OPEN_CHECK_TIMEOUT = 120
+
+
+def _excel_has_file_open(abspath: str) -> tuple[str, str]:
     """Check whether Excel currently has `abspath` open.
 
-    Returns 'open', 'closed', or 'undetermined'. Fails closed ('undetermined')
-    when AppleScript cannot answer — a silent pass would risk opening the same
-    path in a second Excel instance.
+    Returns (state, detail) with state 'open', 'closed' or 'undetermined'.
+    Fails closed ('undetermined') when AppleScript cannot answer — a silent
+    pass would risk opening the same path in a second Excel instance. `detail`
+    carries the osascript stderr, so the caller can tell a denied Apple Events
+    grant (error -1743) from a busy or stuck Excel instance.
     """
     script = (
         'tell application "Microsoft Excel"\n'
@@ -473,15 +494,18 @@ def _excel_has_file_open(abspath: str) -> str:
         "return names as text")
     try:
         out = subprocess.run(["osascript", "-e", script],
-                             capture_output=True, text=True, timeout=10)
+                             capture_output=True, text=True,
+                             timeout=OPEN_CHECK_TIMEOUT)
         if out.returncode != 0:
-            return "undetermined"
+            return "undetermined", (out.stderr or "").strip()
         base = os.path.basename(abspath).lower()
         if base in [n.strip().lower() for n in out.stdout.replace(", ", ",").split(",")]:
-            return "open"
-        return "closed"
-    except Exception:
-        return "undetermined"
+            return "open", ""
+        return "closed", ""
+    except subprocess.TimeoutExpired:
+        return "undetermined", f"osascript gave no answer within {OPEN_CHECK_TIMEOUT}s"
+    except Exception as exc:  # noqa: BLE001 — fail closed, report why
+        return "undetermined", str(exc)
 
 
 def main() -> int:

@@ -318,5 +318,63 @@ class TestGatePreflightRejections(unittest.TestCase):
             self.assertIn("single cell", report["error"])
 
 
+class TestAppleEventsPreflight(unittest.TestCase):
+    """The open-file probe must wait for the macOS consent dialog, and a denied
+    grant must be reported as such — a short clamp used to abandon the run before
+    Allow was clicked and push the grant back to the user as a manual step."""
+
+    def setUp(self):
+        self._orig_run = gate.subprocess.run
+
+    def tearDown(self):
+        gate.subprocess.run = self._orig_run
+
+    def _stub(self, returncode=0, stdout="", stderr=""):
+        gate.subprocess.run = lambda *a, **k: type(
+            "R", (), {"returncode": returncode, "stdout": stdout, "stderr": stderr})()
+
+    def _xl(self, tmp):
+        import openpyxl
+        path = os.path.join(tmp, "ok.xlsx")
+        wb = openpyxl.Workbook()
+        wb.active["A1"] = 1
+        wb.save(path)
+        return path
+
+    def test_timeout_allows_a_human_to_answer_the_dialog(self):
+        self.assertGreaterEqual(gate.OPEN_CHECK_TIMEOUT, 60)
+
+    def test_silent_osascript_reports_no_answer(self):
+        def boom(*a, **k):
+            raise gate.subprocess.TimeoutExpired(cmd="osascript", timeout=k.get("timeout") or 1)
+        gate.subprocess.run = boom
+        state, detail = gate._excel_has_file_open("/tmp/x.xlsx")
+        self.assertEqual(state, "undetermined")
+        self.assertIn("no answer", detail)
+
+    def test_open_state_returns_empty_detail(self):
+        self._stub(returncode=0, stdout="ok.xlsx, other.xlsx")
+        self.assertEqual(gate._excel_has_file_open("/tmp/ok.xlsx"), ("open", ""))
+
+    def test_denied_grant_is_reported_as_apple_events_denial(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._xl(tmp)
+            self._stub(returncode=1, stderr="execution error: Not authorized to send "
+                                            "Apple events to Microsoft Excel. (-1743)")
+            report = gate.run_gate(path, None, [], [], tmp, 5)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["stage"], "preflight")
+        self.assertIn("Apple Events", report["error"])
+        self.assertIn("-1743", report["error"])
+
+    def test_unknown_probe_failure_keeps_stuck_excel_wording(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._xl(tmp)
+            self._stub(returncode=1, stderr="something else broke")
+            report = gate.run_gate(path, None, [], [], tmp, 5)
+        self.assertFalse(report["ok"])
+        self.assertIn("Confirm no Excel instance", report["error"])
+
+
 if __name__ == "__main__":
     unittest.main()

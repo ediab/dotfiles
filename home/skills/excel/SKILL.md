@@ -16,7 +16,7 @@ Scope limits: `.xlsx` only. Never write `.xlsm`, `.xls`, `.xlsb`. Never edit wor
 ## Versions tested
 
 - `asp` 0.16.0 (`npm i -g agent-spreadsheet@0.16.0`) — consult `asp operations`, `asp schema <cmd>`, and `asp example <cmd>` when a payload is uncertain; do not trust memorized flags.
-- Gate script: `uv run --script` pins xlwings 0.32.2 / openpyxl 3.1.5 in its PEP 723 header. Requires Microsoft Excel installed; first run may prompt for Apple Events permission — surface the prompt to the user and stop until approved. Do not retry in a loop.
+- Gate script: `uv run --script` pins xlwings 0.32.2 / openpyxl 3.1.5 in its PEP 723 header. Requires Microsoft Excel installed; the gate waits up to 120 s for the macOS Apple Events consent dialog (first use, and again whenever the host app's code identity changes — e.g. a Homebrew upgrade of an ad-hoc-signed host), so ask the user to click Allow instead of retrying in a loop. A refused grant is reported as an Apple Events denial, not a missing permission.
 - Charts cannot be exported as standalone PNGs by automation on macOS (xlwings `Chart.to_png` unimplemented); the gate never accepts `--chart`. Review charts via `--render`/`--render-sheet` PNGs that cover the chart area.
 
 ## Workflow
@@ -74,7 +74,7 @@ uv run --script <skill>/scripts/excel_gate.py OUTPUT.xlsx \
 
 Rendering requirements: for a **new** workbook, pass one `--render-sheet` per created sheet (plus `--render` ranges covering every chart). For an **edit**, pass explicit `--render` ranges covering each changed area and any chart on affected sheets — `--render-sheet` derives its bounds from the pre-recalculation file and can clip content that recalculation extends.
 
-The gate exits non-zero and prints a JSON report on: automation failure/timeout, new formula errors, lost package features, missing requested targets/renders. On failure the draft is left untouched. Timeout or error mentioning a stuck Excel instance → tell the user to close that Excel instance; never kill Excel processes.
+The gate exits non-zero and prints a JSON report on: automation failure/timeout, new formula errors, lost package features, missing requested targets/renders. On failure the draft is left untouched. Timeout or error mentioning a stuck Excel instance → tell the user to close that Excel instance; never kill Excel processes. An error mentioning Apple Events → have the user click Allow on the consent dialog (or enable the host app under System Settings → Privacy & Security → Automation); `tccutil reset AppleEvents` clears a cached denial.
 
 Then **actually inspect every PNG** (read the files): clipping, overlapping content, unreadable column widths, inconsistent styles, blank formula results, broken charts. Repair and re-run only the failed stage.
 
