@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Fresh-context code review of a diff or changeset — correctness, security, architecture, performance. Report-only, never fixes. Use when the user explicitly requests a review subagent, or automatically after a substantial implementation when the owner supplies the agreed intent and changeset; ordinary review requests stay in the current session.
+description: Fresh-context code review of a diff or changeset — correctness, security, architecture, performance. Report-only, never fixes. Use when the user explicitly requests a review subagent; ordinary review requests, and substantial changes on their own, stay in the current session.
 color: cyan
 tools: [read, bash, grep, find, ls]
 skills: false

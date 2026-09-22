@@ -1,6 +1,6 @@
 ---
 name: personal-workflow
-description: Personal coding workflow and gates — plan approval, review delegation, the substantial-change reviewer pass, subagent dispatch and delegation rules, task tracking, git rules, coding and validation rules. Use on a plan-approval decision, a review-delegation request, a substantial change, a subagent dispatch, or a multi-step coding task. Not for a one-line edit.
+description: Personal coding workflow and gates — plan approval, review delegation, subagent dispatch and delegation rules, task tracking, git rules, coding and validation rules. Use on a plan-approval decision, a review-delegation request, a substantial change, a subagent dispatch, or a multi-step coding task. Not for a one-line edit.
 ---
 
 # Personal workflow
@@ -51,9 +51,8 @@ The gates and rules for how the main agent works. Fan-out mechanics live in the 
 
 ## Review delegation
 
-* Review in the current session by default. Except for the substantial-implementation pass below, spawn a subagent to perform a review only when the user explicitly requests review delegation (for example, "use a reviewer subagent"). This applies regardless of the chosen agent type or tool.
+* Review in the current session by default. Spawn a subagent to perform a review only when the user explicitly requests review delegation (for example, "use a reviewer subagent"). This applies regardless of the chosen agent type or tool.
 * "Review this", `/review`, generic permission to use subagents, and invoking an orchestration skill or workflow do not by themselves authorize a review subagent. Keep review stages inline unless review delegation was explicitly requested.
-* Exception: substantial implementations get an automatic fresh-reviewer pass under Personal workflow below. Standalone review requests still need an explicit request.
 
 ## Personal workflow
 
@@ -62,7 +61,7 @@ The gates and rules for how the main agent works. Fan-out mechanics live in the 
 * Small, clear, low-risk changes: implement directly. Material uncertainty or substantial/risky changes: inspect first, resolve high-level decisions with the user, present a short plan for approval before implementing.
 * Non-trivial plans carry 2–3 agent-proposed, checkable success examples; the user confirms or edits them. They become acceptance criteria for implementation and review. Clear small fixes skip this; the request itself is the criterion.
 * After approval, execute the whole approved sequence without "shall I continue?" prompts. Routine technical decisions within approved constraints belong to the agent. Workers escalate material deviations to their owner; the owner asks the user only about changed product intent, material trade-offs, or unapproved risk.
-* Substantial changes (a new user-facing flow, behaviour spanning components, a nontrivial refactor, auth/privacy/financial-calculation/data-deletion/deployment changes — impact, not size) get an automatic independent review: the owner dispatches a fresh `reviewer` with the agreed intent, acceptance examples, exact changeset, and validation performed. The reviewer reports only; the owner assigns corrections to the implementer and rechecks affected behaviour. Tiny mechanical edits stay inline.
+* Substantial changes (a new user-facing flow, behaviour spanning components, a nontrivial refactor, auth/privacy/financial-calculation/data-deletion/deployment changes — impact, not size) get an owner review before you call them done, not a subagent: re-read the exact changeset against the agreed intent and acceptance examples, and state what was checked and what remains unverified. Offer a fresh `reviewer` in one line when the change is hard to reverse (deletion, auth, money, live deploy); the user decides whether to take it. When a reviewer does run, it reports only; the owner assigns corrections to the implementer and rechecks affected behaviour.
 * Validate proportionately; stronger evidence for money, private data, authentication, and live-service behaviour. Compare the result to the agreed goal and exclusions before claiming completion; state what was checked and what remains unverified. A passing test suite does not prove a live service works.
 * Deliver locally by default. Push, deploy, branch, or open PRs only when requested.
 * Delegation: the main agent owns the goal and result. Prefer one well-briefed helper over several loosely directed ones; parallelize genuinely independent work. At most 4 active leaf agents (enforced in subagents config). Set `run_in_background` explicitly: background with useful work meanwhile, foreground when the next step depends on the result. Brief every dispatch self-contained (goal, paths, scope, constraints, done-criteria). Use a fresh reviewer per independence check, never a resumed one. `fallbackSubagent` stays `none`.

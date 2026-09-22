@@ -131,10 +131,10 @@ A `REVIEW_GUIDELINES.md` beside the project's `.pi/` directory is appended to th
 prompt, so a repo carries its own review rules without touching this harness.
 
 `home/agents/reviewer.md` is the complementary path, not a duplicate: `/review` runs the
-review in the current session, while `reviewer` is a fresh-context, report-only subagent, used when you explicitly request review delegation — or
-automatically after a substantial implementation under the agreed workflow (the owner
-supplies the agreed intent, acceptance examples, and exact changeset; tiny mechanical
-edits stay inline). “Review this”, `/review`, and generic orchestration requests keep
+review in the current session, while `reviewer` is a fresh-context, report-only subagent,
+used when you explicitly request review delegation. Substantial changes (deletion, auth,
+money, live deploy) are reviewed inline by the owner, who offers a fresh reviewer rather
+than dispatching one. “Review this”, `/review`, and generic orchestration requests keep
 the review inline.
 The same explicit-delegation rule applies to research evidence: the owner synthesizes and source-checks it inline rather than dispatching an audit agent.
 
