@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "tiers": {
+    "quick": [
+      { "provider": "deepseek", "model": "deepseek-flash" },
+      { "provider": "opencode-go", "model": "glm-5.3-flash" },
+      { "provider": "opencode-go", "model": "deepseek-v4-flash" }
+    ],
+    "standard": [
+      { "provider": "opencode-go", "model": "kimi-k2.7-code" },
+      { "provider": "opencode-go", "model": "glm-5.2" },
+      { "provider": "deepseek", "model": "deepseek-v4-pro" }
+    ],
+    "high": [
+      { "provider": "openai-codex", "model": "gpt-5.6-terra" },
+      { "provider": "opencode-go", "model": "kimi-k3" },
+      { "provider": "commandcode", "model": "claude-sonnet-5" }
+    ]
+  }
+}
