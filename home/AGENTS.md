@@ -62,6 +62,23 @@ Project-level `AGENTS.md` / `CLAUDE.md` files layer on top of this one and take 
 * Task ownership is end-to-end, never an assembly line: the agent that investigates a change implements, tests, and corrects it. Do not delegate sequential stages of one task (explore → plan → code → fix chains) — every summary handed between agents is context the next agent will never have. Spawn subagents only for meaningfully independent parallel work or a fresh second opinion on a finished artifact, and when a subagent's findings matter, verify them against the underlying files or sources rather than acting on the summary. Delegating to a profile that inherits the full conversation (`worker` pins `inherit_context: true`) forks context instead of summarising it, but that mitigates rather than removes the loss — it is not a licence to split coherent tasks. Planning is never delegated: `/skill:plan` runs in the main session; the `planner` profile is retired.
 * Ponytail stays installed with default lite; it runs on every coding task and names the lazier alternative in one line. Switch levels with `/ponytail full` or `/ponytail ultra`, turn it off with `stop ponytail`. An enabled Ponytail never authorizes unrequested Git operations or overriding approved requirements.
 
+## Subagents
+
+Dispatch with the `Agent` tool (`subagent_type`) or workflow `agent()` (`agentType`). Profiles live in `~/.pi/agent/agents/`; read a profile's frontmatter before dispatching it — that file is the source of truth for tools and pins, and this list is the roster.
+
+No profile pins a model except `worker` (`deepseek/deepseek-flash`). A profile `model:` outranks the dispatch `model` parameter, so leave every other profile unpinned and pass the model on the call (see Model routing). `worker` also pins `inherit_context: true`.
+
+Harness profiles (`home/agents/`, deployed by `rebuild.sh`):
+
+* `explorer` — read-only file and symbol search. Pass search breadth (`quick` / `medium` / `very thorough`). Not for review, design-doc audit, or cross-file consistency.
+* `researcher` — external web research brief. The owner source-checks important claims inline.
+* `reviewer` — fresh-context, report-only review. Dispatch only under Review delegation.
+* `worker` — already-approved implementation on an independent parallel workstream. Not a default implementation hop, and not for review or product decisions.
+* `general-purpose` — research, code search, and multi-step tasks that fit no specialist. Not for implementation on an expensive model. Workflow `agent()` defaults to this type, so always pass an explicit existing `agentType`.
+* `Explore` and `Plan` are disabled (`enabled: false`). Use `explorer`; plan in the main session via `/skill:plan`.
+
+Package-managed profiles (rpiv, written to `~/.pi/agent/agents/` and tracked in `.rpiv-managed.json`, not in `home/agents/`) are artifact and codebase specialists: `codebase-locator`, `codebase-analyzer`, `codebase-pattern-finder`, `integration-scanner`, `scope-tracer`, `precedent-locator`, `artifacts-locator`, `artifacts-analyzer`, `slice-verifier`, `artifact-code-reviewer`, `artifact-coverage-reviewer`, `claim-verifier`, `diff-auditor`, `peer-comparator`, `web-search-researcher`. Reach for one when its description matches; prefer `researcher` for ordinary web research. They are read-only and `isolated`.
+
 ## Model routing
 
 * Explicit model requests win: the `model` parameter on an `Agent` dispatch outranks every default. When the user names a model, pass it verbatim (`provider/model`, e.g. `opencode-go/omen-alpha` — get the provider right) and report if it cannot resolve; never silently substitute another model. Note the precedence rule in pi-subagents: an agent profile's `model:` frontmatter outranks the dispatch's `model` parameter, which is why only `worker` keeps a pin.
