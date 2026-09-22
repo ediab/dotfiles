@@ -16,7 +16,7 @@ Scope limits: `.xlsx` only. Never write `.xlsm`, `.xls`, `.xlsb`. Never edit wor
 ## Versions tested
 
 - `asp` 0.16.0 (`npm i -g agent-spreadsheet@0.16.0`) — consult `asp operations`, `asp schema <cmd>`, and `asp example <cmd>` when a payload is uncertain; do not trust memorized flags.
-- Gate script: `uv run --script` pins xlwings 0.32.2 / openpyxl 3.1.5 in its PEP 723 header. Requires Microsoft Excel installed; the gate waits up to 120 s for the macOS Apple Events consent dialog (first use, and again whenever the host app's code identity changes — e.g. a Homebrew upgrade of an ad-hoc-signed host), so ask the user to click Allow instead of retrying in a loop. A refused grant is reported as an Apple Events denial, not a missing permission.
+- Gate script: `uv run --script` pins xlwings 0.32.2 / openpyxl 3.1.5 in its PEP 723 header. Requires Microsoft Excel installed; the gate waits up to 120 s for the macOS Apple Events consent dialog. macOS attributes the consent to the nearest app-bundle ancestor of the run (typically the terminal app — Ghostty is Developer ID-signed, so its grant survives app upgrades); a re-prompt is expected only when that hosting app's identity changes. Ask the user to click Allow instead of retrying in a loop. A refused grant is reported as an Apple Events denial, not a missing permission.
 - Charts cannot be exported as standalone PNGs by automation on macOS (xlwings `Chart.to_png` unimplemented); the gate never accepts `--chart`. Review charts via `--render`/`--render-sheet` PNGs that cover the chart area.
 
 ## Workflow
@@ -61,6 +61,8 @@ Broad cached-value differences caused purely by Excel recalculation are acceptab
 Done when: diff is bounded and proof shows no new errors.
 
 ### 6. Excel gate + visual review
+
+Prompt-free alternative: `asp workbook recalculate <file>` evaluates formulas with asp's internal engine and writes cached values — no Excel, no Apple Events, no consent prompt. Use it for routine validation when no human is present; spot-check for `0 unsupported` in its output (unsupported formulas are surfaced, not silently wrong). The native gate below remains the Excel-native proof and the only path for renders backed by Excel's own recalculation.
 
 Run the gate on the working copy:
 
