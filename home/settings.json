@@ -60,7 +60,8 @@
     },
     "npm:@narumitw/pi-btw",
     "npm:pi-open-tui",
-    "npm:pi-rtk-optimizer"
+    "npm:pi-rtk-optimizer",
+    "npm:pi-observational-memory"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
