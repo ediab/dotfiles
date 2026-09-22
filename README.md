@@ -150,6 +150,28 @@ workflows default to `general-purpose`, and orchestrators are forbidden in workf
 
 Also: the built-in `general-purpose` profile is overridden; `worker-astra`, `agent-orchestrator`, and `planner` are retired (implementation runs in the main session; use main-session orchestration via `/skill:orchestrate` and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
 
+### Observational memory
+
+`pi-observational-memory` runs memory workers (observer/reflector/dropper) that pre-build a
+session ledger so compaction becomes a fast, model-free projection. Config lives under the
+top-level `observational-memory` key in `home/settings.json`.
+
+Defaults are correct for this setup, so only one key is set:
+
+- `showWorkerNotifications: false` — routine worker progress is hidden (matches the quiet-UI
+  prefs above); failures, compaction notices, and `/om:*` output still show.
+- Everything else defaults. `model` stays unset so workers follow the rotating session model
+  (commandcode custom APIs are supported); the deepseek-flash models' 1M context / 64K max
+  output mean `agentMaxTokens` never clamps badly and `compactAfterTokens: 81000` never
+  fires late.
+
+Coexists with `@lll9p/pi-better-compaction`: when OM has a non-empty projection it owns the
+compaction summary (it loads later, so its hook result wins); the empty-projection fallback
+delegates to the native summarizer, which better-compaction upgrades with a cheaper model.
+
+V3 ignores V2 settings and memory formats — no V2 keys exist here, nothing to migrate.
+Settings reference: https://github.com/elpapi42/pi-observational-memory/blob/master/docs/configuration.md
+
 ### Keeping the repo in sync
 
 | What | Direction | How |
