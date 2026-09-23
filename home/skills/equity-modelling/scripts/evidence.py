@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generic reader over the pull-financial-data store, driven by a per-company fact_map.json.
 
-No per-ticker knowledge lives here (V2_PLAN.md §5). Every company noun — concept ids, dimension
+No per-ticker knowledge lives here (docs/archive/V2_PLAN.md §5). Every company noun — concept ids, dimension
 members, row-label patterns, snapshot ids — comes from `fact_map.json` and `model_spec.json`.
 See references/interfaces.md for the schemas and locator grammar this module implements.
 

@@ -1,7 +1,7 @@
 # Interfaces
 
 Schemas, entry points, the structured locator grammar and the transform registry for the v2
-evidence layer (V2_PLAN.md §8). Written before any Stage 2 code, against VRT as the worked
+evidence layer ([archived V2_PLAN.md](../docs/archive/V2_PLAN.md) §8). Written before any Stage 2 code, against VRT as the worked
 example. A contract lives in exactly one file — this one owns schemas and entry points;
 `evidence-rules.md` owns the conventions as rules; `model-rules.md` owns the workbook contract.
 

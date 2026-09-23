@@ -5,9 +5,9 @@ AVGO have V2 proof projects. V2's generic core is shipped — evidence, engine, 
 build/check, and shared checks/style/overrides — but release gates remain open.
 
 **`DECISIONS.md` is the agreed nine-sheet target, not yet implemented.** `SKILL.md` and its
-references describe what runs today. `V2_PLAN.md` and `V2_PROGRESS.md` are historical V2
-implementation records with unresolved defects: consult them for migration context, not as the
-new redesign instructions.
+references describe what runs today. `docs/archive/V2_PLAN.md` and
+`docs/archive/V2_PROGRESS.md` are historical V2 implementation records with unresolved defects:
+consult them for migration context, not as the new redesign instructions.
 
 ## Layout and ownership
 
@@ -20,8 +20,8 @@ A contract lives in exactly one file. Everything else links to it.
 | `references/update-model.md` | The earnings-update / rollover branch |
 | `tests/` | Unit tests and the research-behaviour smoke test |
 | `DECISIONS.md` | Approved target design and sheet roles; not the current runtime contract |
-| `V2_PLAN.md` | Historical V2 design and unresolved migration issues; retain until carried forward |
-| `V2_PROGRESS.md` | Append-only historical V2 execution record; retain until issues are carried forward |
+| `docs/archive/V2_PLAN.md` | Historical V2 design and unresolved migration issues |
+| `docs/archive/V2_PROGRESS.md` | Append-only historical V2 execution record |
 
 `references/interfaces.md` owns the artifact schemas, entry points and locator grammar;
 `references/evidence-rules.md` owns the evidence conventions.
