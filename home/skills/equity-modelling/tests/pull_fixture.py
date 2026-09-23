@@ -21,7 +21,8 @@ def digest(data: bytes) -> str:
 
 def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = False,
                   duplicate_generic: bool = False, duplicate_sec_rows: bool = False,
-                  duplicate_quote_date: bool = False, cross_table_scope: bool = False) -> tuple[dict, list[dict]]:
+                  duplicate_quote_date: bool = False, cross_table_scope: bool = False,
+                  nine_sheet: bool = False) -> tuple[dict, list[dict]]:
     """Create two immutable source kinds: a snapshot parquet and an SEC HTML original."""
     import pandas as pd
 
@@ -39,6 +40,16 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
     sec_rows = [{"concept": "Revenues", "dimension_member": None, "dimension_label": None,
                  "label": "Revenue", "2026-03-31 (Q1)": 100.0, "2026-06-30 (Q2)": 110.0,
                  "2026-03-31 (YTD)": 100.0, "2026-06-30 (YTD)": 240.0}]
+    if nine_sheet:
+        sec_rows = [
+            {"concept": concept, "dimension_member": None, "dimension_label": None,
+             "label": label, "2025-03-31 (Q1)": prior, "2026-03-31 (Q1)": current}
+            for concept, label, prior, current in (
+                ("Revenues", "Revenue", 100.0, 125.0),
+                ("NetIncomeLoss", "Net income", 10.0, 15.0),
+                ("WeightedAverageNumberOfDilutedShares", "Diluted shares", 10.0, 10.0),
+            )
+        ]
     if duplicate_sec_rows:
         sec_rows.append(dict(sec_rows[0], label="Revenue duplicate"))
     frame = pd.DataFrame(sec_rows)
@@ -71,6 +82,21 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
     sec_dir.mkdir(parents=True)
     (sec_dir / "payload.htm").write_bytes(html)
 
+    independent_releases = []
+    if nine_sheet:
+        for year, revenue in ((2025, 100.0), (2026, 125.0)):
+            release = ("<!doctype html><html><body><table><caption>Consolidated Results</caption>"
+                       f"<thead><tr><th>Metric</th><th>Three months ended March 31, {year}</th></tr></thead>"
+                       f"<tbody><tr><td>Consolidated revenue</td><td>{revenue}</td></tr></tbody>"
+                       "</table></body></html>").encode()
+            release_hash = digest(release)
+            release_dir = root / "raw" / ticker / "sec" / release_hash
+            release_dir.mkdir(parents=True)
+            (release_dir / "payload.htm").write_bytes(release)
+            independent_releases.append({"ticker": ticker, "provider": "sec", "run_id": run_id,
+                                         "sha256": release_hash, "filename": "payload.htm",
+                                         "accession": f"ACC{year}"})
+
     quote = {"columns": ["Close"],
              "index": ["2026-09-18T04:00:00.000Z", "2026-09-18T00:00:00.000Z"]
                       if duplicate_quote_date else ["2026-09-18T04:00:00.000Z"],
@@ -86,7 +112,9 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
         "issuer": ticker, "ticker": ticker, "run_id": run_id,
         "table_hashes": {"income_quarterly_0": table_hash},
         "originals": {"sec_8k_ACC": str(sec_dir / "payload.htm"),
-                      "yahoo_quote": str(quote_dir / "payload.json")},
+                      "yahoo_quote": str(quote_dir / "payload.json"),
+                      **{f"sec_8k_{item['accession']}": str(root / "raw" / ticker / "sec" /
+                          item["sha256"] / "payload.htm") for item in independent_releases}},
     }
     snapshot_path = snapshot_dir / "snapshot.json"
     snapshot_path.write_text(json.dumps(snapshot, sort_keys=True))
@@ -100,11 +128,26 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
              "filename": "payload.htm", "accession": "ACC"},
             {"ticker": ticker, "provider": "yahoo", "run_id": run_id, "sha256": quote_hash,
              "filename": "payload.json"},
+            *independent_releases,
         ],
     }
     spec = {"ticker": ticker, "source_boundary": boundary,
-            "release_accessions": {"2026Q2": "ACC"},
+            "release_accessions": {"2026Q2": "ACC", **({"2025Q1": "ACC2025", "2026Q1": "ACC2026"}
+                                                  if nine_sheet else {})},
             "periods": {"historical_quarters": ["2026Q2"]}}
+    if nine_sheet:
+        return spec, [
+            {"metric": metric, "basis": "GAAP", "units": units,
+             "locator": locator, "transform": "direct", "missing_treatment": "required"}
+            for metric, units, locator in (
+                ("revenue", "USDm", "sec_snapshot:income#concept=Revenues"),
+                ("net_income", "USDm", "sec_snapshot:income#concept=NetIncomeLoss"),
+                ("diluted_shares", "shares_m",
+                 "sec_snapshot:income#concept=WeightedAverageNumberOfDilutedShares"),
+                ("consolidated_revenue", "USDm",
+                 "8k_exhibit:row_label=Consolidated revenue|col_pattern={month} {day}, {year}"),
+            )
+        ]
     return spec, [
         {"metric": "revenue", "basis": "GAAP", "units": "USDm",
          "locator": "sec_snapshot:income#concept=Revenues", "transform": "direct",

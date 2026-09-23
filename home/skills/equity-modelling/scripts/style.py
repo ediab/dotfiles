@@ -29,6 +29,19 @@ FMT_X = '0.0x'
 FMT_PRICE = '#,##0.00'
 FMT_SHARES = '#,##0.0'
 FMT_COUNT = '#,##0'
+FMT_PP = '0.0 "pp";(0.0 "pp");-'
+
+SEMANTIC_FORMATS = {
+    "money": FMT_M,
+    "percent": FMT_PCT,
+    "percentage_points": FMT_PP,
+    "eps": FMT_EPS,
+    "multiple": FMT_X,
+    "price": FMT_PRICE,
+    "shares": FMT_SHARES,
+    "count": FMT_COUNT,
+    "text": "@",
+}
 
 KIND_FONT = {"hardcode": BLUE_TXT, "link": GREEN_TXT, "formula": BLACK_TXT,
              "override": BLUE_TXT, "gray": GRAY_TXT, "missing": PINK_TXT,

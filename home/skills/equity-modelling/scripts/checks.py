@@ -129,6 +129,26 @@ def check_fast(project_dir: Path) -> CheckReport:
                 checks += 1
                 if value_drivers.cell(row, col).value not in (None, ""):
                     failures.append(f"Drivers!{value_drivers.cell(row, col).coordinate} activates a proposed input")
+    if "Inputs" in formulas.sheetnames:
+        # Proposed assumptions are reviewable on Inputs, but a closed gate must leave
+        # every company-sheet forecast output blank even if someone edits the XLSX.
+        gate = spec.get("forecast_gate", {})
+        if not isinstance(gate, dict) or gate.get("approved") is not True:
+            inputs = formulas["Inputs"]
+            for row in range(7, inputs.max_row + 1):
+                if inputs.cell(row, 3).value == "Approved":
+                    failures.append(f"Inputs!C{row} marks an assumption approved while the forecast gate is closed")
+            periods = spec.get("periods", {})
+            first_forecast = 3 + len(periods.get("historical_quarters", []))
+            forecast_count = len(periods.get("forecast_quarters", []))
+            for sheet in formulas.worksheets:
+                if sheet.title in {"Inputs", "SourceData"}:
+                    continue
+                for row in range(7, sheet.max_row + 1):
+                    for col in range(first_forecast, first_forecast + forecast_count):
+                        checks += 1
+                        if sheet.cell(row, col).value not in (None, ""):
+                            failures.append(f"{sheet.title}!{sheet.cell(row, col).coordinate} activates an unapproved forecast")
     if not formulas.defined_names:
         warnings.append("workbook has no defined names")
     return CheckReport(path, checks, tuple(failures), tuple(warnings))

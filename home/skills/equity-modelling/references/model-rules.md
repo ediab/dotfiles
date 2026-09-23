@@ -35,14 +35,28 @@ the native Excel gate are external validation steps (`SKILL.md` step 7).
 ## Workbook
 
 `model_spec.json` declares the workbook filename and its exact sheet order; the engine creates
-exactly those sheets. Two sheets are required and engine-owned:
+exactly those sheets. The legacy renderer requires engine-owned `SourceData` and `Drivers`, with
+remaining sheets supplied by the company module. The thin nine-sheet renderer also supports the
+agreed order `Outlook`, `Operating Model`, `Bridge Model`, `Financial Statements`, `Valuation`,
+`Inputs`, `Consensus`, `SourceData`, `Checks`: it owns `SourceData` and `Inputs`, while the company
+module supplies the other seven sheets. This renderer path requires eight forecast quarters and is
+not yet a fully integrated prepared-project CLI/check contract.
 
-1. `SourceData` — every canonical actual written once; its immutable lineage remains in the frozen evidence artifact.
-2. `Drivers` — one row per driver; a proposed row never feeds a formula.
+In the nine-sheet path, company rows remain keyed by internal metric IDs and fiscal periods.
+Optional row metadata may set a readable label, semantic number format, section and display order;
+company formulas still use defined names, not positional cross-sheet addresses. Supported semantic
+formats are money, percent, percentage-point change, EPS, multiple, price, shares, count and text.
+Forecast proposals may be visible on `Inputs`, but unapproved forecast formulas stay blank.
+`Consensus` may state that a comparable benchmark is unavailable; it must not invent one.
 
-Every remaining declared sheet is a company-module sheet (`interfaces.md` §8), not a fixed legacy
-tab. A company that needs an investment view, regional model, earnings bridge, cash and debt,
-scenarios, sensitivities, consensus comparison or checks block declares a sheet for it.
+Every SourceData actual is written once, and historical model sheets link the sourced fact by defined
+name. Company rows supply their own causal calculations and independently grounded Checks; the
+shared renderer does not provide a generic financial formula engine.
+
+In the legacy renderer, every remaining declared sheet is a company-module sheet (`interfaces.md`
+§8), not a fixed tab. A company that needs an investment view, regional model, earnings bridge,
+cash and debt, scenarios, sensitivities, consensus comparison or checks block declares a sheet for
+it.
 
 The build writes the workbook once and refuses to overwrite an existing delivery. A prior workbook
 is immutable; deliver each run to a new dated filename.

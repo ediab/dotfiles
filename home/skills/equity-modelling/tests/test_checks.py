@@ -16,9 +16,11 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from openpyxl import Workbook  # noqa: E402
-from checks import check_full  # noqa: E402
+from checks import check_fast, check_full  # noqa: E402
 from evidence import build_actuals, freeze  # noqa: E402
 from pull_fixture import create_source, fact_mappings  # noqa: E402
+from engine import build_workbook  # noqa: E402
+from nine_sheet_fixture import synthetic_project  # noqa: E402
 
 
 def _inject_cached_values(workbook_path: Path, cached: dict[str, object]) -> None:
@@ -125,6 +127,24 @@ class CheckFullCachedFormulaTests(unittest.TestCase):
         self.assertFalse(report.ok)
         self.assertIn("mandatory frozen evidence is missing: evidence/actuals.csv", report.failures)
         self.assertIn("mandatory frozen evidence is missing: fact_map.json", report.failures)
+
+
+class NineSheetInactiveForecastChecks(unittest.TestCase):
+    def test_proposed_inputs_remain_visible_but_forecast_output_tampering_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            spec, actuals, drivers, module = synthetic_project()
+            spec["workbook"]["filename"] = "Thin.xlsx"
+            (project / "model_spec.json").write_text(json.dumps(spec))
+            output = project / "Thin.xlsx"
+            workbook = build_workbook(spec, actuals, drivers, module).workbook
+            workbook.save(output)
+            self.assertEqual(workbook["Inputs"]["D7"].value, 0.1)
+            self.assertTrue(check_fast(project).ok)
+            workbook["Operating Model"]["E8"] = 999
+            workbook.save(output)
+            report = check_fast(project)
+            self.assertIn("Operating Model!E8 activates an unapproved forecast", report.failures)
 
 
 if __name__ == "__main__":

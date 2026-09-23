@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import csv
+import inspect
 import json
+import subprocess
 import sys
 from pathlib import Path
 import tempfile
@@ -12,7 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cli import build, check  # noqa: E402
 from evidence import build_actuals, freeze, load_fact_map  # noqa: E402
-from pull_fixture import create_source  # noqa: E402
+from pull_fixture import create_source, price_benchmark_row  # noqa: E402
+from nine_sheet_fixture import NINE_SHEET_ORDER, SyntheticCompany, synthetic_project  # noqa: E402
 
 
 MODULE = '''
@@ -257,6 +260,60 @@ class CliTests(unittest.TestCase):
         rows, fieldnames = self._actuals()
         self._write_actuals(rows + [dict(rows[0])], fieldnames)
         self._assert_build_rejects("duplicate row")
+
+
+class NineSheetPreparedProjectTests(unittest.TestCase):
+    def test_build_and_full_check_replay_independent_sources_without_overwrite(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            (project / "evidence").mkdir()
+            spec, facts = create_source(project / "pull" / "data", "TST", nine_sheet=True)
+            template, _, drivers, _ = synthetic_project()
+            spec["periods"] = template["periods"]
+            spec["price"] = {"value": 250.0, "date": "2026-09-18"}
+            spec["forecast_gate"] = template["forecast_gate"]
+            spec["workbook"] = {"filename": "TST_2026-09-23_thin.xlsx",
+                                "sheets": list(NINE_SHEET_ORDER)}
+            (project / "model_spec.json").write_text(json.dumps(spec))
+            (project / "model_TST.py").write_text(
+                inspect.getsource(SyntheticCompany) + "\ncompany_module = SyntheticCompany()\n")
+            (project / "fact_map.json").write_text(json.dumps(
+                {"schema_version": 1, "ticker": "TST", "facts": facts}))
+            mappings = load_fact_map(project / "fact_map.json")
+            freeze(build_actuals(mappings, spec, spec["periods"]["historical_quarters"]),
+                   project / "evidence")
+            benchmark = price_benchmark_row(spec)
+            with (project / "evidence" / "benchmarks.csv").open("w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=benchmark.keys())
+                writer.writeheader(); writer.writerow(benchmark)
+            fields = ["driver_id", "driver_name", "status", *template["periods"]["forecast_quarters"]]
+            with (project / "drivers.csv").open("w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fields)
+                writer.writeheader(); writer.writerows(drivers)
+
+            with (project / "evidence" / "actuals.csv").open(newline="") as handle:
+                frozen = list(csv.DictReader(handle))
+            revenue = next(row for row in frozen if row["metric"] == "revenue" and row["period"] == "2026Q1")
+            independent = next(row for row in frozen if row["metric"] == "consolidated_revenue"
+                               and row["period"] == "2026Q1")
+            self.assertNotEqual(revenue["lineage_path"], independent["lineage_path"])
+            output = build(project)
+            from openpyxl import load_workbook
+            workbook = load_workbook(output, data_only=False)
+            self.assertEqual(tuple(workbook.sheetnames), NINE_SHEET_ORDER)
+            self.assertEqual(workbook["Operating Model"]["D8"].value, "=em_actual_revenue_2026Q1")
+            self.assertIsNone(workbook["Operating Model"]["E8"].value)
+            self.assertTrue(check(project).ok)
+            report = check(project, mode="full")
+            self.assertTrue(report.ok, report.failures)
+            self.assertIn("source replay: 8 actuals, 1 benchmarks", report.coverage)
+            command = [sys.executable, str(Path(__file__).resolve().parent.parent / "scripts" / "cli.py"),
+                       str(project), "check", "--full"]
+            result = subprocess.run(command, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("source replay: 8 actuals, 1 benchmarks", result.stdout)
+            with self.assertRaises(FileExistsError):
+                build(project)
 
 
 if __name__ == "__main__":

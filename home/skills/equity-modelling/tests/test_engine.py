@@ -31,6 +31,14 @@ class AnalysisCompany:
         return {"Analysis": {"revenue": {"2026Q1": "=em_actual_revenue_2026Q1"}}}
 
 
+class UnsortedLegacyCompany:
+    def workbook_rows(self, actuals, drivers, periods):
+        return {"Analysis": {
+            "zebra_metric": {"2026Q1": "=em_actual_revenue_2026Q1"},
+            "alpha_metric": {"2026Q1": "=em_actual_revenue_2026Q1"},
+        }}
+
+
 SPEC = {
     "periods": {
         "historical_quarters": ["2026Q1", "2026Q2"],
@@ -142,6 +150,12 @@ class EngineTests(unittest.TestCase):
         context = build_workbook(spec, ACTUALS, [DRIVER], AnalysisCompany())
         self.assertEqual(context.workbook.sheetnames, ["SourceData", "Drivers", "Analysis"])
         self.assertEqual(context.workbook["Analysis"]["C7"].value, "=em_actual_revenue_2026Q1")
+
+    def test_legacy_company_rows_keep_historical_alphabetical_metric_order(self):
+        spec = dict(SPEC, workbook={"sheets": ["SourceData", "Drivers", "Analysis"]})
+        workbook = build_workbook(spec, ACTUALS, [DRIVER], UnsortedLegacyCompany()).workbook
+        self.assertEqual(workbook["Analysis"]["B7"].value, "Alpha Metric")
+        self.assertEqual(workbook["Analysis"]["B8"].value, "Zebra Metric")
 
     def test_company_rows_must_exactly_cover_declared_company_sheets(self):
         spec = dict(SPEC, workbook={"sheets": ["SourceData", "Drivers", "Analysis"]})

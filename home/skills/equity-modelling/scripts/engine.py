@@ -11,13 +11,14 @@ import json
 from typing import Any, Iterable, Mapping, Protocol
 
 from openpyxl import Workbook
+from openpyxl.styles import PatternFill
 
 try:  # Supports both `python scripts/engine.py` consumers and package imports.
     from .grid import KeyedReferences, PeriodGrid, labels
-    from .style import FMT_M, base, header, label, put
+    from .style import FMT_M, SEMANTIC_FORMATS, base, header, label, put
 except ImportError:  # pragma: no cover - exercised by company-project entry points.
     from grid import KeyedReferences, PeriodGrid, labels
-    from style import FMT_M, base, header, label, put
+    from style import FMT_M, SEMANTIC_FORMATS, base, header, label, put
 
 
 class EngineError(ValueError):
@@ -174,6 +175,18 @@ def _actual_map(actuals: Iterable[Mapping[str, Any]], historical_periods: Iterab
     return result
 
 
+NINE_SHEET_ORDER = ("Outlook", "Operating Model", "Bridge Model", "Financial Statements",
+                    "Valuation", "Inputs", "Consensus", "SourceData", "Checks")
+
+
+def _human_label(metric: str) -> str:
+    """Readable fallback for stable internal metric IDs."""
+    words = metric.replace("_", " ").split()
+    acronyms = {"gaap": "GAAP", "eps": "EPS", "fx": "FX", "yoy": "YoY",
+                "qoq": "QoQ", "ebitda": "EBITDA", "ebit": "EBIT", "ev": "EV"}
+    return " ".join(acronyms.get(word.lower(), word[:1].upper() + word[1:]) for word in words)
+
+
 def _write_actuals(ws, data: Mapping[str, Mapping[str, float | None]], grid: PeriodGrid,
                    references: KeyedReferences, price: Mapping[str, Any] | None) -> None:
     price_column = grid.first_column + len(grid.actuals) if price else None
@@ -185,7 +198,7 @@ def _write_actuals(ws, data: Mapping[str, Mapping[str, float | None]], grid: Per
     if price_column:
         header(ws, 6, price_column, "Dated benchmark")
     for row, metric in enumerate(sorted(data), start=7):
-        label(ws, row, metric)
+        label(ws, row, _human_label(metric))
         for period in grid.actuals:
             value = data[metric].get(period)
             put(ws, row, grid.columns[period], value, "missing" if value is None else "hardcode", FMT_M)
@@ -226,24 +239,65 @@ def _module_rows(module: CompanyModule, actuals, drivers, grid: PeriodGrid) -> M
     return rows
 
 
+def _row_parts(metric: str, row: Any, sheet: str):
+    """Accept legacy period maps or period maps with optional presentation metadata."""
+    if not isinstance(row, Mapping):
+        raise EngineError(f"{sheet} {metric} output must be a mapping")
+    metadata = row.get("_meta", {})
+    if not isinstance(metadata, Mapping):
+        raise EngineError(f"{sheet} {metric} _meta must be a mapping")
+    allowed = {"label", "format", "section", "order"}
+    unknown_metadata = set(metadata) - allowed
+    if unknown_metadata:
+        raise EngineError(f"{sheet} {metric} has unsupported row metadata {sorted(unknown_metadata)}")
+    unknown_format = metadata.get("format", "money") not in SEMANTIC_FORMATS
+    if unknown_format:
+        raise EngineError(f"{sheet} {metric} has unsupported semantic format {metadata.get('format')!r}")
+    values = {key: value for key, value in row.items() if key != "_meta"}
+    return values, metadata
+
+
 def _write_module_rows(ws, rows: Mapping[str, Any], grid: PeriodGrid,
-                       references: KeyedReferences, forecast_active: bool) -> None:
-    """Render `{metric: {period: scalar-or-formula}}` without exposing coordinates to modules."""
+                       references: KeyedReferences, forecast_active: bool,
+                       legacy_order: bool = False) -> None:
+    """Render keyed company rows; optional `_meta` supplies label, format, section and order."""
     if not isinstance(rows, Mapping):
         raise EngineError(f"{ws.title} module output must be a metric-keyed mapping")
     base(ws, ws.title, "Company formulas use metric-keyed defined names only.",
-         last_col=2 + len(grid.periods), first_width=34, backlink_text=None)
+         last_col=max(3, 2 + len(grid.periods)), first_width=34, backlink_text=None)
     header(ws, 6, 2, "Metric")
     for period in grid.periods:
         header(ws, 6, grid.columns[period], labels([period])[0], forecast=period.endswith("E"))
-    for row, metric in enumerate(sorted(rows), start=7):
-        values = rows[metric]
-        if not isinstance(metric, str) or not isinstance(values, Mapping):
-            raise EngineError(f"{ws.title} output rows must map metric ids to period-value maps")
+    prepared = []
+    for insertion_order, (metric, raw_row) in enumerate(rows.items()):
+        if not isinstance(metric, str) or not metric:
+            raise EngineError(f"{ws.title} output rows must have non-empty metric ids")
+        values, metadata = _row_parts(metric, raw_row, ws.title)
         unknown = set(values) - set(grid.periods)
         if unknown:
             raise EngineError(f"{ws.title} {metric} has unknown periods {sorted(unknown)}")
-        label(ws, row, metric)
+        order = metadata.get("order", insertion_order)
+        if not isinstance(order, (int, float)):
+            raise EngineError(f"{ws.title} {metric} row order must be numeric")
+        prepared.append((order, insertion_order, metric, values, metadata))
+    if legacy_order:
+        prepared.sort(key=lambda item: item[2])
+    else:
+        prepared.sort(key=lambda item: (item[0], item[1]))
+    row_number = 7
+    previous_section = None
+    for _order, _insertion_order, metric, values, metadata in prepared:
+        section = metadata.get("section")
+        if section and section != previous_section:
+            label(ws, row_number, str(section), bold=True)
+            for column in range(2, 3 + len(grid.periods)):
+                ws.cell(row=row_number, column=column).fill = PatternFill("solid", fgColor="D9E1F2")
+            row_number += 1
+        previous_section = section
+        row = row_number
+        row_number += 1
+        label(ws, row, str(metadata.get("label", _human_label(metric))))
+        fmt = SEMANTIC_FORMATS[metadata.get("format", "money")]
         for period in grid.periods:
             proposed_value = values.get(period)
             if isinstance(proposed_value, str) and proposed_value.startswith("=") and "!" in proposed_value:
@@ -251,8 +305,38 @@ def _write_module_rows(ws, rows: Mapping[str, Any], grid: PeriodGrid,
             value = proposed_value if (not period.endswith("E") or forecast_active) else None
             kind = "formula" if isinstance(value, str) and value.startswith("=") else \
                 ("missing" if value is None else "hardcode")
-            put(ws, row, grid.columns[period], value, kind, FMT_M)
+            put(ws, row, grid.columns[period], value, kind, fmt)
             references.bind(f"model.{ws.title}.{metric}.{period}", ws.title, row, grid.columns[period])
+
+
+def _write_inputs(ws, drivers: Iterable[Mapping[str, Any]], active,
+                  grid: PeriodGrid, references: KeyedReferences) -> None:
+    """Render editable forecast proposals separately from formula-bearing company sheets."""
+    last_col = 3 + len(grid.forecasts)
+    base(ws, "Inputs", "Proposed assumptions are visible for review but do not feed forecasts.",
+         last_col=max(4, last_col), first_width=34, backlink_text=None)
+    header(ws, 6, 2, "Assumption")
+    header(ws, 6, 3, "Status")
+    for index, period in enumerate(grid.forecasts, start=4):
+        header(ws, 6, index, labels([period])[0], forecast=True)
+    for row_number, driver in enumerate(drivers, start=7):
+        driver_id = str(driver["driver_id"])
+        label(ws, row_number, str(driver.get("driver_name", _human_label(driver_id))))
+        status = "Approved" if driver.get("status") == "approved" else "Proposed"
+        put(ws, row_number, 3, status, "text", "@")
+        for index, period in enumerate(grid.forecasts, start=4):
+            raw = driver.get(_source_period(period))
+            visible = active[driver_id][period] if status == "Approved" else raw
+            if visible in (None, ""):
+                put(ws, row_number, index, None, "missing", FMT_M)
+            else:
+                try:
+                    visible = float(visible)
+                except (TypeError, ValueError) as exc:
+                    raise EngineError(f"{driver_id} {_source_period(period)} is not numeric") from exc
+                put(ws, row_number, index, visible,
+                    "hardcode" if status == "Approved" else "proposed", FMT_M)
+            references.bind(f"input.{driver_id}.{period}", ws.title, row_number, index)
 
 
 def build_workbook(spec: Mapping[str, Any], actuals: Iterable[Mapping[str, Any]],
@@ -269,21 +353,31 @@ def build_workbook(spec: Mapping[str, Any], actuals: Iterable[Mapping[str, Any]]
     sheets = tuple(workbook_spec.get("sheets", ())) if isinstance(workbook_spec, Mapping) else ()
     if not sheets or len(sheets) != len(set(sheets)):
         raise EngineError("model_spec.json workbook.sheets must be a non-empty unique list")
-    if {"SourceData", "Drivers"} - set(sheets):
-        raise EngineError("model_spec.json workbook.sheets must include SourceData and Drivers")
+    nine_sheet_mode = set(sheets) == set(NINE_SHEET_ORDER)
+    if nine_sheet_mode and sheets != NINE_SHEET_ORDER:
+        raise EngineError("nine-sheet workbook sheets must use the agreed order")
+    if nine_sheet_mode and len(grid.forecasts) != 8:
+        raise EngineError("the nine-sheet workbook requires exactly eight forecast quarters")
+    if not nine_sheet_mode and {"SourceData", "Drivers"} - set(sheets):
+        raise EngineError("legacy model_spec.json workbook.sheets must include SourceData and Drivers")
     workbook = Workbook()
     workbook.active.title = sheets[0]
     for sheet in sheets[1:]:
         workbook.create_sheet(sheet)
     references = KeyedReferences(workbook)
     _write_actuals(workbook["SourceData"], actual_map, grid, references, spec.get("price"))
-    _write_drivers(workbook["Drivers"], driver_rows, active, grid, references)
     module_rows = _module_rows(company_module, actual_map, active, grid)
-    company_sheets = set(sheets) - {"SourceData", "Drivers"}
+    engine_sheets = {"SourceData", "Inputs"} if nine_sheet_mode else {"SourceData", "Drivers"}
+    if not nine_sheet_mode:
+        _write_drivers(workbook["Drivers"], driver_rows, active, grid, references)
+    company_sheets = set(sheets) - engine_sheets
     if set(module_rows) != company_sheets:
         raise EngineError("company module sheets must exactly match model_spec.json workbook.sheets")
     forecast_active = any(value is not None for row in active.values() for value in row.values())
+    if nine_sheet_mode:
+        _write_inputs(workbook["Inputs"], driver_rows, active, grid, references)
     for sheet in sheets:
         if sheet in company_sheets:
-            _write_module_rows(workbook[sheet], module_rows[sheet], grid, references, forecast_active)
+            _write_module_rows(workbook[sheet], module_rows[sheet], grid, references,
+                               forecast_active, legacy_order=not nine_sheet_mode)
     return BuildContext(workbook, grid, references, actual_map, active, module_rows)
