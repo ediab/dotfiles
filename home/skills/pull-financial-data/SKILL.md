@@ -82,9 +82,12 @@ A read-only task needs none of the steps above.
 
 ## Reading what is held
 
-Prefer the CSVs. `export_csv` takes, per table, the newest snapshot that actually
-carries it; `read_table` reads only the **newest** snapshot, so an 8-K-only run can
-KeyError on a statement that is still held — the CSV export avoids that drift.
+Both layers answer the same question the same way: **the latest snapshot**. `read_table`
+reads it hash-verified; `export_csv` writes that one version out as CSVs and removes any
+CSV left from an earlier export, so the directory is never a mixture. A table missing from
+the latest snapshot is missing on purpose — re-pull the full source set rather than
+reading an older snapshot. A pull that leaves the newest snapshot thinner than the last
+one says so when it publishes.
 
 ```python
 from financial_data_pull import export_csv, read_table
@@ -109,6 +112,8 @@ library ships no per-ticker metric map.
   a rollover re-acquires the **whole** source set — SEC ~22 requests + ~100 MB of
   originals, Yahoo, estimates and the new transcript — not just that transcript. A
   plain pull within a quarter is `CACHED`; freshness beyond that is explicit `--refresh`.
+  A transcript quarter already held is frozen evidence: it is reused rather than re-asked,
+  `--refresh` included, so the provider is asked once per quarter.
 - **A quarter that just ended may not be on Alpha Vantage yet.** It is recorded
   `MISSING`, and because the scope is then cached, later plain pulls keep missing it.
   Pass `--refresh` to retry it.
