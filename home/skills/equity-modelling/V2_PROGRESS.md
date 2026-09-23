@@ -353,3 +353,10 @@ Open gates:
 ## 2026-09-22 — Final reviewer remediation reopened release gates
 
 The required independent review of commit `29e0375` found release-blocking defects. The SEC resolver now records concrete resolved parquet paths (not the former `<resolved-table>` placeholder); refreshed VRT and AVGO freezes contain zero placeholder paths and both deliveries still pass `check --full`. Remaining release blockers are: the generic `8k_exhibit` resolver can select the first of multiple matching cells; `check --full` does not perform the raw-store/source-replay checks still promised by older plan sections; the update guide and approval-manifest production path do not yet match the shipped prepared-project runtime; and rollover does not yet preserve narrative or produce an estimate-change bridge. Stage 6 must remain open until each is remediated and independently rechecked.
+
+## 2026-09-23 — Future design recorded; V2 log retained as history
+
+`DECISIONS.md` now records the user-approved nine-sheet target design. It is not implemented by
+this V2 runtime. This append-only log remains evidence of completed work and unresolved release
+defects; consult it during migration, but use `DECISIONS.md` for the target and `SKILL.md` for
+current executable behaviour. Do not discard open defects when replacing the workbook layout.

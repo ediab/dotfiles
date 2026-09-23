@@ -1,12 +1,13 @@
 # Equity modelling — maintainer notes
 
-This is a working, model-invoked skill. V1 (`company-model`) is archived reference only; VRT is the
-V2 proof fixture. V2's generic core is shipped — evidence, engine, `scripts/cli.py` build/check, and
-shared checks/style/overrides — and `SKILL.md` points at it. Later stages (second-company proof,
-rollover, final acceptance) are incomplete, so v2 has not yet passed all acceptance patterns.
+This is a working, model-invoked skill. V1 (`company-model`) is archived reference only; VRT and
+AVGO have V2 proof projects. V2's generic core is shipped — evidence, engine, `scripts/cli.py`
+build/check, and shared checks/style/overrides — but release gates remain open.
 
-**`V2_PLAN.md` is the active design and migration plan. Read it before changing this skill**, and
-start at its §18.
+**`DECISIONS.md` is the agreed nine-sheet target, not yet implemented.** `SKILL.md` and its
+references describe what runs today. `V2_PLAN.md` and `V2_PROGRESS.md` are historical V2
+implementation records with unresolved defects: consult them for migration context, not as the
+new redesign instructions.
 
 ## Layout and ownership
 
@@ -18,8 +19,9 @@ A contract lives in exactly one file. Everything else links to it.
 | `references/model-rules.md` | Workbook contract: sheets, periods, presentation, hardcode policy, decision integrity, web-challenge record format |
 | `references/update-model.md` | The earnings-update / rollover branch |
 | `tests/` | Unit tests and the research-behaviour smoke test |
-| `V2_PLAN.md` | v2 design, diagnosis, staged sequence; archive after Stage 6 |
-| `V2_PROGRESS.md` | Append-only execution record; delete with the plan at Stage 6 |
+| `DECISIONS.md` | Approved target design and sheet roles; not the current runtime contract |
+| `V2_PLAN.md` | Historical V2 design and unresolved migration issues; retain until carried forward |
+| `V2_PROGRESS.md` | Append-only historical V2 execution record; retain until issues are carried forward |
 
 `references/interfaces.md` owns the artifact schemas, entry points and locator grammar;
 `references/evidence-rules.md` owns the evidence conventions.

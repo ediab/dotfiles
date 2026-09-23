@@ -1,12 +1,16 @@
-# equity-modelling v2 — plan
+# equity-modelling v2 — historical implementation plan
 
-**Status:** VRT and AVGO proof workbooks exist, but this is **not release-ready**: the required final review found active evidence-resolver and prepared-project contract defects. V1 is diagnostic only, not a release-parity target. Generic rollover exists but lacks the real next-quarter source-pack exercise, narrative preservation, and an estimate-change bridge. Native Microsoft Excel automation also remains environment-blocked. `V2_PROGRESS.md` is the append-only execution record; this file owns the design and stage gates.
+**Historical record, not the target workbook design.** The agreed future nine-sheet design is in
+[`DECISIONS.md`](DECISIONS.md) and is not yet implemented. Retain this plan for V2's implementation
+history and unresolved release defects; the executable current contract is `SKILL.md`.
+
+**V2 status:** VRT and AVGO proof workbooks exist, but this is **not release-ready**: the required final review found active evidence-resolver and prepared-project contract defects. V1 is diagnostic only, not a release-parity target. Generic rollover exists but lacks the real next-quarter source-pack exercise, narrative preservation, and an estimate-change bridge. Native Microsoft Excel automation also remains environment-blocked. `V2_PROGRESS.md` is the append-only execution record; this file records V2's historical design and stage gates.
 `PROPOSAL-V2.md` has been absorbed (baseline, diagnosis, staged order, import lists) and deleted.
 
 Incorporates the review in `/tmp/findings_v2.md` (nine required revisions, all accepted except
 where §11 records a disagreement) and corrects the errors in this plan's own first draft (§4).
 
-**Start at §18.**
+**Historical navigation:** §18 records the old V2 implementation start, not the next redesign step.
 
 ---
 

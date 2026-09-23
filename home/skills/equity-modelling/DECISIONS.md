@@ -1,0 +1,47 @@
+# Equity model — agreed design decisions
+
+**Status:** Agreed target design, **not yet implemented**. The executable skill and current workbook output remain described by `SKILL.md` and `references/`; do not treat this document as evidence that the new workbook exists.
+
+- **Date:** 2026-09-23
+- **Original request:** Preserve the decisions for a robust, company-specific model that supports an accurate investment thesis, without confusing future work with older skill versions.
+- **Working directory:** `/Users/eliasdiab/Dev/pi-dotfiles/home/skills`
+- **Verified branch:** `main`
+
+## Purpose and decision process
+
+The model must connect business drivers → revenue → operating profit → earnings/EPS → cash flow → valuation, then explain how the house view differs from the relevant expectations benchmark. The outcome may be **Long, Short, or No Position**; do not force a thesis or an attractive target. Identify the few thesis-driving variables, supporting evidence, catalyst and horizon, strongest counterargument, and observable fundamental invalidation. Robust accounting and source coverage support that decision; they are not replaced by a short investment summary.
+
+Keep **one `equity-modelling` skill**, not a separate blueprint skill. The skill governs research, the nine sheet roles, evidence, presentation, two approval gates, updates, and validation. At **Gate 1**, the agent reads the supplied evidence and proposes a company-specific blueprint—sections, economic/segment drivers, formula routes, accounting basis, statement coverage, consensus/guidance comparisons, source gaps, and company checks—with 2–3 checkable examples. The user approves or edits it before the model is built. At **Gate 2**, the user separately approves the eight-quarter forecast assumptions; proposals and partial approvals leave forecasts inactive. An update preserves the prior dated model and designated overrides, explains estimate changes, and reopens approval for changed/new assumptions.
+
+The nine sheet **roles are fixed; the contents and driver breakdowns are company-specific**. Do not impose a sector template or a universal formula language. VRT may use regional organic growth, acquisition/FX contributions, margins and corporate costs where definitions reconcile; AVGO may use semiconductor/software segment growth and margins. Do not invent a volume/price, bookings, or unit bridge when disclosure cannot support it. Changing company reporting or economics calls for a new blueprint decision; a routine quarterly rollover need not redesign the company.
+
+## Workbook sheets — exact visible order
+
+| # | Sheet | Role |
+|---|---|---|
+| 1 | **Outlook** | One printable page: conclusion, variant view versus expectations, key results/forecasts, earnings and valuation differences, bull/base/bear outcomes, catalyst, risks, falsifier, and Checks status. Link to detailed sheets rather than entering new financial hardcodes. |
+| 2 | **Operating Model** | Quarterly and derived annual operating/earnings analysis, with company segment or regional blocks, levels and adjacent YoY/QoQ rows, margins, GAAP-to-adjusted reconciliation, EPS, and like-for-like benchmark comparisons. |
+| 3 | **Bridge Model** | Company-specific causal decomposition: explicitly named base period → sourced/approved driver → calculated current period → reconciliation. Explain revenue, profit and cash drivers at the granularity evidence supports; show residuals or unavailable components honestly. |
+| 4 | **Financial Statements** | Statement-format income statement, balance sheet and cash flow, linking common results rather than calculating contradictory totals independently. Cover material working-capital and cash/debt links when evidence and approved drivers support them. |
+| 5 | **Valuation** | Dated price, relevant share count and EV/equity bridge where supported, clearly dated and defined GAAP/adjusted trading multiples, scenario values, and mechanical sensitivities. Separate earnings effects from multiple effects. A DCF is optional, not automatic. |
+| 6 | **Inputs** | Sole editable forecast-assumption area: driver ID behind readable name, unit, period, rationale/evidence, uncertainty, status, and approval metadata. Guidance and consensus are comparisons, not house inputs. |
+| 7 | **Consensus** | Read-only presentation of **available** dated consensus estimates with source, period, unit and GAAP/adjusted basis; blank when not held. Link each sourced fact from SourceData rather than hardcoding it again. |
+| 8 | **SourceData** | Frozen canonical reported facts, dated guidance/consensus benchmarks and provenance, with each sourced value entered once; no derived YoY rows or invented data. |
+| 9 | **Checks** | Visible company and shared reconciliations plus overall **Pass / Fail / Unavailable** status. Missing inputs never count as a passed balance. Checks include source/period coverage, segments to consolidated, GAAP/adjusted and EPS, statement/cash links, annual conventions, valuation arithmetic, formulas, and forecast approval. |
+
+## Presentation and financial conventions
+
+- Workbook labels are human-readable on **every** sheet: e.g. `adjusted_operating_income` stays an internal key but appears as **Adj Operating Income**; preserve GAAP, EPS, FX and similar acronyms. Never expose snake_case keys as visible financial row labels.
+- In the Operating Model, place **Revenue → Revenue YoY → Revenue QoQ** in adjacent rows; follow the company-specific earnings flow through gross profit/margin, operating expenses, GAAP operating profit/margin, disclosed adjustments, adjusted operating profit/margin, non-operating items, taxes, diluted shares and calculated EPS. Separate published historical EPS from forecast consensus EPS and compare matching period and accounting basis. Include segment/region revenue and consensus variance blocks where supported.
+- **Incremental adjusted margin YoY** means change in adjusted operating profit divided by change in revenue, *not* the percentage-point change in the operating margin. Guard a missing or zero revenue change. YoY compares the same fiscal quarter a year earlier; QoQ compares the preceding fiscal quarter. A margin change is shown in percentage points, not as a revenue-style growth rate. Unavailable comparatives remain blank.
+- Show actual quarters as `A`, forecast quarters as `E`, use the company's fiscal calendar (including 52/53-week dates), and target eight forecast quarters with the historical coverage actually sourced. Derive annuals only from four quarters: sum flows, use year-end balance-sheet stocks, and recompute ratios and EPS from annual inputs. Annual QoQ is not a measure. Normalize percentage scales before formatting (the current VRT historical and forecast margin representations differ).
+- The Bridge Model must explain company economics rather than simply repeat segment totals. Label a base **same quarter last year** or **previous quarter**, not ambiguous `t−1`. Do not add price, mix, FX or other percentages unless their bases and interactions reconcile; distinguish organic growth, acquisitions and currency using company-disclosed definitions.
+- Source every material historical input and benchmark to the frozen evidence boundary. Distinguish **not disclosed**, **not applicable**, and **requires an approved assumption**. Missing material evidence triggers a sourcing/gap decision, not a plug or a quietly reduced statement scope. Do not claim a complete three-statement forecast or a passed balance-sheet identity unless the data and formulas support it.
+
+## Construction, verification, and status
+
+Use Python for reusable evidence/lineage handling, fiscal periods, workbook construction, defined-name references, approvals and deterministic checks. Keep company economics in the approved blueprint and company-specific formula generation; Excel must contain editable inputs and visible derived formulas, not a final dump of Python-calculated constants. Do not maintain a second full financial calculation engine, sector templates, or a new formula DSL. Recalculate and inspect the actual `.xlsx`; Python tests alone do not validate Excel results.
+
+Validation must establish sourced historical reconciliations, blank propagation, no unexplained hardcodes, no broken or unsupported formulas, meaningful Pass/Fail/Unavailable checks, and a controlled approved-driver change that moves revenue, earnings, cash and valuation while actuals and benchmarks remain fixed. Audit the investment logic too: largest model-versus-expectations difference, evidence, sensitivities, coherent downside, catalyst, and falsifier. Write each delivery to a new dated file; preserve the prior workbook and forecast for post-earnings learning.
+
+**Migration status:** None of the nine-sheet redesign or the new presentation/annual requirements is claimed shipped by this record. The current runtime and prepared VRT/AVGO projects use older sheet layouts. `V2_PLAN.md` and append-only `V2_PROGRESS.md` retain historical implementation rationale and unresolved release defects; consult them for migration context, not as the target workbook specification. The former `company-model` is archived reference only, not another active skill. Retain these records until the new design is implemented and their unresolved issues have been carried forward and checked.
