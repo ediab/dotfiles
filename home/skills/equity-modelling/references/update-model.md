@@ -46,6 +46,7 @@ new assumptions are approved; and the complete validation contract passes.
 ## Pilot implementation rule
 
 Keep update code in the generated company project until two projects prove the same helper is
-needed. If override migration is required during the pilot, adapt the proven identity-based logic
-from `../../company-model/scripts/overrides.py` into that project without changing `company-model`.
+needed. If override migration is required during the pilot, adapt the identity-based logic already
+ported into this skill's `scripts/overrides.py` into that project. (Its ancestor, the archived
+`company-model` skill, is at `~/Downloads/archive/company-model-2026-09-22/`.)
 Do not create a shared update framework pre-emptively.
