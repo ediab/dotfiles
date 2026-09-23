@@ -33,7 +33,7 @@ Done when: classification and output path are settled.
 
 ### 2. Preflight (edits and questions)
 
-`asp read workbook <file>` for metadata (macros, tables, defined names); `asp read sheets`, `asp read overview --sheet <name>`, `asp analyze formula-map`, `asp analyze formula-trace`, `asp read names` as needed. Understand nearby formulas/styles, named ranges, tables, and any check/summary outputs the edit could affect. Detect disallowed features (VBA, external links, connections, pivots, slicers) and refuse with an explanation if found.
+`asp read workbook <file>` for metadata (macros, tables, defined names); `asp read sheets`, `asp read overview <file> <sheet>`, `asp analyze formula-map`, `asp analyze formula-trace`, `asp read names` as needed. Understand nearby formulas/styles, named ranges, tables, and any check/summary outputs the edit could affect. Detect disallowed features (VBA, external links, connections, pivots, slicers) and refuse with an explanation if found.
 
 Done when: you can describe the affected area and every dependency that touches it.
 
@@ -90,4 +90,4 @@ Report: output path; intended changes; dependent changes; unexpected diffs (targ
 
 ## Read-only questions
 
-`asp read values --sheet S --range A1:D20`, `asp read cells`, `asp read table`, `asp analyze find-value/find-formula`, `asp analyze formula-trace`. Answer without creating files.
+`asp read values <file> <sheet> A1:D20` (positional args; sheet names with spaces are quoted), `asp read cells`, `asp read table`, `asp analyze find-value/find-formula`, `asp analyze formula-trace`. Answer without creating files.
