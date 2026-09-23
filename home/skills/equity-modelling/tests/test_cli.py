@@ -9,10 +9,11 @@ import sys
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cli import build, check  # noqa: E402
+from cli import build, check, prepare_supplied  # noqa: E402
 from evidence import build_actuals, freeze, load_fact_map  # noqa: E402
 from pull_fixture import create_source, price_benchmark_row  # noqa: E402
 from nine_sheet_fixture import NINE_SHEET_ORDER, SyntheticCompany, synthetic_project  # noqa: E402
@@ -314,6 +315,58 @@ class NineSheetPreparedProjectTests(unittest.TestCase):
             self.assertIn("source replay: 8 actuals, 1 benchmarks", result.stdout)
             with self.assertRaises(FileExistsError):
                 build(project)
+
+
+class SuppliedOnlyPreparedProjectTests(unittest.TestCase):
+    def test_supplied_only_prepare_build_full_check_never_uses_pull_store(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            project = root / "project"
+            project.mkdir()
+            provided = root / "provided"
+            provided.mkdir()
+            (provided / "filing.html").write_text(
+                "<table><tr><th>Metric</th><th>Q1 2026</th></tr>"
+                "<tr><td>Revenue</td><td>125.0</td></tr></table>")
+            designation = {"pack_date": "2026-09-23",
+                           "documents": [{"id": "filing", "file": "filing.html", "issuer": "TST",
+                                          "document_type": "filing", "document_date": "2026-04-29"}],
+                           "facts": [{"metric": "revenue", "period": "2026Q1", "units": "USDm",
+                                      "basis": "GAAP", "document_id": "filing",
+                                      "locator": {"kind": "html_cell", "table": 0, "row": 1,
+                                                  "column": 1, "value_text": "125.0"},
+                                      "review": {"reviewer": "agent", "reviewed_at": "2026-09-23T12:00:00Z",
+                                                 "independently_read_value": "125.0",
+                                                 "notes": "Independently checked the original cell."}}]}
+            designation_path = root / "designation.json"
+            designation_path.write_text(json.dumps(designation))
+            spec = {"ticker": "TST", "source_boundary": {"mode": "supplied-files-only"},
+                    "periods": {"historical_quarters": ["2026Q1"],
+                                "forecast_quarters": ["2026Q2"]},
+                    "forecast_gate": {"approved": False},
+                    "workbook": {"filename": "TST_supplied.xlsx",
+                                 "sheets": ["SourceData", "Drivers", "OperatingModel"]}}
+            (project / "model_spec.json").write_text(json.dumps(spec))
+            (project / "model_TST.py").write_text(
+                "class Module:\n"
+                "    def workbook_rows(self, actuals, drivers, periods):\n"
+                "        return {'OperatingModel': {'revenue': {'2026Q1': '=em_actual_revenue_2026Q1'}}}\n"
+                "company_module = Module()\n")
+            (project / "drivers.csv").write_text("driver_id,driver_name,status,2026Q2\n")
+            with patch("evidence._verify_boundary", side_effect=AssertionError("pull store accessed")), \
+                 patch("evidence._ensure_pull_importable", side_effect=AssertionError("pull import attempted")):
+                result = prepare_supplied(project, provided, designation_path)
+                self.assertEqual(result["verification_coverage"]["accepted_facts"], 1)
+                self.assertEqual(json.loads((project / "model_spec.json").read_text())
+                                 ["source_boundary"]["mode"], "supplied-files-only")
+                self.assertFalse((project / "fact_map.json").exists())
+                output = build(project)
+                self.assertTrue(output.is_file())
+                report = check(project, mode="full")
+                self.assertTrue(report.ok, report.failures)
+                self.assertIn("source replay: 1 actuals, 0 benchmarks", report.coverage)
+            with self.assertRaises(FileExistsError):
+                prepare_supplied(project, provided, designation_path)
 
 
 if __name__ == "__main__":

@@ -67,14 +67,15 @@ a DCF engine, or a report-writing system.
 
 ## Prepared project and runtime
 
-The build/check runtime is `scripts/cli.py`, and it operates on a *prepared project* directory that
-already holds frozen artifacts. It never fetches, parses, or ingests raw sources.
+The `build`/`check` runtime is `scripts/cli.py` and operates on a *prepared project* with frozen
+artifacts. Its separate supplied-files-only `prepare` command freezes designated originals before
+build; no CLI command fetches from the network.
 
 ```text
 <TICKER>/
 ├── model_spec.json              # company, periods, workbook sheets/filename, price, source manifest
-├── fact_map.json                # immutable source-locator manifest required by the generic build
-├── evidence/actuals.csv         # frozen canonical facts — one row per (metric, period), with lineage
+├── fact_map.json                # pull-data-only locator manifest; absent in supplied-files-only mode
+├── evidence/actuals.csv         # frozen canonical facts — one row per (metric, period, dimension), with lineage
 ├── evidence/benchmarks.csv      # optional guidance/consensus comparisons; dated price may be in model_spec.json
 ├── drivers.csv                  # one row per driver; one column per forecast quarter; status proposed|approved
 ├── drivers.approval.json        # required only when a driver is approved; hashes its (driver, period, value) triples
@@ -88,17 +89,17 @@ module. `rollover` reads a prior and a new prepared project but never mutates ei
 skill directory:
 
 ```sh
+python3 scripts/cli.py <project_dir> prepare --supplied-folder <folder> --designation <reviewed.json>  # supplied mode only
 python3 scripts/cli.py <project_dir> build          # writes the workbook once; refuses to overwrite an existing delivery
 python3 scripts/cli.py <project_dir> check          # shared structural checks
-python3 scripts/cli.py <project_dir> check --full   # structural checks plus cached formula-error and cross-sheet checks
+python3 scripts/cli.py <project_dir> check --full   # structural checks, source replay, and cached formula-error checks
 python3 scripts/cli.py <new_project> rollover --prior-project <old_project> --output-project <rolled_project> [--report <report.json>]
 ```
 
 `check` is structural only; company accounting identities live in the company module. `rollover`
 copies compatible driver values into a new project by stable `driver_id`, resets every row to
-`proposed`, and omits approval so outputs remain blank pending a new Gate 2. The CLI does not ingest
-raw sources, render, or recalculate. Recalculation, rendering, and
-the native Excel gate are external validation steps run through the `excel` skill (step 7).
+`proposed`, and omits approval so outputs remain blank pending a new Gate 2. `build`/`check` do not ingest raw sources or recalculate. Recalculation, rendering, and the native
+Excel gate are external validation steps run through the `excel` skill (step 7).
 
 ## Workflow
 
@@ -112,7 +113,11 @@ zero-network held index/cache-only report and pin only held snapshots and immuta
 a first live acquisition or refresh requires explicit user consent. For supplied-files-only runs,
 inventory and hash only the designated documents, without consulting the pull store or network.
 Treat missing coverage as a gap; never cite rewritable exports (including `8k_cells.csv`) as originals.
-The current build accepts pull-data-only packs; supplied-files-only preparation is not yet implemented.
+For supplied-files-only preparation, record independently checked source excerpts in a designation
+JSON as defined in `references/interfaces.md`, then run
+`python scripts/cli.py PROJECT prepare --supplied-folder FOLDER --designation DESIGNATION.json`.
+The command pins copied originals and writes a new frozen evidence pack before build; it does not
+create a new user-approval gate. Existing packs and workbooks remain untouched.
 
 For an update, preflight the existing workbook and follow `references/update-model.md`.
 

@@ -174,8 +174,11 @@ def check_full(project_dir: Path) -> CheckReport:
     actuals_path = Path(project_dir) / "evidence" / "actuals.csv"
     fact_map_path = Path(project_dir) / "fact_map.json"
     benchmarks_path = Path(project_dir) / "evidence" / "benchmarks.csv"
-    missing_evidence = [str(path.relative_to(project_dir)) for path in (actuals_path, fact_map_path)
-                        if not path.is_file()]
+    spec = _spec(Path(project_dir))
+    boundary = spec.get("source_boundary")
+    supplied = isinstance(boundary, dict) and boundary.get("mode") == "supplied-files-only"
+    mandatory = (actuals_path,) if supplied else (actuals_path, fact_map_path)
+    missing_evidence = [str(path.relative_to(project_dir)) for path in mandatory if not path.is_file()]
     failures.extend(f"mandatory frozen evidence is missing: {relative}" for relative in missing_evidence)
     if not missing_evidence:
         try:
@@ -183,10 +186,9 @@ def check_full(project_dir: Path) -> CheckReport:
                 from .evidence import load_fact_map, replay_frozen_evidence
             except ImportError:  # direct script invocation
                 from evidence import load_fact_map, replay_frozen_evidence
-            spec = _spec(Path(project_dir))
             with actuals_path.open(newline="") as handle:
                 actuals = list(csv.DictReader(handle))
-            mappings = load_fact_map(fact_map_path)
+            mappings = None if supplied else load_fact_map(fact_map_path)
             if benchmarks_path.is_file():
                 with benchmarks_path.open(newline="") as handle:
                     benchmarks = list(csv.DictReader(handle))

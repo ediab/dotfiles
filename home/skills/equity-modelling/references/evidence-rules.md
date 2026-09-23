@@ -3,10 +3,10 @@
 These are reusable evidence conventions. Schemas and locator syntax live in
 `interfaces.md`; workbook presentation lives in `model-rules.md`.
 
-1. Build only from the frozen source boundary in `model_spec.json`. A web result may challenge a value but never becomes model evidence until it is supplied and frozen.
+1. Choose exactly one evidence mode per run. **Supplied-files-only** accepts only the user-designated local originals; it never queries the pull cache or network. **Pull-data-only** accepts only pinned pull-store sources; it never reads designated local files. There is no fallback or source mixing. A web result may challenge a value but never becomes model evidence until it is included in the selected mode and frozen.
 2. Record every canonical fact once with its metric, period, unit, basis, locator, immutable lineage terminus, transformation, and missing reason. `(metric, period, dimension)` is unique. A period the frozen pack cannot map is an explicit blank row with a specific reason (a fact-map `unavailable` entry), never an omitted row — a metric's declared period coverage must appear in the freeze.
 3. Missing evidence is unavailable, never zero. Dependent workbook formulas remain blank rather than coercing a blank to zero.
-4. Resolve facts through declared locators and transforms only. Do not infer a company metric from labels, positions, or inline Python logic. A populated fact must replay from its exact pinned snapshot/table or original at both build and full check; matching lineage strings or a pull-tool `CHECKED` verdict alone is not proof.
+4. Resolve facts through declared locators and transforms only. Do not infer a company metric from labels, positions, or inline Python logic. Pull-only facts must replay from their exact pinned snapshot/table or original. Supplied-file facts must be re-extracted from the exact cited page/table/cell/passage in the preserved original and match a separately recorded review of the original. Hashes prove source identity, not correctness of a numeric extraction. Both modes replay at build and full check; lineage strings alone are not proof.
 5. Match segmented disclosures on stable dimension tokens, not display labels.
 6. Retain reported GAAP and adjusted measures separately. Read adjusted measures from the disclosed reconciliation, not XBRL, and do not invent an adjustment bridge.
 7. De-accumulate filing YTD flows and derive Q4 only as FY less nine-month YTD when the needed facts exist. Expose the derivation as a workbook formula.

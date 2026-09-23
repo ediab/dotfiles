@@ -9,20 +9,22 @@ from __future__ import annotations
 
 import argparse
 import csv
+from hashlib import sha256
 import importlib.util
 import json
+import shutil
 from pathlib import Path
 from typing import Any, Literal
 
 try:
     from .checks import CheckReport, check_fast, check_full
     from .engine import build_workbook
-    from .evidence import load_fact_map, replay_frozen_evidence
+    from .evidence import load_fact_map, prepare_evidence, replay_frozen_evidence
     from .rollover import rollover
 except ImportError:  # pragma: no cover - direct project invocation
     from checks import CheckReport, check_fast, check_full
     from engine import build_workbook
-    from evidence import load_fact_map, replay_frozen_evidence
+    from evidence import load_fact_map, prepare_evidence, replay_frozen_evidence
     from rollover import rollover
 
 
@@ -120,20 +122,23 @@ def _validate_evidence(project_dir: Path) -> None:
         else:
             problems.append("model_spec.json periods.historical_quarters is required")
 
+    boundary = spec.get("source_boundary") if spec is not None else None
+    supplied = isinstance(boundary, dict) and boundary.get("mode") == "supplied-files-only"
     mappings = None
-    fact_map_path = project_dir / "fact_map.json"
-    if not fact_map_path.is_file():
-        problems.append("missing fact_map.json")
-    else:
-        try:
-            _json(fact_map_path)
-        except ValueError as exc:
-            problems.append(f"fact_map.json: {exc}")
+    if not supplied:
+        fact_map_path = project_dir / "fact_map.json"
+        if not fact_map_path.is_file():
+            problems.append("missing fact_map.json")
         else:
             try:
-                mappings = load_fact_map(fact_map_path)
+                _json(fact_map_path)
             except ValueError as exc:
                 problems.append(f"fact_map.json: {exc}")
+            else:
+                try:
+                    mappings = load_fact_map(fact_map_path)
+                except ValueError as exc:
+                    problems.append(f"fact_map.json: {exc}")
 
     rows: list[dict[str, Any]] | None = None
     actuals_path = project_dir / "evidence" / "actuals.csv"
@@ -164,7 +169,7 @@ def _validate_evidence(project_dir: Path) -> None:
     if mappings is not None and historical is not None and rows is not None:
         problems.extend(_coverage_problems(mappings, historical, rows))
 
-    if spec is not None and mappings is not None and rows is not None:
+    if spec is not None and rows is not None and (supplied or mappings is not None):
         benchmarks_path = project_dir / "evidence" / "benchmarks.csv"
         benchmarks = _rows(benchmarks_path) if benchmarks_path.is_file() else []
         try:
@@ -196,6 +201,35 @@ def _output(project_dir: Path, spec: dict[str, Any]) -> Path:
     if not isinstance(workbook, dict) or not isinstance(workbook.get("filename"), str):
         raise ValueError("model_spec.json workbook.filename is required")
     return project_dir / workbook["filename"]
+
+
+def prepare_supplied(project_dir: Path, folder: Path, designation_path: Path) -> dict[str, Any]:
+    """Freeze a fresh, exclusively supplied-files evidence pack for a prepared project."""
+    project_dir = Path(project_dir)
+    spec_path = project_dir / "model_spec.json"
+    spec = _json(spec_path)
+    boundary = spec.get("source_boundary")
+    if not isinstance(boundary, dict) or boundary.get("mode") != "supplied-files-only":
+        raise ValueError("prepare requires model_spec.json source_boundary.mode=supplied-files-only")
+    if any(key in boundary for key in ("snapshots", "tables", "originals")):
+        raise ValueError("supplied-files-only project cannot contain pull-data-only pins")
+    if (project_dir / "fact_map.json").exists():
+        raise ValueError("supplied-files-only project cannot contain a pull fact_map.json")
+    evidence_dir = project_dir / "evidence"
+    if any((evidence_dir / filename).exists() for filename in ("actuals.csv", "benchmarks.csv")):
+        raise FileExistsError("refusing to replace already frozen project evidence")
+    designation_path = Path(designation_path)
+    designation = _json(designation_path)
+    pack_name = str(designation.get("pack_date", "")) + "-" + sha256(designation_path.read_bytes()).hexdigest()[:10]
+    destination = evidence_dir / "packs" / pack_name
+    result = prepare_evidence(spec, supplied_folder=Path(folder), supplied_destination=destination,
+                              designation=designation)
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    for name in ("actuals.csv", "benchmarks.csv"):
+        shutil.copyfile(destination / name, evidence_dir / name)
+    spec["source_boundary"] = result["source_boundary"]
+    spec_path.write_text(json.dumps(spec, indent=2, sort_keys=True) + "\n")
+    return result
 
 
 def build(project_dir: Path) -> Path:
@@ -235,8 +269,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("project_dir", type=Path,
                         help="prepared project directory (the new project for rollover)")
-    parser.add_argument("command", choices=("build", "check", "rollover"))
+    parser.add_argument("command", choices=("prepare", "build", "check", "rollover"))
     parser.add_argument("--full", action="store_true")
+    parser.add_argument("--supplied-folder", type=Path, help="prepare: user-designated local originals")
+    parser.add_argument("--designation", type=Path, help="prepare: reviewed document/fact map JSON")
     parser.add_argument("--prior-project", type=Path,
                         help="rollover: prior prepared project to carry driver values from")
     parser.add_argument("--output-project", type=Path,
@@ -244,6 +280,15 @@ def main() -> None:
     parser.add_argument("--report", type=Path,
                         help="rollover: optional path for the machine-readable rollover report")
     args = parser.parse_args()
+    if args.command == "prepare":
+        if args.supplied_folder is None or args.designation is None:
+            parser.error("prepare requires --supplied-folder and --designation")
+        result = prepare_supplied(args.project_dir, args.supplied_folder, args.designation)
+        print(f"supplied evidence: {result['source_boundary']['root']}")
+        print(f"verified: {result['verification_coverage']['accepted_facts']}; gaps: {len(result['gaps'])}")
+        for gap in result["gaps"]:
+            print(f"GAP: {gap}")
+        return
     if args.command == "rollover":
         if args.prior_project is None or args.output_project is None:
             parser.error("rollover requires --prior-project and --output-project")

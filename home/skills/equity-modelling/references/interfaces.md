@@ -48,14 +48,35 @@ Stage 2 adds no new top-level keys; `fact_map.json` is a sibling file, not a sub
 }
 ```
 
-`source_boundary` is the required pull-data-only pin manifest. It has no legacy fallback: `mode`,
-`root`, the `snapshots`, `tables`, and `originals` lists are mandatory. Each snapshot entry pins the
-SHA-256 of its `snapshot.json`; each table entry pins one table hash recorded by that manifest; each
-original entry pins the content-addressed raw file and names the snapshot that records it. Different
-facts may use tables and originals from multiple pinned snapshots. Every populated actual and
-benchmark is replayed from these selected artifacts before build and during full check; missing
-boundary metadata, hashes, or an exact source path fails closed. A rewritable `8k_cells.csv` is never
-a replay source: 8-K facts are re-extracted from the pinned raw exhibit.
+`source_boundary` has one mutually exclusive `mode`; no fallback or evidence mixing is allowed:
+
+- **`pull-data-only`** uses the `mode`, `root`, `snapshots`, `tables`, and `originals` pins shown above. Snapshot/table/original hashes and paths are checked; replay uses selected immutable sources, never rewritable exports such as `8k_cells.csv`.
+- **`supplied-files-only`** uses `{"mode":"supplied-files-only","root":"<dated-pack>","manifest_sha256":"<sha256>"}`. The pack contains `supplied_evidence.json`, `actuals.csv`, `benchmarks.csv`, `verification.json`, and copied originals under `sources/`. The supplied manifest hash is pinned in `model_spec.json`; replay verifies it, each preserved original hash, and every accepted fact against its exact locator and separately recorded review of the original. A source hash proves identity only, not numeric correctness.
+
+The supplied-only preparer accepts explicitly designated source records and mapped facts; it does not search arbitrary files for numbers. Initially supported formats are text-searchable PDF, HTML, plain text and Markdown. PDF locators require a one-based page and exact unique quote; HTML locators identify zero-based table/row/cell or an exact unique visible-text passage; text/Markdown locators identify one-based line bounds and an exact quote. Every locator also names the exact `value_text` to parse. Each accepted numeric fact requires a separate review record containing reviewer (agent or user), ISO timestamp, independently read value and non-empty notes; that value must match extraction from the preserved original. This is evidence verification, not a new user-approval gate. Empty/scanned PDF pages, unsupported formats, missing facts and ambiguous/unreadable locators are recorded as gaps or rejected facts—never OCR'd or inferred silently. New evidence requires a new dated pack; existing packs cannot be overwritten.
+
+Supplied-files-only dispatch occurs before pull-store root handling or `financial_data_pull` import and does not probe cache or network, even when the ticker is cached. Pull-data-only never reads designated supplied files. `prepare_evidence` and `replay_frozen_evidence` own this early mode dispatch; unknown modes fail closed.
+
+The designation object passed to the preparer is explicit; every accepted fact has one exact locator and reviewer comparison, for example:
+
+```json
+{
+  "pack_date": "2026-09-23",
+  "documents": [{"id":"release","file":"release.html","issuer":"TST",
+    "document_type":"earnings release","document_date":"2026-07-29"}],
+  "facts": [{"metric":"revenue","period":"2026Q2","units":"USDm","basis":"GAAP",
+    "document_id":"release","locator":{"kind":"html_cell","table":0,"row":1,"column":1,"value_text":"1,234.5"},
+    "review":{"reviewer":"analyst","reviewed_at":"2026-09-23T12:00:00Z",
+      "independently_read_value":"1234.5","notes":"Compared the displayed cell and unit label."}}],
+  "gaps": []
+}
+```
+
+Pass this object along with the designated source folder and a **new** destination path to
+`prepare_evidence`. It copies originals to content-addressed filenames, writes the frozen register,
+then returns `source_boundary`; store that boundary (including `manifest_sha256`) in the run's
+`model_spec.json`. A repeated destination is an error, not an overwrite. Failed/ambiguous fact
+locators and scanned/unsupported documents appear as named `gaps`; they do not produce values.
 
 `periods.period_end_dates` optionally maps canonical `YYYYQn` ids to their ISO period-end dates for
 a non-calendar (e.g. 52/53-week) fiscal year. When present it is authoritative for every
@@ -177,6 +198,11 @@ the immutable lineage still terminates at the matching row's `exhibit_sha256`.
 ## 4. `evidence.py` — public entry points (Stage 2)
 
 ```python
+def prepare_evidence(spec, *, supplied_folder=None, supplied_destination=None, designation=None,
+                     fact_map=None, periods=None, output_dir=None) -> dict: ...
+# Dispatches the exclusive source mode first. Supplied mode creates/verifies a dated pack;
+# pull mode uses the existing snapshot/fact-map path without changing its behavior.
+
 def load_fact_map(path: Path) -> list[FactMapping]: ...
 
 def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:

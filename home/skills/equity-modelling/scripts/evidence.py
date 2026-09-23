@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
-"""Generic reader over the pull-financial-data store, driven by a per-company fact_map.json.
+"""Prepare and replay evidence from one exclusive pull-store or supplied-files boundary.
 
-No per-ticker knowledge lives here (docs/archive/V2_PLAN.md §5). Every company noun — concept ids, dimension
-members, row-label patterns, snapshot ids — comes from `fact_map.json` and `model_spec.json`.
-See references/interfaces.md for the schemas and locator grammar this module implements.
-
-Runs under plain `python3` (does not require activating the financial_data_pull venv): it locates
-that checkout from `model_spec.json`'s `source_boundary.root` and adds its `src/` and venv
-site-packages to `sys.path` at import time, because parquet reads need pyarrow, which only that
-venv has installed.
+No per-ticker knowledge lives here. Pull-only mode adds financial_data_pull paths only when
+its resolver is invoked; supplied-only dispatches before pull-store handling and uses only the
+preserved user-designated documents. See references/interfaces.md for both boundary contracts.
 """
 from __future__ import annotations
 
@@ -207,6 +202,8 @@ def _source_boundary(spec: dict) -> dict:
         raise ValueError("model_spec.source_boundary must pin pull-data-only snapshots, tables and originals")
     if boundary.get("mode") != "pull-data-only":
         raise ValueError("model_spec.source_boundary.mode must be pull-data-only")
+    if "documents" in boundary or "manifest_sha256" in boundary:
+        raise ValueError("pull-data-only source_boundary cannot include supplied-files-only pins")
     if not isinstance(boundary.get("root"), str) or not boundary["root"]:
         raise ValueError("model_spec.source_boundary.root is required")
     for key in ("snapshots", "tables", "originals"):
@@ -861,7 +858,19 @@ def _same_value(actual: str, expected: Optional[float]) -> bool:
 def replay_frozen_evidence(spec: dict, actual_rows: list[dict[str, str]],
                            benchmark_rows: Optional[list[dict[str, str]]] = None,
                            fact_map: Optional[list[FactMapping]] = None) -> dict[str, int]:
-    """Replay every populated actual and benchmark against the strictly pinned pull boundary."""
+    """Replay frozen evidence through exactly the selected, exclusive source boundary."""
+    boundary = spec.get("source_boundary") or {}
+    mode = boundary.get("mode")
+    # Dispatch before resolving a pull-store root or importing financial_data_pull. This is
+    # the trust boundary: supplied-files-only cannot fall through to held cache/network data.
+    if mode == "supplied-files-only":
+        try:
+            from .supplied_evidence import replay_supplied_evidence
+        except ImportError:  # direct script invocation
+            from supplied_evidence import replay_supplied_evidence
+        return replay_supplied_evidence(spec, actual_rows, benchmark_rows)
+    if mode != "pull-data-only":
+        raise ValueError(f"unsupported evidence source mode: {mode!r}")
     try:
         root, tables, originals = _verify_boundary(spec)
     except ValueError as exc:
@@ -1109,6 +1118,44 @@ def build_availability(actuals: list[ResolvedFact], metrics: list[str], periods:
             cells.append("✓" if r and r.value is not None else "unavailable")
         lines.append(f"| {m} | " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
+
+
+def prepare_evidence(spec: dict, *, supplied_folder: Optional[Path] = None,
+                     supplied_destination: Optional[Path] = None,
+                     designation: Optional[dict] = None,
+                     fact_map: Optional[list[FactMapping]] = None,
+                     periods: Optional[list[str]] = None,
+                     output_dir: Optional[Path] = None) -> dict:
+    """Prepare one exclusive evidence mode; dispatch before any pull-store access.
+
+    Supplied mode takes a user-designated folder and review manifest. Pull mode retains
+    the existing fact-map resolver and requires its normal selected-store specification.
+    """
+    boundary = spec.get("source_boundary") or {}
+    mode = boundary.get("mode")
+    if mode == "supplied-files-only":
+        if supplied_folder is None or supplied_destination is None or designation is None:
+            raise ValueError("supplied-files-only preparation requires folder, destination and designation")
+        try:
+            from .supplied_evidence import prepare_supplied_pack
+        except ImportError:  # direct script invocation
+            from supplied_evidence import prepare_supplied_pack
+        manifest = prepare_supplied_pack(supplied_folder, supplied_destination, designation)
+        manifest_path = Path(supplied_destination) / "supplied_evidence.json"
+        return {"source_boundary": {"mode": "supplied-files-only",
+                "root": str(Path(supplied_destination).resolve()),
+                "manifest_sha256": _sha256(manifest_path)},
+                "verification_coverage": manifest["verification_coverage"],
+                "gaps": manifest["gaps"]}
+    if mode != "pull-data-only":
+        raise ValueError(f"unsupported evidence source mode: {mode!r}")
+    if fact_map is None or periods is None or output_dir is None:
+        raise ValueError("pull-data-only preparation requires fact_map, periods and output_dir")
+    actuals = build_actuals(fact_map, spec, periods)
+    freeze(actuals, output_dir)
+    return {"source_boundary": boundary,
+            "verification_coverage": {"accepted_facts": sum(row.value is not None for row in actuals),
+                                       "unavailable_facts": sum(row.value is None for row in actuals)}}
 
 
 def freeze(actuals: list[ResolvedFact], out_dir: Path) -> None:
