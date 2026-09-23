@@ -119,12 +119,12 @@ cp "$SCRIPT_DIR/home/open-tui.json" "$HOME/.pi/agent/open-tui.json" \
 cp "$SCRIPT_DIR/home/pi-btw.json" "$HOME/.pi/agent/pi-btw.json" \
   && echo "    pi-btw.json  installed"
 
-# Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
+# Ponytail default mode (off = opt-in per session via /ponytail).
 # Repo copy is the source of truth; Pi's /ponytail default command also writes
 # ~/.config/ponytail/config.json on this machine.
 mkdir -p "$HOME/.config/ponytail"
 cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
-  && echo "    ponytail.json  installed (defaultMode lite)"
+  && echo "    ponytail.json  installed (defaultMode off)"
 
 # Seed ~/.pi/agent/AGENTS.md from the sanitized repo copy. Only when absent — never clobber
 # local-only sections like VPS access details.

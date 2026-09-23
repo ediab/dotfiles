@@ -18,7 +18,7 @@ ssh "$VPS_HOST" 'cp ~/.pi/agent/settings.json ~/.pi/agent/settings.json.pre-depl
 rsync -az "$PI_DIR/settings.json" "$VPS_HOST:~/.pi/agent/settings.json"
 rsync -az "$PI_DIR/auth.json" "$VPS_HOST:~/.pi/agent/auth.json"
 ssh "$VPS_HOST" 'chmod 600 ~/.pi/agent/auth.json'
-# Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
+# Ponytail default mode (off = opt-in per session via /ponytail).
 # Deploys the repo copy so fresh machines get the same default; mirrors it as
 # the live file (the same file Pi's /ponytail default command writes).
 ssh "$VPS_HOST" 'mkdir -p ~/.config/ponytail'

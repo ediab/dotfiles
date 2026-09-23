@@ -94,14 +94,14 @@ cp "$SCRIPT_DIR/home/open-tui.json" "$HOME/.pi/agent/open-tui.json" \
 cp "$SCRIPT_DIR/home/pi-btw.json" "$HOME/.pi/agent/pi-btw.json" \
   && echo "    pi-btw.json  re-synced"
 
-# Ponytail default mode (lite = active on coding tasks, names the lazier alternative).
+# Ponytail default mode (off = opt-in per session via /ponytail).
 # Repo copy is the source of truth — matches the live file written by
 # Pi's /ponytail default command (~/.config/ponytail/config.json).
 # diff first so rebuild --sync-only stays quiet when nothing changed.
 if ! diff -q "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" &>/dev/null; then
   mkdir -p "$HOME/.config/ponytail"
   cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
-    && echo "    ponytail.json  re-synced (defaultMode lite)"
+    && echo "    ponytail.json  re-synced (defaultMode off)"
 fi
 
 # Subagent model router (Jev-judged tier chains + per-agent floors). Repo copy is
