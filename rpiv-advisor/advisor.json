@@ -1,15 +1,24 @@
 {
-  "modelKey": "openai-codex/gpt-5.6-sol",
-  "effort": "medium",
+  "modelKey": "openai-codex/gpt-6-astra",
+  "effort": "low",
   "disabledForModels": [
     "openai-codex/gpt-6-astra",
     "openai-codex/gpt-5.6-sol",
-    { "model": "openai-codex/gpt-5.6-terra", "minEffort": "high" },
+    {
+      "model": "openai-codex/gpt-5.6-terra",
+      "minEffort": "high"
+    },
     "opencode-go/glm-5.3",
     "opencode-go/grok-4.6",
     "opencode-go/kimi-k3",
-    { "model": "opencode-go/qwen3.8-max", "minEffort": "high" },
-    { "model": "commandcode/claude-sonnet-5", "minEffort": "high" },
+    {
+      "model": "opencode-go/qwen3.8-max",
+      "minEffort": "high"
+    },
+    {
+      "model": "commandcode/claude-sonnet-5",
+      "minEffort": "high"
+    },
     "anthropic/claude-fable-5"
   ],
   "guidance": {
