@@ -8,7 +8,9 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings. In pi, launch both `reviewer` profiles with two `Agent` calls in one message (foreground, so both results come back together); they count as two leaf agents toward the owner's delegation cap.
+
+Spec-compass find: this skill's two subagents are the one pre-authorized review delegation — running this skill is enough to spawn them, no extra "use a reviewer subagent" request needed (per personal-workflow).
 
 The issue tracker should have been provided to you (e.g. `docs/agents/issue-tracker.md`). If it's missing and no spec path or tracker doc exists, ask the user where the spec lives; if there is none, the **Spec** axis will skip and report "no spec available".
 
@@ -57,13 +59,13 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 ### 4. Spawn both sub-agents in parallel
 
-**Standards sub-agent prompt** should include:
+**Standards sub-agent** runs as a `reviewer` subagent with `inherit_context: false`. Its prompt should include:
 
 - The full diff command and commit list.
 - The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the sub-agent has no other access to it).
 - The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls: documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
 
-**Spec sub-agent prompt** should include:
+**Spec sub-agent** is also a `reviewer` subagent with `inherit_context: false`. Its prompt should include:
 
 - The diff command and commit list.
 - The path or fetched contents of the spec.

@@ -10,6 +10,6 @@ Use TDD where possible, at pre-agreed seams — for the loop rules, what makes a
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
-Once done, review the work yourself as the owner (personal-workflow's substantial-change rule: re-read the changeset against the agreed intent and acceptance examples, state what was checked); a fresh `reviewer` subagent only when the user requests review delegation or the change is hard to reverse.
+Once done, review the work per the owner's rules in `../../personal-workflow/SKILL.md` (substantial-change review; a fresh `reviewer` subagent only when the user requests review delegation or the change is hard to reverse). For a structured two-axis pass, run `/skill:code-review` — its two parallel review subagents are pre-authorized by that skill itself.
 
 Commit your work to the current branch. Push, deploy, branch, or open PRs only when requested.
