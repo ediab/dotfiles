@@ -27,6 +27,10 @@ deliberately not copied (repo-wide removal — pi has no use for them).
 | `tdd/` | `skills/engineering/tdd/SKILL.md`, `tests.md`, `mocking.md` | `codebase-design` Skill-tool call replaced with a pointer to the upstream skill (not imported). |
 | `domain-modeling/` | `skills/engineering/domain-modeling/SKILL.md`, `ADR-FORMAT.md`, `CONTEXT-FORMAT.md` | None — verbatim copies. |
 | `grill-with-docs/` | `skills/engineering/grill-with-docs/SKILL.md` | Upstream's two Skill-tool calls replaced with relative reads of `../grilling/SKILL.md` and `../domain-modeling/SKILL.md` (same adaptation as `grill-me`). |
+| `ask-matt/` | `skills/engineering/ask-matt/SKILL.md`, `PHASE-BOUNDARIES.md` | Claude Code specifics localized: `/clear` noted as pi's fresh-session equivalent; `/tdd`-invocation wording genericized; `/research` described as pi's `researcher` subagent; `/setup-matt-pocock-skills` precondition removed (this install is local-files only; doc paths stated instead). |
+| `wayfinder/` | `skills/engineering/wayfinder/SKILL.md` | Local-markdown tracker only: map at `.scratch/<feature-slug>/map.md`, tickets as files under `tickets/` with `Status:`/`Blocked by:` front matter replacing tracker issues/labels/assignees; `setup-matt-pocock-skills` dependency removed; Skill-tool calls → relative reads or `researcher` subagents; `disable-model-invocation: true` added (upstream has it via agents/openai.yaml only). |
+| `prototype/` | `skills/engineering/prototype/SKILL.md`, `LOGIC.md`, `UI.md` | None — verbatim copies. |
+| `code-review/` | `skills/engineering/code-review/SKILL.md` | `setup-matt-pocock-skills` tracker note softened to a generic ask (pi installs carry no tracker doc). Parallel two-sub-agent structure kept (pi supports parallel background agents); protocol wording ("Skill tool") not present upstream in this file. |
 
 ## excel
 
