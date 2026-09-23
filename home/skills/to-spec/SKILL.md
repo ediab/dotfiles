@@ -1,5 +1,5 @@
 ---
-name: plan
+name: to-spec
 description: Turn the current conversation into a spec and save it under the project's docs directory. No interview; just synthesis of what has already been discussed.
 disable-model-invocation: true
 ---

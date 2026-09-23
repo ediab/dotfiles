@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Main-agent-owned fan-out for approved execution or research across 2-5 workstreams. Use when the main agent will decompose, delegate to worker/explorer/researcher/reviewer, verify, and synthesize inline. Not for planning-only requests (user-invoked /skill:plan).
+description: Main-agent-owned fan-out for approved execution or research across 2-5 workstreams. Use when the main agent will decompose, delegate to worker/explorer/researcher/reviewer, verify, and synthesize inline. Not for planning-only requests (user-invoked /skill:to-spec).
 ---
 
 # Orchestrate
@@ -9,7 +9,7 @@ Invoke as `/skill:orchestrate`. The main agent owns decomposition, delegation, v
 
 ## 1. Decide whether to delegate
 
-Delegate only when at least two independently useful tasks exist, each briefable with clear outputs, and delegation saves time or context. Otherwise work inline. Handle trivial or indivisible tasks directly; leave planning-only requests to the user-invoked `/skill:plan`. Never convert a plan request into implementation. Unapproved product or architecture decisions return to the user before any writer dispatches.
+Delegate only when at least two independently useful tasks exist, each briefable with clear outputs, and delegation saves time or context. Otherwise work inline. Handle trivial or indivisible tasks directly; leave planning-only requests to the user-invoked `/skill:to-spec`. Never convert a plan request into implementation. Unapproved product or architecture decisions return to the user before any writer dispatches.
 
 ## 2. Decompose and brief
 
