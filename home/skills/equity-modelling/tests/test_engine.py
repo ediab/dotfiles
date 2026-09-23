@@ -157,6 +157,16 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(workbook["Analysis"]["B7"].value, "Alpha Metric")
         self.assertEqual(workbook["Analysis"]["B8"].value, "Zebra Metric")
 
+    def test_legacy_renderer_keeps_quarter_only_output_when_year_is_complete(self):
+        spec = dict(SPEC, periods={"historical_quarters": ["2025Q1", "2025Q2", "2025Q3", "2025Q4", "2026Q1"],
+                                  "forecast_quarters": ["2026Q2", "2026Q3"]},
+                    workbook={"sheets": ["SourceData", "Drivers", "Analysis"]})
+        context = build_workbook(spec, ACTUALS, [DRIVER], AnalysisCompany())
+        self.assertEqual(context.periods.annual_periods, ("FY2025A",))
+        self.assertEqual(context.workbook["Analysis"]["I6"].value, "Q3 2026E")
+        self.assertIsNone(context.workbook["Analysis"]["J6"].value,
+                          "legacy workbook rendering must not gain annual columns")
+
     def test_company_rows_must_exactly_cover_declared_company_sheets(self):
         spec = dict(SPEC, workbook={"sheets": ["SourceData", "Drivers", "Analysis"]})
         with self.assertRaisesRegex(EngineError, "exactly match"):

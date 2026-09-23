@@ -259,21 +259,22 @@ def _row_parts(metric: str, row: Any, sheet: str):
 
 def _write_module_rows(ws, rows: Mapping[str, Any], grid: PeriodGrid,
                        references: KeyedReferences, forecast_active: bool,
-                       legacy_order: bool = False) -> None:
+                       legacy_order: bool = False, include_annuals: bool = True) -> None:
     """Render keyed company rows; optional `_meta` supplies label, format, section and order."""
     if not isinstance(rows, Mapping):
         raise EngineError(f"{ws.title} module output must be a metric-keyed mapping")
+    render_periods = grid.display_periods if include_annuals else grid.periods
     base(ws, ws.title, "Company formulas use metric-keyed defined names only.",
-         last_col=max(3, 2 + len(grid.periods)), first_width=34, backlink_text=None)
+         last_col=max(3, 2 + len(render_periods)), first_width=34, backlink_text=None)
     header(ws, 6, 2, "Metric")
-    for period in grid.periods:
-        header(ws, 6, grid.columns[period], labels([period])[0], forecast=period.endswith("E"))
+    for period in render_periods:
+        header(ws, 6, grid.display_columns[period], labels([period])[0], forecast=period.endswith("E"))
     prepared = []
     for insertion_order, (metric, raw_row) in enumerate(rows.items()):
         if not isinstance(metric, str) or not metric:
             raise EngineError(f"{ws.title} output rows must have non-empty metric ids")
         values, metadata = _row_parts(metric, raw_row, ws.title)
-        unknown = set(values) - set(grid.periods)
+        unknown = set(values) - set(render_periods)
         if unknown:
             raise EngineError(f"{ws.title} {metric} has unknown periods {sorted(unknown)}")
         order = metadata.get("order", insertion_order)
@@ -290,7 +291,7 @@ def _write_module_rows(ws, rows: Mapping[str, Any], grid: PeriodGrid,
         section = metadata.get("section")
         if section and section != previous_section:
             label(ws, row_number, str(section), bold=True)
-            for column in range(2, 3 + len(grid.periods)):
+            for column in range(2, 3 + len(render_periods)):
                 ws.cell(row=row_number, column=column).fill = PatternFill("solid", fgColor="D9E1F2")
             row_number += 1
         previous_section = section
@@ -298,15 +299,15 @@ def _write_module_rows(ws, rows: Mapping[str, Any], grid: PeriodGrid,
         row_number += 1
         label(ws, row, str(metadata.get("label", _human_label(metric))))
         fmt = SEMANTIC_FORMATS[metadata.get("format", "money")]
-        for period in grid.periods:
+        for period in render_periods:
             proposed_value = values.get(period)
             if isinstance(proposed_value, str) and proposed_value.startswith("=") and "!" in proposed_value:
                 raise EngineError(f"{ws.title} {metric} {period} uses a positional cross-sheet formula")
             value = proposed_value if (not period.endswith("E") or forecast_active) else None
             kind = "formula" if isinstance(value, str) and value.startswith("=") else \
                 ("missing" if value is None else "hardcode")
-            put(ws, row, grid.columns[period], value, kind, fmt)
-            references.bind(f"model.{ws.title}.{metric}.{period}", ws.title, row, grid.columns[period])
+            put(ws, row, grid.display_columns[period], value, kind, fmt)
+            references.bind(f"model.{ws.title}.{metric}.{period}", ws.title, row, grid.display_columns[period])
 
 
 def _write_inputs(ws, drivers: Iterable[Mapping[str, Any]], active,
@@ -379,5 +380,6 @@ def build_workbook(spec: Mapping[str, Any], actuals: Iterable[Mapping[str, Any]]
     for sheet in sheets:
         if sheet in company_sheets:
             _write_module_rows(workbook[sheet], module_rows[sheet], grid, references,
-                               forecast_active, legacy_order=not nine_sheet_mode)
+                               forecast_active, legacy_order=not nine_sheet_mode,
+                               include_annuals=nine_sheet_mode)
     return BuildContext(workbook, grid, references, actual_map, active, module_rows)

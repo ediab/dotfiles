@@ -25,6 +25,29 @@ class PeriodGridTests(unittest.TestCase):
         with self.assertRaises(GridError):
             grid.annual_members("FY2026E")
 
+    def test_annual_columns_follow_quarters_and_require_complete_fiscal_year(self):
+        grid = PeriodGrid(("2024Q1", "2024Q2", "2024Q3", "2024Q4",
+                           "2025Q1", "2025Q2", "2025Q3"), ("2025Q4E",))
+        self.assertEqual(grid.annual_periods, ("FY2024A", "FY2025E"))
+        self.assertEqual(grid.annual_members("FY2025E"),
+                         ("2025Q1", "2025Q2", "2025Q3", "2025Q4E"))
+        self.assertEqual(grid.annual_columns["FY2024A"], grid.first_column + len(grid.periods))
+        self.assertNotIn("FY2024A", grid.columns)
+        self.assertIn("FY2024A", grid.display_columns)
+        self.assertEqual(grid.display_periods[-2:], ("FY2024A", "FY2025E"))
+        self.assertEqual(labels(("2025Q4E", "FY2025E")), ["Q4 2025E", "FY 2025E"])
+        incomplete = PeriodGrid(("2025Q1", "2025Q2", "2025Q4"), ())
+        self.assertEqual(incomplete.annual_periods, ())
+
+    def test_fiscal_comparison_keys_do_not_depend_on_calendar_dates(self):
+        # Fiscal year 2025's Q1 need not be a calendar Q1; keys define comparability.
+        grid = PeriodGrid(("2024Q4", "2025Q1", "2025Q2", "2026Q1"), ())
+        self.assertEqual(grid.comparable_period("2025Q1", quarters_back=1), "2024Q4")
+        self.assertEqual(grid.comparable_period("2026Q1", years_back=1), "2025Q1")
+        self.assertIsNone(grid.comparable_period("2025Q1", years_back=1))
+        self.assertEqual(grid.comparison_period("2026Q1", years_back=2), "2024Q1")
+        self.assertIsNone(grid.comparable_period("2026Q1", years_back=2))
+
     def test_actual_and_forecast_periods_cannot_be_misclassified_or_duplicated(self):
         with self.assertRaises(GridError):
             PeriodGrid(("2025Q1E",), ())

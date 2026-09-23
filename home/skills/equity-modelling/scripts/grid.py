@@ -56,10 +56,12 @@ class PeriodGrid:
 
     @property
     def columns(self) -> dict[str, int]:
+        """Quarter columns, preserving the original grid interface."""
         return {period: self.first_column + index for index, period in enumerate(self.periods)}
 
     @property
     def annual_periods(self) -> tuple[str, ...]:
+        """Complete fiscal years represented by all four canonical fiscal quarters."""
         complete: list[str] = []
         for year in sorted({_period_parts(period)[0] for period in self.periods}):
             year_periods = [period for period in self.periods if _period_parts(period)[0] == year]
@@ -67,15 +69,58 @@ class PeriodGrid:
                 complete.append(f"FY{year}{'E' if any(_period_parts(p)[2] for p in year_periods) else 'A'}")
         return tuple(complete)
 
+    @property
+    def display_periods(self) -> tuple[str, ...]:
+        """Quarter columns followed by complete annual columns."""
+        return self.periods + self.annual_periods
+
+    @property
+    def annual_columns(self) -> dict[str, int]:
+        start = self.first_column + len(self.periods)
+        return {period: start + index for index, period in enumerate(self.annual_periods)}
+
+    @property
+    def display_columns(self) -> dict[str, int]:
+        """Quarter and annual workbook columns, with annuals after all quarters."""
+        return {**self.columns, **self.annual_columns}
+
     def annual_members(self, annual_period: str) -> tuple[str, ...]:
         match = re.fullmatch(r"FY(\d{4})([AE])", annual_period)
         if not match:
             raise GridError(f"invalid annual period {annual_period!r}")
+        if annual_period not in self.annual_periods:
+            raise GridError(f"{annual_period} is not a complete fiscal year in this grid")
         year = int(match[1])
-        members = tuple(period for period in self.periods if _period_parts(period)[0] == year)
-        if len(members) != 4:
+        members = {(_period_parts(period)[1]): period for period in self.periods
+                   if _period_parts(period)[0] == year}
+        if set(members) != {1, 2, 3, 4}:
             raise GridError(f"{annual_period} has no four-quarter model group")
-        return members
+        return tuple(members[quarter] for quarter in range(1, 5))
+
+    @staticmethod
+    def comparison_period(period: str, *, years_back: int = 0,
+                          quarters_back: int = 0) -> str:
+        """Return a canonical fiscal comparison key, without calendar-date arithmetic.
+
+        `years_back=1` selects the same fiscal quarter last year. `quarters_back=1`
+        selects the preceding fiscal quarter, including a fiscal-year boundary.
+        The caller decides whether that key exists in this model's available periods.
+        """
+        year, quarter, estimate = _period_parts(period)
+        if estimate:
+            raise GridError("comparison keys must be fiscal quarters, not annual estimates")
+        if years_back < 0 or quarters_back < 0:
+            raise GridError("comparison offsets must be non-negative")
+        ordinal = year * 4 + quarter - 1 - years_back * 4 - quarters_back
+        compare_year, compare_quarter_index = divmod(ordinal, 4)
+        return f"{compare_year}Q{compare_quarter_index + 1}"
+
+    def comparable_period(self, period: str, *, years_back: int = 0,
+                          quarters_back: int = 0) -> str | None:
+        """Return a comparison key only when that fiscal quarter is in this grid."""
+        key = self.comparison_period(period, years_back=years_back,
+                                    quarters_back=quarters_back)
+        return key if key in self.periods else None
 
 
 class KeyedReferences:
@@ -118,9 +163,13 @@ class KeyedReferences:
 
 
 def labels(periods: Iterable[str]) -> list[str]:
-    """Render canonical periods as `Qn YYYY A/E` labels for workbook headings."""
+    """Render fiscal quarter and annual keys as readable workbook headings."""
     rendered = []
     for period in periods:
+        annual = re.fullmatch(r"FY(\d{4})([AE])", period)
+        if annual:
+            rendered.append(f"FY {annual[1]}{annual[2]}")
+            continue
         year, quarter, estimate = _period_parts(period)
         rendered.append(f"Q{quarter} {year}{'E' if estimate else 'A'}")
     return rendered

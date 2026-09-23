@@ -9,7 +9,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "scripts"))
 sys.path.insert(0, str(HERE))
 from engine import EngineError, build_workbook  # noqa: E402
-from nine_sheet_fixture import NINE_SHEET_ORDER, synthetic_project  # noqa: E402
+from nine_sheet_fixture import NINE_SHEET_ORDER, fiscal_annual_project, synthetic_project  # noqa: E402
 
 
 class NineSheetWorkbookTests(unittest.TestCase):
@@ -44,6 +44,48 @@ class NineSheetWorkbookTests(unittest.TestCase):
         self.assertIn("Unavailable (not supplied)",
                       workbook["Consensus"]["B7"].value)
         self.assertIn("actual.diluted_shares.2026Q1", context.references._names)
+
+    def test_fiscal_trends_and_annual_formulas_use_company_owned_keyed_periods(self):
+        spec, actuals, drivers, company = fiscal_annual_project()
+        context = build_workbook(spec, actuals, drivers, company)
+        grid = context.periods
+        self.assertEqual(grid.annual_periods,
+                         ("FY2024A", "FY2025A", "FY2026E", "FY2027E"))
+        ws = context.workbook["Operating Model"]
+        self.assertEqual(ws.cell(6, grid.display_columns["2025Q1"]).value, "Q1 2025A")
+        self.assertEqual(ws.cell(6, grid.display_columns["FY2025A"]).value, "FY 2025A")
+        self.assertEqual(ws.cell(8, grid.display_columns["2025Q2"]).value,
+                         '=IF(OR(em_model_Operating_Model_revenue_2025Q2="",em_model_Operating_Model_revenue_2024Q2="",em_model_Operating_Model_revenue_2025Q2<=0,em_model_Operating_Model_revenue_2024Q2<=0),"",em_model_Operating_Model_revenue_2025Q2/em_model_Operating_Model_revenue_2024Q2-1)')
+        self.assertEqual(ws.cell(9, grid.display_columns["2026Q1"]).value,
+                         '=IF(OR(em_model_Operating_Model_revenue_2026Q1="",em_model_Operating_Model_revenue_2025Q4="",em_model_Operating_Model_revenue_2026Q1<=0,em_model_Operating_Model_revenue_2025Q4<=0),"",em_model_Operating_Model_revenue_2026Q1/em_model_Operating_Model_revenue_2025Q4-1)')
+        self.assertEqual(ws.cell(10, grid.display_columns["2026Q1"]).value,
+                         '=IF(OR(em_model_Operating_Model_revenue_2026Q1="",em_model_Operating_Model_revenue_2024Q1="",em_model_Operating_Model_revenue_2026Q1<=0,em_model_Operating_Model_revenue_2024Q1<=0),"",em_model_Operating_Model_revenue_2026Q1/em_model_Operating_Model_revenue_2024Q1-1)')
+        self.assertEqual(ws.cell(13, grid.display_columns["2025Q1"]).value,
+                         '=IF(OR(em_actual_operating_profit_2025Q1="",em_actual_revenue_2025Q1="",em_actual_revenue_2025Q1<=0,em_actual_operating_profit_2024Q1="",em_actual_revenue_2024Q1="",em_actual_revenue_2024Q1<=0),"",(em_actual_operating_profit_2025Q1/em_actual_revenue_2025Q1-em_actual_operating_profit_2024Q1/em_actual_revenue_2024Q1)*100)')
+        self.assertEqual(ws.cell(14, grid.display_columns["2025Q1"]).value,
+                         '=IF(OR(em_actual_operating_profit_2025Q1="",em_actual_revenue_2025Q1="",em_actual_revenue_2025Q1<=0,em_actual_operating_profit_2024Q4="",em_actual_revenue_2024Q4="",em_actual_revenue_2024Q4<=0),"",(em_actual_operating_profit_2025Q1/em_actual_revenue_2025Q1-em_actual_operating_profit_2024Q4/em_actual_revenue_2024Q4)*100)')
+        self.assertEqual(ws.cell(7, grid.display_columns["FY2024A"]).value,
+                         '=IF(COUNT(em_model_Operating_Model_revenue_2024Q1,em_model_Operating_Model_revenue_2024Q2,em_model_Operating_Model_revenue_2024Q3,em_model_Operating_Model_revenue_2024Q4)<>4,"",SUM(em_model_Operating_Model_revenue_2024Q1,em_model_Operating_Model_revenue_2024Q2,em_model_Operating_Model_revenue_2024Q3,em_model_Operating_Model_revenue_2024Q4))')
+        self.assertEqual(ws.cell(13, grid.display_columns["FY2025A"]).value,
+                         '=IF(OR(em_model_Operating_Model_operating_margin_FY2025A="",em_model_Operating_Model_operating_margin_FY2024A=""),"",(em_model_Operating_Model_operating_margin_FY2025A-em_model_Operating_Model_operating_margin_FY2024A)*100)')
+        self.assertIsNone(ws.cell(9, grid.display_columns["FY2025A"]).value,
+                          "annual periods have no QoQ comparison")
+        self.assertEqual(ws.cell(17, grid.display_columns["FY2025A"]).value,
+                         '=IF(OR(em_model_Operating_Model_net_income_FY2025A="",em_model_Operating_Model_diluted_shares_FY2025A="",em_model_Operating_Model_diluted_shares_FY2025A<=0),"",em_model_Operating_Model_net_income_FY2025A/em_model_Operating_Model_diluted_shares_FY2025A)')
+        self.assertEqual(ws.cell(15, grid.display_columns["FY2025A"]).value[:9], '=IF(COUNT')
+        self.assertEqual(context.workbook["Financial Statements"].cell(
+            7, grid.display_columns["FY2025A"]).value, '=IF(em_actual_cash_2025Q4="","",em_actual_cash_2025Q4)')
+        self.assertIsNone(ws.cell(7, grid.display_columns["FY2026E"]).value,
+                          "unapproved forecast-derived annuals stay blank")
+        # Independent expected results for later native recalculation: FY2024 Revenue=400;
+        # FY2025 Revenue=435, Net Income=43.5, average diluted shares=10, EPS=4.35,
+        # and Q4 Cash=54. The growth acceptance examples are 25% and compounded 32%.
+        self.assertEqual(sum((100.0, 100.0, 100.0, 100.0)), 400.0)
+        self.assertEqual(sum((110.0, 125.0, 100.0, 100.0)), 435.0)
+        self.assertAlmostEqual(43.5 / 10.0, 4.35)
+        self.assertEqual(50.0 + 4, 54.0)
+        self.assertAlmostEqual(125 / 100 - 1, 0.25)
+        self.assertAlmostEqual(132 / 100 - 1, 0.32)
 
     def test_inputs_show_proposals_but_all_eight_forecast_periods_are_inactive(self):
         context = self.build()

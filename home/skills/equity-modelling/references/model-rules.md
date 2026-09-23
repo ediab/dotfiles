@@ -39,8 +39,8 @@ exactly those sheets. The legacy renderer requires engine-owned `SourceData` and
 remaining sheets supplied by the company module. The thin nine-sheet renderer also supports the
 agreed order `Outlook`, `Operating Model`, `Bridge Model`, `Financial Statements`, `Valuation`,
 `Inputs`, `Consensus`, `SourceData`, `Checks`: it owns `SourceData` and `Inputs`, while the company
-module supplies the other seven sheets. This renderer path requires eight forecast quarters and is
-not yet a fully integrated prepared-project CLI/check contract.
+module supplies the other seven sheets. This renderer path requires eight forecast quarters and
+supports prepared-project build/check; a thin synthetic proof is not a release-ready company model.
 
 In the nine-sheet path, company rows remain keyed by internal metric IDs and fiscal periods.
 Optional row metadata may set a readable label, semantic number format, section and display order;
@@ -63,15 +63,23 @@ is immutable; deliver each run to a new dated filename.
 
 ### Periods and presentation
 
-- Show actual and forecast quarters with explicit `A`/`E` labels and a clear divider.
-- Forecast eight quarters and derive annual periods on the same model sheets.
-- Use the company's fiscal calendar, including 52/53-week effects where disclosed.
+- Show actual and forecast quarters with explicit `A`/`E` labels and a clear divider. Canonical
+  quarter keys identify the company's fiscal year and fiscal quarter (for example, `2025Q1` is that
+  company's Q1, not necessarily calendar Q1); use these keys for comparisons rather than deriving
+  periods from calendar dates.
+- Forecast eight quarters. Add annual columns only for fiscal years represented by all four quarter
+  keys, after the quarterly columns; company modules supply the annual formulas through the same
+  keyed period interface. The grid places periods but does not calculate financial results.
 - Sum quarterly flows into an annual only when all four fiscal quarters are present; use
-  fiscal-year-end stocks for annual balance-sheet values; recompute annual ratios and per-share
-  values from the stated annual inputs, never by summing quarterly EPS. Keep published annual
-  figures visible as a cross-check.
-- Show a YoY row beneath each material quarterly level. Add a two-year stack or QoQ only where it is
-  economically informative.
+  fiscal-year-end stocks for annual balance-sheet values; recompute ratios and per-share values from
+  annual components, never by summing quarterly EPS. Keep published annual figures visible as a
+  cross-check. Show annual YoY where comparable; do not show annual QoQ.
+- For meaningful quarterly levels, company modules place level → YoY → QoQ rows together; an
+  optional compounded two-year stack is current level / same fiscal quarter two years earlier − 1.
+  Growth requires present, positive current and comparison levels; absent, zero, negative, or
+  otherwise unsuitable bases stay blank. Margins and other rates use percentage-point differences
+  rather than percentage growth. These financial formulas belong to the company module, not the
+  shared period grid or a generic finance engine.
 - Keep the style compact: restrained palette, semantic number formats, frozen headings, fitted
   columns, one input colour with a legend. Follow the `excel` skill's financial-model conventions.
 
