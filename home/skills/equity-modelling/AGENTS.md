@@ -32,8 +32,10 @@ A contract lives in exactly one file. Everything else links to it.
   Only reusable workflow and validation rules belong here.
 - Do not add sector templates, dashboards, or automatic web-data ingestion.
 - A data-driven engine **is** wanted (V2 §12.1); a formula DSL or a database is not.
-- `company-model` is the donor skill and stays in place until V2 Stage 6. Do not rename or overwrite
-  it; port from it rather than recreating equivalents.
+- `company-model` was the donor skill and is **archived** (2026-09-22) at
+  `~/Downloads/archive/company-model-2026-09-22/` — repo copy under `pi-dotfiles-home-skills/`, VPS
+  copy at `~/archive/company-model-2026-09-22`. Treat it as reference-only: port from the archive
+  rather than recreating equivalents, and do not reinstall it under `home/skills/`.
 - Keep `SKILL.md`'s runtime contract and the shipped files in `scripts/` consistent — change them
   together. `scripts/cli.py` is the prepared-project build/check/driver-rollover runtime; it does not
   ingest raw sources, render, or recalculate.
