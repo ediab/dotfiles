@@ -23,14 +23,27 @@ Worker implements approved edits; explorer locates code (quick/medium/very-thoro
 
 Launch independent `Agent` calls in one message for real concurrency; respect dependencies. Prefer foreground calls when results gate the next step. Set background/foreground intentionally; main-session detached calls follow the main tool's notification rules. Use `SubagentWorkflow` only after explicit user opt-in to orchestration (including invoking `/skill:orchestrate`); automatic skill discovery alone is not consent. Prefer plain `Agent` calls for a handful of named tasks; for a justified workflow prefer `pipeline()`, pass an explicit existing `agentType` (workflows default to general-purpose), never pass `model` or `effort` overrides alongside `agentType` unless the user explicitly names a model — no profile sets a model, subagents inherit the parent model, and workflow dispatch applies no `inherit_context` pins — and keep at most 4 active children across all stages via bounded batches of at most four item pipelines, with at most one child active per item. Do not run additional fan-out alongside a workflow if it would exceed that task-wide cap. Workflows must not dispatch orchestrators or specialists that spawn their own children — this is policy, not a package-enforced restriction. One writer per file at a time; shared files need serialization and explicit ownership transfer. Disjoint ownership on the current checkout by default; worktrees auto-commit and miss uncommitted changes, so avoid them without Git authorization.
 
-## 5. Verify, review, recover
+## 5. Ticket-graph execution
+
+When given a set of implementation tickets (as written by `/skill:to-tickets`: one file per ticket under `.scratch/<feature-slug>/issues/`, each declaring "Blocked by"):
+
+* Read all ticket dependency metadata before dispatching.
+* Treat the tickets as a DAG. Repeatedly compute the ready frontier: incomplete tickets whose blockers are all complete.
+* Dispatch only ready tickets. Run independent tickets in the same frontier concurrently, subject to the cap in §2 (at most 4 active leaves).
+* When a ticket completes and its changes are verified per §6, mark its ticket file's Status accordingly and recompute the frontier; dispatch newly unblocked tickets.
+* Use a fresh worker for every ticket (dispatched with `inherit_context: false` per §7); never resume a worker onto another ticket.
+* Each worker owns its ticket end-to-end: inspect, implement, test, correct, and report. Do not split one ticket across agents.
+* If the user specifies a model for ticket execution, use that model for each ticket worker where the dispatch mechanism permits it. Otherwise follow the normal rules in §7 (inherit the parent model, no overrides).
+* A failed or incomplete blocking ticket prevents dependent tickets from being dispatched; report the blocker rather than re-routing it.
+
+## 6. Verify, review, recover
 
 Inspect actual changes and validation evidence, not summaries. One targeted retry or follow-up per workstream by default; continue only when new evidence makes another attempt justified. If a dispatch fails, report the blocker rather than re-routing to another model; after code review allow one bounded correction pass plus one re-review. If checks still fail or a decision remains unresolved, report incomplete rather than looping. Resolve conflicting outputs against actual files/sources and the approved scope; escalate unapproved decisions to the user. Review non-trivial implementations inline by default; delegate review only on explicit review-agent consent ("use a reviewer subagent"). Ordinary review requests, generic subagent permission, invoking this skill or any workflow, and a substantial changeset are not review-delegation consent. Exception: `/skill:code-review` explicitly structures its review as two parallel review subagents (Standards + Spec), so running that skill is consent for its own two review children only — they still count toward the 4-leaf cap, and any further fan-out on top must fit within it. An authorized reviewer gets intent, exact changed paths, and a scoped diff/base.
 
-## 6. Respect precedence and boundaries
+## 7. Respect precedence and boundaries
 
 On `Agent` calls, profile frontmatter is authoritative for thinking — pass only what the profile leaves unset (check the profile file), and never override a profile pin. No profile sets a model: subagents inherit the parent model, and never pass `model`/`effort` overrides unless the user explicitly names one. Worker context is the one caller-owned choice: `worker` inherits the full conversation by default; dispatch it fresh (`inherit_context: false`) when the brief is self-contained, inherit when correctness depends on prior discussion. Fresh reviewer calls use `inherit_context: false`. Select profiles by role — explorer for lookup, worker for implementation, reviewer for high reasoning. Do not prescribe model IDs in this policy, manage Herdr, schedule work, or add persistent orchestration state. Existing harness transcripts/session storage remain unchanged. "Integration" means combining verified results, not authorization for Git operations; follow applicable user and repository Git rules separately.
 
-## 7. Report
+## 8. Report
 
 Return: what ran (profiles, tasks, status), what changed (verified paths), validation and results, unresolved risks, next step. Mark partial work explicitly; never claim success while children run or checks fail.
