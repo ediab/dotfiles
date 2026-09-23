@@ -4,10 +4,10 @@ This is a working, model-invoked skill. V1 (`company-model`) is archived referen
 AVGO have V2 proof projects. V2's generic core is shipped — evidence, engine, `scripts/cli.py`
 build/check, and shared checks/style/overrides — but release gates remain open.
 
-**`DECISIONS.md` is the agreed nine-sheet target, not yet implemented.** `SKILL.md` and its
-references describe what runs today. `docs/archive/V2_PLAN.md` and
-`docs/archive/V2_PROGRESS.md` are historical V2 implementation records with unresolved defects:
-consult them for migration context, not as the new redesign instructions.
+**`DECISIONS.md` is the agreed nine-sheet target, not yet implemented.** For redesign planning,
+read `docs/specs/2026-09-23-nine-sheet-equity-model-redesign.md` (proposed spec, awaiting user
+confirmation). `SKILL.md` and its references describe what runs today. `docs/archive/V2_PLAN.md`
+and `docs/archive/V2_PROGRESS.md` retain unresolved V2 defects for migration, not target design.
 
 ## Layout and ownership
 
@@ -20,6 +20,7 @@ A contract lives in exactly one file. Everything else links to it.
 | `references/update-model.md` | The earnings-update / rollover branch |
 | `tests/` | Unit tests and the research-behaviour smoke test |
 | `DECISIONS.md` | Approved target design and sheet roles; not the current runtime contract |
+| `docs/specs/2026-09-23-nine-sheet-equity-model-redesign.md` | Proposed implementation spec; awaiting user confirmation |
 | `docs/archive/V2_PLAN.md` | Historical V2 design and unresolved migration issues |
 | `docs/archive/V2_PROGRESS.md` | Append-only historical V2 execution record |
 
