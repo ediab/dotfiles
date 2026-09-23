@@ -27,12 +27,12 @@ Stage 2 adds no new top-level keys; `fact_map.json` is a sibling file, not a sub
   "latest_actual_period": "2026Q2",
   "price": { "value": 249.39, "date": "2026-09-18", "type": "official close", "source": "…" },
   "source_boundary": {
+    "mode": "pull-data-only",
     "root": "/Users/eliasdiab/Dev/financial_data_pull/data",
-    "policy": "Only the frozen local VRT pack may populate the model. Web research is challenge-only.",
-    "latest_sec_snapshot": "2026-09-21T170653+0000-3ce4e7",
-    "latest_yahoo_snapshot": "2026-09-21T145121+0000-9e427b",
-    "latest_av_estimate_snapshot": "2026-09-21T151923+0000-repair",
-    "latest_transcript_snapshot": "2026-09-21T150106+0000-b57670"
+    "selected_sec_snapshot": "2026-09-21T170653+0000-3ce4e7",
+    "snapshots": [{"ticker": "VRT", "run_id": "2026-09-21T170653+0000-3ce4e7", "sha256": "<snapshot.json hash>"}],
+    "tables": [{"ticker": "VRT", "run_id": "2026-09-21T170653+0000-3ce4e7", "name": "income_quarterly_0", "sha256": "<table hash>"}],
+    "originals": [{"ticker": "VRT", "provider": "sec", "run_id": "2026-09-21T170653+0000-3ce4e7", "sha256": "<original hash>", "filename": "payload.htm", "accession": "0001628280-26-050323"}]
   },
   "periods": {
     "historical_quarters": ["…"],
@@ -48,9 +48,14 @@ Stage 2 adds no new top-level keys; `fact_map.json` is a sibling file, not a sub
 }
 ```
 
-`source_boundary` is the immutable four-snapshot manifest (§6). Every locator resolved by
-`evidence.py` must be reachable from one of these four snapshot ids; a locator pointing outside the
-manifest is a build error, not a warning.
+`source_boundary` is the required pull-data-only pin manifest. It has no legacy fallback: `mode`,
+`root`, the `snapshots`, `tables`, and `originals` lists are mandatory. Each snapshot entry pins the
+SHA-256 of its `snapshot.json`; each table entry pins one table hash recorded by that manifest; each
+original entry pins the content-addressed raw file and names the snapshot that records it. Different
+facts may use tables and originals from multiple pinned snapshots. Every populated actual and
+benchmark is replayed from these selected artifacts before build and during full check; missing
+boundary metadata, hashes, or an exact source path fails closed. A rewritable `8k_cells.csv` is never
+a replay source: 8-K facts are re-extracted from the pinned raw exhibit.
 
 `periods.period_end_dates` optionally maps canonical `YYYYQn` ids to their ISO period-end dates for
 a non-calendar (e.g. 52/53-week) fiscal year. When present it is authoritative for every
@@ -147,15 +152,17 @@ scheme   := "sec_snapshot" | "sec_label" | "8k_exhibit" | "8k_exhibit_role" | "r
 |---|---|---|---|---|
 | `sec_snapshot` | `<statement>` | `concept=<XBRL concept>[&dimension_member=<member>]` | the matching quarter or annual cell in the configured immutable SEC snapshot | the resolved parquet file — `data/tables/` is never rewritten |
 | `sec_label` | `<statement>` | `concept=<XBRL concept>&mode=issued_and_outstanding_shares` | the share count paired to the requested period-end date in the standard label's explicit `respectively` list | the resolved SEC parquet row; labels without an exact count/date pairing are unavailable |
-| `8k_exhibit_role` | — | `caption=<exact>|row_labels=<exact,...>|column_role=<exact>|period_scope=<template>|exhibit_sha256={period_hash}` | one reviewed cell identified by its release table caption, semantic current-period column role, permitted exact row role, and immutable hash | exhibit payload, row/table/column keys; a missing, mismatched, or non-unique candidate is unavailable |
-| `8k_exhibit` | `row_label=<regex>\|col_pattern=<template>` | — | the matching data cell in `data/derived/<issuer>/8k_cells.csv`, limited to `model_spec.json.release_accessions[period]` | that row's own `exhibit_sha256` column — **not** a hash of `8k_cells.csv`, which is a rewritable view. `evidence.py` records `exhibit_sha256` in `actuals.csv`'s lineage column, resolved at read time |
+| `8k_exhibit_role` | — | `caption=<exact>|row_labels=<exact,...>|column_role=<exact>|period_scope=<template>|exhibit_sha256={period_hash}` | one reviewed cell identified by its release table caption, semantic current-period column role, permitted exact row role, and immutable hash | exhibit payload, row/table/column keys; a missing candidate is unavailable, while ambiguous candidates fail closed with their locations |
+| `8k_exhibit` | `row_label=<regex>\|col_pattern=<template>` | — | the unique matching data cell re-extracted from the raw exhibit pinned for `model_spec.json.release_accessions[period]` | immutable exhibit payload path and SHA-256 plus resolved table/row/column keys; never `8k_cells.csv` |
 | `raw_payload` | `<provider>/<sha256>/payload.<ext>` | `index=<key>[&field=<name>]` for indexed JSON (e.g. Yahoo's `{columns,index,data}` frame) | one value inside `data/raw/<issuer>/<provider>/<sha256>/` | the raw payload file — already the immutable terminus |
 | `derived` | an arithmetic expression over other canonical metric ids, same period | — | a Python evaluation of already-resolved `(metric, period)` values | inherits the lineage of every metric it references; `evidence.py` must have resolved all operands first |
 | `unavailable` | — (the bare token `unavailable`) | — | nothing — the period is an intentional, documented gap; requires a non-empty `missing_reason` (§2) | none: the frozen row carries no lineage, only its `missing_reason` |
 
-`sec_snapshot` gets its `run_id` from `model_spec.json.source_boundary`, while `8k_exhibit` gets
-its release accession from `model_spec.json.release_accessions`. Neither is hardcoded per mapped
-fact, so rollover changes the source boundary without rewriting the map.
+`sec_snapshot` replays from the exact run and table pinned in `source_boundary` and named by frozen
+lineage; `8k_exhibit` gets its release accession from `model_spec.json.release_accessions` and
+re-extracts eligible cells from the pinned raw original. Neither source payload is inferred from a
+rewritable export. Any source row or semantic selector with multiple eligible matches is an error
+that identifies the metric, period and candidate locations.
 
 Every date the grammar depends on (SEC period columns, Q4 annual labels, `sec_label` date pairing,
 `8k_exhibit`/`8k_exhibit_role` period scopes) comes from `model_spec.json.periods.period_end_dates`
@@ -209,9 +216,9 @@ adjusted_diluted_eps,2023Q3,0.52,USD/share,adjusted,,direct,8k_exhibit:row_label
 ```
 
 `(metric, period[, dimension])` is unique. `lineage_scheme`/`lineage_path`/`lineage_key` together
-are what §15's exit criterion means by "lineage to a snapshot or raw payload" — never a `data/csv/`
-or `data/derived/` view path alone (the `8k_exhibit` row above stores the exhibit's own hash as
-`lineage_key`, satisfying this even though the locator's *addressing* convenience is a derived CSV).
+identify the selected immutable source. Full evidence validation replays each populated actual and
+benchmark from the pinned table or original and checks the frozen value and all declared metadata;
+lineage text alone is insufficient.
 
 Before a build, `scripts/cli.py` validates the freeze against the map: every
 `(metric, historical period)` a fact-map entry covers needs an actuals row (`periods` limits the
@@ -223,8 +230,8 @@ duplicate row, or a blank without a reason fails the build.
 ## `benchmarks.csv` — guidance, consensus, dated price
 
 ```
-metric,period,value,units,basis,source,as_of_date,analyst_count,range_low,range_high,locator,lineage_scheme,lineage_path,lineage_key,notes
-price_dated,2026-09-18,249.39,USD/share,market,Yahoo,2026-09-18,,,,raw_payload:yahoo/<sha256>/payload.json#index=2026-09-18T04:00:00.000Z&field=Close,raw_payload,data/raw/VRT/yahoo/<sha256>/payload.json,index=2026-09-18T04:00:00.000Z;field=Close,Resolves the store's date-less yahoo_prices.csv defect by reading the raw indexed payload directly (§6)
+metric,period,value,units,basis,dimension,transform,source,as_of_date,analyst_count,range_low,range_high,locator,lineage_scheme,lineage_path,lineage_key,notes
+price_dated,2026-09-18,249.39,USD/share,market,,direct,Yahoo,2026-09-18,,,,raw_payload:yahoo/<sha256>/payload.json#index=2026-09-18T04:00:00.000Z&field=Close,raw_payload,data/raw/VRT/yahoo/<sha256>/payload.json,index=2026-09-18T04:00:00.000Z;field=Close,Replayed from the pinned indexed raw payload
 ```
 
 ## `availability.md`

@@ -8,6 +8,7 @@ because openpyxl loads caches but never recalculates them.
 """
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -21,6 +22,7 @@ class CheckReport:
     checks: int
     failures: tuple[str, ...]
     warnings: tuple[str, ...] = ()
+    coverage: tuple[str, ...] = ()
 
     @property
     def ok(self) -> bool:
@@ -139,6 +141,7 @@ def check_full(project_dir: Path) -> CheckReport:
     warns: the checks cannot evaluate formulas openpyxl has not recalculated, and a stale or absent
     cache must not be mistaken for a clean evaluation.
     """
+    project_dir = Path(project_dir)
     report = check_fast(project_dir)
     if not report.workbook.is_file():
         return report
@@ -147,6 +150,33 @@ def check_full(project_dir: Path) -> CheckReport:
     failures = list(report.failures)
     failures.extend(_full_formula_checks(formulas, values))
     warnings = list(report.warnings)
+    coverage: list[str] = []
+    actuals_path = Path(project_dir) / "evidence" / "actuals.csv"
+    fact_map_path = Path(project_dir) / "fact_map.json"
+    benchmarks_path = Path(project_dir) / "evidence" / "benchmarks.csv"
+    missing_evidence = [str(path.relative_to(project_dir)) for path in (actuals_path, fact_map_path)
+                        if not path.is_file()]
+    failures.extend(f"mandatory frozen evidence is missing: {relative}" for relative in missing_evidence)
+    if not missing_evidence:
+        try:
+            try:
+                from .evidence import load_fact_map, replay_frozen_evidence
+            except ImportError:  # direct script invocation
+                from evidence import load_fact_map, replay_frozen_evidence
+            spec = _spec(Path(project_dir))
+            with actuals_path.open(newline="") as handle:
+                actuals = list(csv.DictReader(handle))
+            mappings = load_fact_map(fact_map_path)
+            if benchmarks_path.is_file():
+                with benchmarks_path.open(newline="") as handle:
+                    benchmarks = list(csv.DictReader(handle))
+            else:
+                benchmarks = []
+            result = replay_frozen_evidence(spec, actuals, benchmarks, mappings)
+            coverage.append(f"source replay: {result['actuals_replayed']} actuals, "
+                            f"{result['benchmarks_replayed']} benchmarks")
+        except Exception as exc:
+            failures.append(f"evidence replay failed: {exc}")
     formulas_seen, cached = _formula_cache_counts(formulas, values)
     checks = report.checks + formulas_seen
     if formulas_seen:
@@ -156,4 +186,4 @@ def check_full(project_dir: Path) -> CheckReport:
                 f"workbook has {formulas_seen} formula(s) but no cached calculation results; "
                 "recalculated outputs were not evaluated"
             )
-    return CheckReport(report.workbook, checks, tuple(failures), tuple(warnings))
+    return CheckReport(report.workbook, checks, tuple(failures), tuple(warnings), tuple(coverage))

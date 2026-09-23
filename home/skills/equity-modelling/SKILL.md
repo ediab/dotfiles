@@ -106,8 +106,13 @@ the native Excel gate are external validation steps run through the `excel` skil
 
 Classify the run as a new model or an update. Record the company, ticker, fiscal calendar, model
 as-of date, intended output directory, supplied files, periods, units, accounting basis, segment
-disclosures, guidance, consensus, price evidence, conflicts, and missing items. Hash each supplied
-file and record the dataset-to-snapshot manifest.
+disclosures, guidance, consensus, price evidence, conflicts, and missing items. Select one
+exclusive evidence mode before inventory. For pull-data-only runs, inspect `pull-financial-data`'s
+zero-network held index/cache-only report and pin only held snapshots and immutable originals;
+a first live acquisition or refresh requires explicit user consent. For supplied-files-only runs,
+inventory and hash only the designated documents, without consulting the pull store or network.
+Treat missing coverage as a gap; never cite rewritable exports (including `8k_cells.csv`) as originals.
+The current build accepts pull-data-only packs; supplied-files-only preparation is not yet implemented.
 
 For an update, preflight the existing workbook and follow `references/update-model.md`.
 

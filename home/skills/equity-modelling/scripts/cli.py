@@ -17,12 +17,12 @@ from typing import Any, Literal
 try:
     from .checks import CheckReport, check_fast, check_full
     from .engine import build_workbook
-    from .evidence import load_fact_map
+    from .evidence import load_fact_map, replay_frozen_evidence
     from .rollover import rollover
 except ImportError:  # pragma: no cover - direct project invocation
     from checks import CheckReport, check_fast, check_full
     from engine import build_workbook
-    from evidence import load_fact_map
+    from evidence import load_fact_map, replay_frozen_evidence
     from rollover import rollover
 
 
@@ -164,6 +164,14 @@ def _validate_evidence(project_dir: Path) -> None:
     if mappings is not None and historical is not None and rows is not None:
         problems.extend(_coverage_problems(mappings, historical, rows))
 
+    if spec is not None and mappings is not None and rows is not None:
+        benchmarks_path = project_dir / "evidence" / "benchmarks.csv"
+        benchmarks = _rows(benchmarks_path) if benchmarks_path.is_file() else []
+        try:
+            replay_frozen_evidence(spec, rows, benchmarks, mappings)
+        except (ValueError, OSError, KeyError) as exc:
+            problems.append(f"evidence replay: {exc}")
+
     if problems:
         raise ValueError("invalid frozen evidence: " + "; ".join(problems))
 
@@ -247,6 +255,8 @@ def main() -> None:
         return
     report = check(args.project_dir, "full" if args.full else "fast")
     print(f"{report.workbook}: {report.checks} checks")
+    for coverage in report.coverage:
+        print(f"COVERAGE: {coverage}")
     for warning in report.warnings:
         print(f"WARNING: {warning}")
     if report.failures:

@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -21,35 +22,37 @@ class Module:
 company_module = Module()
 '''
 
+sys.path.insert(0, str(Path(__file__).parent))
+from evidence import build_actuals, freeze  # noqa: E402
+from pull_fixture import create_source, fact_mappings, price_benchmark_row  # noqa: E402
+
 DRIVER_COLUMNS = ("driver_id", "driver_name", "unit", "status", "approved_by", "approved_on",
                   "approval_id")
 
 
 def _write_project(root: Path, forecast: list[str], drivers: list[dict[str, str]],
-                   *, manifest: dict | None = None, filename: str = "VRT_model.xlsx") -> Path:
+                   *, manifest: dict | None = None, filename: str = "TST_model.xlsx") -> Path:
     (root / "evidence").mkdir(parents=True, exist_ok=True)
-    (root / "model_spec.json").write_text(json.dumps({
-        "ticker": "VRT",
+    source_root = root / "pull" / "data"
+    if source_root.exists():
+        shutil.rmtree(source_root)
+    spec, facts = create_source(source_root, "TST")
+    spec.update({
         "periods": {"historical_quarters": ["2026Q1", "2026Q2"], "forecast_quarters": forecast},
         "forecast_gate": {"approved": False},
-        "price": {"value": 100.0, "date": "2026-06-30"},
+        "price": {"value": 250.0, "date": "2026-09-18"},
         "workbook": {"filename": filename, "sheets": ["SourceData", "Drivers"]},
-    }))
-    (root / "model_VRT.py").write_text(MODULE)
-    (root / "fact_map.json").write_text(json.dumps({"schema_version": 1, "ticker": "VRT", "facts": []}))
-    with (root / "evidence" / "actuals.csv").open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=[
-            "metric", "period", "value", "units", "basis", "dimension", "transform", "locator",
-            "lineage_scheme", "lineage_path", "lineage_key", "provenance_status", "notes"])
+    })
+    (root / "model_spec.json").write_text(json.dumps(spec))
+    (root / "model_TST.py").write_text(MODULE)
+    (root / "fact_map.json").write_text(json.dumps({"schema_version": 1, "ticker": "TST", "facts": facts}))
+    frozen = build_actuals(fact_mappings(facts), spec, ["2026Q1", "2026Q2"])
+    freeze(frozen, root / "evidence")
+    benchmark = price_benchmark_row(spec)
+    with (root / "evidence" / "benchmarks.csv").open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(benchmark))
         writer.writeheader()
-        for period, value in (("2026Q1", "100"), ("2026Q2", "110")):
-            writer.writerow({"metric": "revenue", "period": period, "value": value, "units": "USDm",
-                             "basis": "GAAP", "dimension": "", "transform": "direct",
-                             "locator": "sec_snapshot:income#concept=Revenues",
-                             "lineage_scheme": "sec_snapshot",
-                             "lineage_path": "data/tables/VRT/run/income_quarterly_0.parquet",
-                             "lineage_key": "concept=Revenues", "provenance_status": "verified",
-                             "notes": ""})
+        writer.writerow(benchmark)
     fieldnames = list(DRIVER_COLUMNS) + list(forecast)
     with (root / "drivers.csv").open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -189,7 +192,8 @@ class RolloverTests(unittest.TestCase):
         self.assertTrue(Path(delivery["workbook"]).is_file())
         from openpyxl import load_workbook
         workbook = load_workbook(delivery["workbook"], data_only=True)
-        self.assertEqual(workbook["SourceData"]["C7"].value, 100)  # actuals still load
+        source_values = {cell.value for row in workbook["SourceData"].iter_rows() for cell in row}
+        self.assertIn(100, source_values)  # actuals still load from the pinned synthetic pull
         drivers_sheet = workbook["Drivers"]
         for row in range(7, drivers_sheet.max_row + 1):
             for column in range(4, drivers_sheet.max_column + 1):

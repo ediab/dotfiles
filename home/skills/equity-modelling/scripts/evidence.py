@@ -13,7 +13,9 @@ venv has installed.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
+import math
 import re
 import sys
 from dataclasses import dataclass, replace
@@ -190,13 +192,108 @@ def fiscal_year(period: str) -> str:
     return period[:4]
 
 
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _source_boundary(spec: dict) -> dict:
+    boundary = spec.get("source_boundary")
+    required = {"mode", "root", "snapshots", "tables", "originals"}
+    if not isinstance(boundary, dict) or not required.issubset(boundary):
+        raise ValueError("model_spec.source_boundary must pin pull-data-only snapshots, tables and originals")
+    if boundary.get("mode") != "pull-data-only":
+        raise ValueError("model_spec.source_boundary.mode must be pull-data-only")
+    if not isinstance(boundary.get("root"), str) or not boundary["root"]:
+        raise ValueError("model_spec.source_boundary.root is required")
+    for key in ("snapshots", "tables", "originals"):
+        if not isinstance(boundary.get(key), list):
+            raise ValueError(f"model_spec.source_boundary.{key} must be a list")
+    return boundary
+
+
+def _verify_boundary(spec: dict) -> tuple[Path, dict[tuple[str, str], dict], dict[tuple[str, str, str], dict]]:
+    """Verify the minimal immutable pull boundary and return its selected source indexes."""
+    def safe_name(value: object) -> bool:
+        return isinstance(value, str) and bool(re.fullmatch(r"[A-Za-z0-9_.:+-]+", value)) and value not in {".", ".."}
+    boundary = _source_boundary(spec)
+    root = Path(boundary["root"]).resolve()
+    snapshots: dict[tuple[str, str], dict] = {}
+    for item in boundary["snapshots"]:
+        if not isinstance(item, dict) or not all(item.get(k) for k in ("ticker", "run_id", "sha256")):
+            raise ValueError("source_boundary snapshot entries require ticker, run_id and sha256")
+        if not safe_name(item["ticker"]) or not safe_name(item["run_id"]):
+            raise ValueError("source_boundary snapshot contains an unsafe ticker or run_id")
+        key = (item["ticker"], item["run_id"])
+        if key in snapshots:
+            raise ValueError(f"duplicate pinned snapshot {key}")
+        path = root / "tables" / item["ticker"] / item["run_id"] / "snapshot.json"
+        if not path.is_file() or _sha256(path) != item["sha256"]:
+            raise ValueError(f"pinned snapshot hash mismatch or missing: {item['ticker']} {item['run_id']}")
+        snapshots[key] = item
+    tables: dict[tuple[str, str], dict] = {}
+    for item in boundary["tables"]:
+        if not isinstance(item, dict) or not all(item.get(k) for k in ("ticker", "run_id", "name", "sha256")):
+            raise ValueError("source_boundary table entries require ticker, run_id, name and sha256")
+        if not all(safe_name(item[k]) for k in ("ticker", "run_id", "name")):
+            raise ValueError("source_boundary table contains an unsafe path component")
+        key = (item["run_id"], item["name"])
+        if key in tables:
+            raise ValueError(f"duplicate pinned table {key}")
+        if (item["ticker"], item["run_id"]) not in snapshots:
+            raise ValueError(f"table pin has no pinned snapshot: {item['ticker']} {item['run_id']}")
+        snap_path = root / "tables" / item["ticker"] / item["run_id"] / "snapshot.json"
+        manifest = json.loads(snap_path.read_text())
+        path = snap_path.parent / f"{item['name']}.parquet"
+        manifest_hash = (manifest.get("table_hashes") or {}).get(item["name"])
+        if manifest_hash != item["sha256"] or not path.is_file() or _sha256(path) != item["sha256"]:
+            raise ValueError(f"pinned table hash mismatch or missing: {item['ticker']} {item['run_id']} {item['name']}")
+        tables[key] = item
+    originals: dict[tuple[str, str, str], dict] = {}
+    for item in boundary["originals"]:
+        if not isinstance(item, dict) or not all(item.get(k) for k in ("ticker", "provider", "run_id", "sha256", "filename")):
+            raise ValueError("source_boundary original entries require ticker, provider, run_id, sha256 and filename")
+        if (item["ticker"], item["run_id"]) not in snapshots:
+            raise ValueError(f"original pin has no pinned snapshot: {item['ticker']} {item['run_id']}")
+        if (not safe_name(item["ticker"]) or not safe_name(item["provider"])
+                or not safe_name(item["run_id"]) or not safe_name(item["filename"])
+                or not re.fullmatch(r"[0-9a-f]{64}", str(item["sha256"]))):
+            raise ValueError("source_boundary original contains an unsafe path component or hash")
+        key = (item["ticker"], item["provider"], item["sha256"])
+        if key in originals:
+            raise ValueError(f"duplicate pinned original {key}")
+        path = root / "raw" / item["ticker"] / item["provider"] / item["sha256"] / item["filename"]
+        if not path.is_file() or _sha256(path) != item["sha256"]:
+            raise ValueError(f"pinned original hash mismatch or missing: {item['ticker']} {item['sha256']}")
+        snap_path = root / "tables" / item["ticker"] / item["run_id"] / "snapshot.json"
+        originals_in_snapshot = json.loads(snap_path.read_text()).get("originals") or {}
+        if str(path.resolve()) not in {str(Path(value).resolve()) for value in originals_in_snapshot.values()}:
+            raise ValueError(f"pinned original is not recorded by its snapshot: {item['ticker']} {item['sha256']}")
+        originals[key] = item
+    return root, tables, originals
+
+
 # ---------------------------------------------------------------------------
 # sec_snapshot resolution
 # ---------------------------------------------------------------------------
 
-def _read_table(issuer: str, table: str, run_id: str):
-    from financial_data_pull import read_table
-    return read_table(issuer, table, run_id=run_id)
+def _read_table(issuer: str, table: str, run_id: str, store_root: Optional[Path] = None):
+    if store_root is None:
+        from financial_data_pull import read_table
+        return read_table(issuer, table, run_id=run_id)
+    snapshot = store_root / "tables" / issuer / run_id
+    manifest = json.loads((snapshot / "snapshot.json").read_text())
+    path = snapshot / f"{table}.parquet"
+    expected = (manifest.get("table_hashes") or {}).get(table)
+    if expected is None:
+        raise KeyError(table)
+    if not path.is_file() or _sha256(path) != expected:
+        raise ValueError(f"snapshot table hash mismatch or missing: {issuer} {run_id} {table}")
+    import pandas as pd
+    return pd.read_parquet(path)
 
 
 def _find_period_column(df, period: str, want_ytd: bool = False,
@@ -228,44 +325,68 @@ def _select_concept_row(df, concept: str, dimension_member: Optional[str]):
         # segment_axis_filter: keep only the pure single-axis total, never a
         # cross-axis breakdown (e.g. segment x product/service, or segment x timing).
         rows = rows[rows["dimension_label"].fillna("").str.count("Axis:") == 1]
+    if len(rows) > 1:
+        raise ValueError(
+            f"ambiguous SEC concept {concept!r} dimension={dimension_member!r}: "
+            f"{len(rows)} eligible rows at indices {list(rows.index)}"
+        )
     if len(rows) == 0:
         return None
     return rows.iloc[0]
 
 
 def _resolve_sec_snapshot(mapping: FactMapping, period: str, spec: dict, issuer: str,
-                          explicit: Optional[dict[str, str]] = None):
+                          explicit: Optional[dict[str, str]] = None, store_root: Optional[Path] = None):
     m = re.match(r"sec_snapshot:(\w+)#concept=([^&]+)(?:&dimension_member=([^&]+))?", mapping.locator)
     if not m:
         raise ValueError(f"bad sec_snapshot locator: {mapping.locator}")
     statement, concept, dim = m.group(1), m.group(2), m.group(3)
-    run_id = spec["source_boundary"]["latest_sec_snapshot"]
+    run_id = (spec["source_boundary"].get("selected_sec_snapshot")
+              or spec["source_boundary"].get("latest_sec_snapshot"))
+    if not run_id:
+        issuer_runs = [item["run_id"] for item in spec["source_boundary"]["snapshots"]
+                       if item.get("ticker") == issuer]
+        if len(set(issuer_runs)) != 1:
+            raise ValueError(f"{mapping.metric} {period}: source boundary needs selected_sec_snapshot")
+        run_id = issuer_runs[0]
 
-    if mapping.transform == "q4_from_fy_minus_9m" and period.endswith("Q4"):
+    if mapping.transform == "q4_from_fy_minus_9m":
         fy_label = period_end_date(fiscal_year(period) + "Q4", explicit) + " (FY)"
-        fy_table, fy_col, fy_val = _find_in_quarterly_or_annual(issuer, f"{statement}_annual", run_id, fy_label, concept, dim)
+        fy_table, fy_col, fy_val = _find_in_quarterly_or_annual(issuer, f"{statement}_annual", run_id, fy_label, concept, dim, store_root)
         q3_period = fiscal_year(period) + "Q3"
-        ytd_table, ytd_col, ytd_val = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, q3_period, concept, dim, want_ytd=True, explicit=explicit)
+        ytd_table, ytd_col, ytd_val = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, q3_period, concept, dim, want_ytd=True, explicit=explicit, store_root=store_root)
         if fy_val is None or ytd_val is None:
             return None, None, None
         return fy_val - ytd_val, (fy_table, ytd_table), (fy_col, ytd_col)
-    if mapping.transform in ("sum_quarters", "recompute_ratio", "recompute_per_share", "period_end_stock"):
-        # These act on already-frozen quarterly actuals, not a single store read;
-        # evidence.py resolves the direct quarterly facts, engine.py (Stage 3) applies the annual roll-up as an Excel formula.
-        return None, None, None
+    if mapping.transform == "ytd_deaccumulate":
+        quarter = int(period[-1])
+        current = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, period, concept, dim,
+                                     want_ytd=True, explicit=explicit, store_root=store_root)
+        if current[2] is None and quarter == 1:
+            current = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, period, concept, dim,
+                                         explicit=explicit, store_root=store_root)
+        if current[2] is None:
+            return None, None, None
+        if quarter == 1:
+            return current[2], current[0], current[1]
+        prior_period = f"{fiscal_year(period)}Q{quarter - 1}"
+        prior = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, prior_period, concept, dim,
+                                   want_ytd=True, explicit=explicit, store_root=store_root)
+        if prior[2] is None:
+            return None, None, None
+        return current[2] - prior[2], (current[0], prior[0]), (current[1], prior[1])
 
-    table, col, value = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, period, concept, dim, explicit=explicit)
-    if value is None:
-        table, col, value = _find_in_annual(issuer, f"{statement}_annual", run_id, period, concept, dim, explicit=explicit)
+    table, col, value = _find_in_quarterly(issuer, f"{statement}_quarterly", run_id, period, concept, dim, explicit=explicit, store_root=store_root)
     return value, table, col
 
 
 def _find_in_quarterly(issuer, table_prefix, run_id, period, concept, dim, want_ytd: bool = False,
-                       explicit: Optional[dict[str, str]] = None):
+                       explicit: Optional[dict[str, str]] = None, store_root: Optional[Path] = None):
+    matches = []
     for n in range(8):
         try:
-            df = _read_table(issuer, f"{table_prefix}_{n}", run_id)
-        except Exception:
+            df = _read_table(issuer, f"{table_prefix}_{n}", run_id, store_root)
+        except (FileNotFoundError, KeyError):
             continue
         col = _find_period_column(df, period, want_ytd=want_ytd, explicit=explicit)
         if col is None:
@@ -275,15 +396,20 @@ def _find_in_quarterly(issuer, table_prefix, run_id, period, concept, dim, want_
             continue
         val = row[col]
         if val == val:  # not NaN
-            return f"{table_prefix}_{n}", col, float(val)
-    return None, None, None
+            matches.append((f"{table_prefix}_{n}", col, float(val)))
+    if len(matches) > 1:
+        raise ValueError(f"ambiguous SEC source tables for {concept!r} {period}: "
+                         f"{[(name, col) for name, col, _ in matches]}")
+    return matches[0] if matches else (None, None, None)
 
 
-def _find_in_quarterly_or_annual(issuer, table_prefix, run_id, col_label, concept, dim):
-    for n in range(3):
+def _find_in_quarterly_or_annual(issuer, table_prefix, run_id, col_label, concept, dim,
+                                  store_root: Optional[Path] = None):
+    matches = []
+    for n in range(8):
         try:
-            df = _read_table(issuer, f"{table_prefix}_{n}", run_id)
-        except Exception:
+            df = _read_table(issuer, f"{table_prefix}_{n}", run_id, store_root)
+        except (FileNotFoundError, KeyError):
             continue
         if col_label not in df.columns:
             continue
@@ -292,15 +418,18 @@ def _find_in_quarterly_or_annual(issuer, table_prefix, run_id, col_label, concep
             continue
         val = row[col_label]
         if val == val:
-            return f"{table_prefix}_{n}", col_label, float(val)
-    return None, None, None
+            matches.append((f"{table_prefix}_{n}", col_label, float(val)))
+    if len(matches) > 1:
+        raise ValueError(f"ambiguous SEC source tables for {concept!r} {col_label}: "
+                         f"{[(name, col) for name, col, _ in matches]}")
+    return matches[0] if matches else (None, None, None)
 
 
 def _find_in_annual(issuer, table_prefix, run_id, period, concept, dim,
-                    explicit: Optional[dict[str, str]] = None):
+                    explicit: Optional[dict[str, str]] = None, store_root: Optional[Path] = None):
     end_date = period_end_date(fiscal_year(period) + "Q4", explicit)
     col_label = f"{end_date} (FY)"
-    return _find_in_quarterly_or_annual(issuer, table_prefix, run_id, col_label, concept, dim)
+    return _find_in_quarterly_or_annual(issuer, table_prefix, run_id, col_label, concept, dim, store_root)
 
 
 # ---------------------------------------------------------------------------
@@ -333,25 +462,35 @@ def _issued_and_outstanding_shares(label: str, period: str,
 
 
 def _resolve_sec_label(mapping: FactMapping, period: str, spec: dict, issuer: str,
-                       explicit: Optional[dict[str, str]] = None):
+                       explicit: Optional[dict[str, str]] = None, store_root: Optional[Path] = None):
     parsed = re.fullmatch(r"sec_label:(\w+)#concept=([^&]+)&mode=issued_and_outstanding_shares", mapping.locator)
     if not parsed:
         raise ValueError(f"bad sec_label locator: {mapping.locator}")
     statement, concept = parsed.groups()
-    run_id = spec["source_boundary"]["latest_sec_snapshot"]
+    run_id = (spec["source_boundary"].get("selected_sec_snapshot")
+              or spec["source_boundary"].get("latest_sec_snapshot"))
+    if not run_id:
+        issuer_runs = [item["run_id"] for item in spec["source_boundary"]["snapshots"]
+                       if item.get("ticker") == issuer]
+        if len(set(issuer_runs)) != 1:
+            raise ValueError(f"{mapping.metric} {period}: source boundary needs selected_sec_snapshot")
+        run_id = issuer_runs[0]
+    matches = []
     for n in range(8):
         table = f"{statement}_quarterly_{n}"
         try:
-            df = _read_table(issuer, table, run_id)
-        except Exception:
+            df = _read_table(issuer, table, run_id, store_root)
+        except (FileNotFoundError, KeyError):
             continue
         row = _select_concept_row(df, concept, None)
         if row is None:
             continue
         value = _issued_and_outstanding_shares(str(row["label"]), period, explicit)
         if value is not None:
-            return value, table
-    return None, None
+            matches.append((value, table))
+    if len(matches) > 1:
+        raise ValueError(f"ambiguous SEC label source for {concept!r} {period}: {matches}")
+    return matches[0] if matches else (None, None)
 
 
 # ---------------------------------------------------------------------------
@@ -359,16 +498,17 @@ def _resolve_sec_label(mapping: FactMapping, period: str, spec: dict, issuer: st
 # on a period-specific table/row/col hardcode (those vary release to release).
 # ---------------------------------------------------------------------------
 
-_cells_cache: dict[str, list[dict]] = {}
-
-
-def _load_8k_cells(store_root: Path, issuer: str) -> list[dict]:
-    key = str(store_root) + issuer
-    if key not in _cells_cache:
-        path = store_root / "derived" / issuer / "8k_cells.csv"
-        with path.open(newline="") as f:
-            _cells_cache[key] = list(csv.DictReader(f))
-    return _cells_cache[key]
+def _load_8k_original(spec: dict, issuer: str, accession: str, sha256: str) -> tuple[list[dict], str]:
+    """Re-extract cells from the pinned immutable exhibit, never the rewritable CSV view."""
+    root, _, originals = _verify_boundary(spec)
+    item = originals.get((issuer, "sec", sha256))
+    if item is None or item.get("accession") != accession:
+        raise ValueError(f"8-K original is not pinned for accession {accession}: {issuer} {sha256}")
+    path = root / "raw" / issuer / "sec" / sha256 / item["filename"]
+    _ensure_pull_importable(root)
+    from financial_data_pull.views import _exhibit_rows
+    exhibit = {"accession": accession, "filing_date": ""}
+    return _exhibit_rows(path.read_bytes(), exhibit, sha256), str(path)
 
 
 def _normal_text(value: str) -> str:
@@ -401,12 +541,12 @@ def _materialize_role_locator(mapping: FactMapping, period: str) -> FactMapping:
 
 def _resolve_8k_exhibit_role(mapping: FactMapping, period: str, spec: dict, store_root: Path, issuer: str,
                              explicit: Optional[dict[str, str]] = None):
-    """Resolve the reviewed duplicate-label exception by table identity and column role."""
+    """Resolve the reviewed duplicate-label exception from its immutable exhibit."""
     parts = _role_locator_parts(mapping.locator)
     accession = spec["release_accessions"].get(period)
     if accession is None:
         return None, None, None
-    cells = _load_8k_cells(store_root, issuer)
+    cells, _ = _load_8k_original(spec, issuer, accession, parts["exhibit_sha256"])
     selected = [row for row in cells if row["accession"] == accession
                 and _normal_text(row["caption"]) == _normal_text(parts["caption"])]
     if not selected or {row["exhibit_sha256"] for row in selected} != {parts["exhibit_sha256"]}:
@@ -426,7 +566,8 @@ def _resolve_8k_exhibit_role(mapping: FactMapping, period: str, spec: dict, stor
     for role_cell in role_cells:
         role_column = int(role_cell["col_index"])
         role_row = int(role_cell["row_index"])
-        headers = [row for row in selected if row["row_kind"] == "header"
+        headers = [row for row in selected if row["table_index"] == role_cell["table_index"]
+                   and row["row_kind"] == "header"
                    and int(row["row_index"]) < role_row
                    and int(row["col_index"]) <= role_column
                    and _normal_text(row["raw_text"])]
@@ -443,7 +584,10 @@ def _resolve_8k_exhibit_role(mapping: FactMapping, period: str, spec: dict, stor
                   and (row["table_index"], int(row["col_index"])) in columns
                   and _normal_text(row["row_label"]) in labels
                   and row["value"] not in ("", None)]
-    if len(candidates) != 1:
+    if len(candidates) > 1:
+        locations = [(row["table_index"], row["row_index"], row["col_index"]) for row in candidates]
+        raise ValueError(f"{mapping.metric} {period}: ambiguous 8-K candidates {locations}")
+    if not candidates:
         return None, None, None
     row = candidates[0]
     return float(row["value"]), row["exhibit_sha256"], (row["accession"], row["table_index"], row["row_index"], row["col_index"])
@@ -462,7 +606,18 @@ def _resolve_8k_exhibit(mapping: FactMapping, period: str, spec: dict, store_roo
     y, mth, d = (int(x) for x in end_date.split("-"))
     month_name = date(y, mth, d).strftime("%B")
     col_regex = col_pat.format(month=month_name, day=d, year=y)
-    cells = _load_8k_cells(store_root, issuer)
+    boundary = _source_boundary(spec)
+    possible = [item for item in boundary["originals"]
+                if item.get("ticker") == issuer and item.get("provider") == "sec"
+                and item.get("accession") == accession]
+    # The release accession is resolved from the raw original identity retained in the
+    # frozen row's locator/lineage; if several originals are eligible, inspect each and
+    # require the semantic selector to identify exactly one candidate overall.
+    cells = []
+    for item in possible:
+        rows, _ = _load_8k_original(spec, issuer, accession, item["sha256"])
+        cells.extend(rows)
+    candidates = []
     for row in cells:
         if row["accession"] != accession or row["row_kind"] != "data":
             continue
@@ -471,8 +626,15 @@ def _resolve_8k_exhibit(mapping: FactMapping, period: str, spec: dict, store_roo
         if not re.search(col_regex, row["column_label"]):
             continue
         if row["value"] not in ("", None):
-            return float(row["value"]), row["exhibit_sha256"], (row["accession"], row["table_index"], row["row_index"], row["col_index"])
-    return None, None, None
+            candidates.append(row)
+    if len(candidates) > 1:
+        details = [(r["exhibit_sha256"], r["table_index"], r["row_index"], r["col_index"])
+                   for r in candidates]
+        raise ValueError(f"{mapping.metric} {period}: ambiguous 8-K candidates {details}")
+    if not candidates:
+        return None, None, None
+    row = candidates[0]
+    return float(row["value"]), row["exhibit_sha256"], (row["accession"], row["table_index"], row["row_index"], row["col_index"])
 
 
 # ---------------------------------------------------------------------------
@@ -484,26 +646,69 @@ def _resolve_raw_payload(mapping: FactMapping, period: str, spec: dict, store_ro
     if not m:
         raise ValueError(f"bad raw_payload locator: {mapping.locator}")
     provider, sha256, filename, index_template, field = m.groups()
+    _, _, originals = _verify_boundary(spec)
+    pinned = originals.get((spec["ticker"], provider, sha256))
+    if pinned is None or pinned["filename"] != filename:
+        raise ValueError(f"raw payload is not exactly pinned in source_boundary: {provider}/{sha256}/{filename}")
     path = store_root / "raw" / spec["ticker"] / provider / sha256 / filename
     payload = json.loads(path.read_text())
     columns, index, data = payload["columns"], payload["index"], payload["data"]
     col_i = columns.index(field)
     target = index_template.format(date=period)
-    for i, idx in enumerate(index):
-        if idx == target or ("{date}" in index_template and idx.startswith(period)):
-            return float(data[i][col_i]), str(path)
-    return None, str(path)
+    matches = [(i, idx) for i, idx in enumerate(index)
+               if idx == target or ("{date}" in index_template and idx.startswith(period))]
+    if len(matches) > 1:
+        raise ValueError(f"ambiguous raw-payload index for {mapping.metric} {period}: "
+                         f"{[idx for _, idx in matches]}")
+    if not matches:
+        return None, str(path), ""
+    i, idx = matches[0]
+    return float(data[i][col_i]), str(path), f"index={idx};field={field}"
 
 
 # ---------------------------------------------------------------------------
 # Top-level resolve / build
 # ---------------------------------------------------------------------------
 
+def _validate_mapping_transform(mapping: FactMapping, period: str) -> None:
+    if mapping.transform in {"sum_quarters", "period_end_stock", "recompute_ratio", "recompute_per_share"}:
+        raise ValueError(f"transform {mapping.transform} is not applied to populated quarterly facts")
+    if mapping.transform == "q4_from_fy_minus_9m" and not period.endswith("Q4"):
+        raise ValueError(f"q4_from_fy_minus_9m is only valid for Q4 periods, not {period}")
+    if mapping.transform == "ytd_deaccumulate" and (not period.endswith(("Q1", "Q2", "Q3"))
+                                                        or not mapping.locator.startswith("sec_snapshot:")):
+        raise ValueError("ytd_deaccumulate requires a SEC snapshot mapping for Q1-Q3")
+    if mapping.transform == "q4_from_fy_minus_9m" and not mapping.locator.startswith("sec_snapshot:"):
+        raise ValueError("q4_from_fy_minus_9m requires a SEC snapshot mapping")
+    if mapping.transform == "segment_axis_filter":
+        if not mapping.locator.startswith("sec_snapshot:") or "&dimension_member=" not in mapping.locator:
+            raise ValueError("segment_axis_filter requires a SEC snapshot dimension_member selector")
+    if mapping.scale and mapping.transform != "unit_scale":
+        raise ValueError("mapping.scale is only applied by unit_scale")
+
+
+def _apply_arithmetic_transform(mapping: FactMapping, value: Optional[float]) -> Optional[float]:
+    if value is None:
+        return None
+    if mapping.transform == "unit_scale":
+        return value * (10 ** mapping.scale)
+    if mapping.transform == "sign_flip":
+        return -value
+    return value
+
+
 def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
-    store_root = Path(spec["source_boundary"]["root"])
+    _validate_mapping_transform(mapping, period)
+    boundary = _source_boundary(spec)
+    store_root = Path(boundary["root"])
     issuer = spec["ticker"]
     _ensure_pull_importable(store_root)
-    run_id = spec["source_boundary"]["latest_sec_snapshot"]
+    run_id = boundary.get("selected_sec_snapshot") or boundary.get("latest_sec_snapshot")
+    if not run_id:
+        sec_runs = [item["run_id"] for item in boundary["snapshots"] if item.get("ticker") == issuer]
+        if len(set(sec_runs)) != 1:
+            raise ValueError(f"{mapping.metric} {period}: source boundary needs selected_sec_snapshot")
+        run_id = sec_runs[0]
     explicit = period_end_dates(spec)
 
     if mapping.locator == UNAVAILABLE_LOCATOR:
@@ -514,9 +719,8 @@ def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
                             notes=mapping.missing_reason or "")
 
     if mapping.locator.startswith("sec_snapshot:"):
-        value, table, col = _resolve_sec_snapshot(mapping, period, spec, issuer, explicit)
-        if value is not None and mapping.scale:
-            value = value * (10 ** mapping.scale)
+        value, table, col = _resolve_sec_snapshot(mapping, period, spec, issuer, explicit, store_root)
+        value = _apply_arithmetic_transform(mapping, value)
         if isinstance(table, tuple):
             lineage_path = ";".join(f"data/tables/{issuer}/{run_id}/{name}.parquet" for name in table)
             lineage_key = ";".join(f"col={name}" for name in col)
@@ -529,9 +733,8 @@ def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
                              "sec_snapshot", lineage_path, lineage_key, status)
 
     if mapping.locator.startswith("sec_label:"):
-        value, table = _resolve_sec_label(mapping, period, spec, issuer, explicit)
-        if value is not None and mapping.scale:
-            value = value * (10 ** mapping.scale)
+        value, table = _resolve_sec_label(mapping, period, spec, issuer, explicit, store_root)
+        value = _apply_arithmetic_transform(mapping, value)
         status = "verified" if value is not None else "unresolved"
         return ResolvedFact(mapping.metric, period, value, mapping.units, mapping.basis,
                             mapping.dimension, mapping.transform, mapping.locator,
@@ -541,26 +744,38 @@ def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
     if mapping.locator.startswith("8k_exhibit_role:"):
         effective = _materialize_role_locator(mapping, period)
         value, exhibit_sha256, keys = _resolve_8k_exhibit_role(effective, period, spec, store_root, issuer, explicit)
+        value = _apply_arithmetic_transform(mapping, value)
         status = "verified" if value is not None else "unresolved"
+        original = next((item for item in boundary["originals"]
+                         if item.get("ticker") == issuer and item.get("provider") == "sec"
+                         and item.get("sha256") == exhibit_sha256), None)
+        lineage_path = (f"data/raw/{issuer}/sec/{exhibit_sha256}/{original['filename']}"
+                        if original else "")
         return ResolvedFact(mapping.metric, period, value, mapping.units, mapping.basis,
                              mapping.dimension, mapping.transform, effective.locator,
-                             "8k_exhibit", f"data/raw/{issuer}/sec/{exhibit_sha256}/payload" if exhibit_sha256 else "",
+                             "8k_exhibit", lineage_path,
                              f"keys={keys}" if keys else "", status)
 
     if mapping.locator.startswith("8k_exhibit:"):
         value, exhibit_sha256, keys = _resolve_8k_exhibit(mapping, period, spec, store_root, issuer, explicit)
+        value = _apply_arithmetic_transform(mapping, value)
         status = "verified" if value is not None else "unresolved"
+        original = next((item for item in boundary["originals"]
+                         if item.get("ticker") == issuer and item.get("provider") == "sec"
+                         and item.get("sha256") == exhibit_sha256), None)
+        lineage_path = (f"data/raw/{issuer}/sec/{exhibit_sha256}/{original['filename']}"
+                        if original else "")
         return ResolvedFact(mapping.metric, period, value, mapping.units, mapping.basis,
                              mapping.dimension, mapping.transform, mapping.locator,
-                             "8k_exhibit", f"data/raw/{issuer}/sec/{exhibit_sha256}/payload",
-                             f"keys={keys}", status)
+                             "8k_exhibit", lineage_path, f"keys={keys}", status)
 
     if mapping.locator.startswith("raw_payload:"):
-        value, path = _resolve_raw_payload(mapping, period, spec, store_root)
+        value, path, key = _resolve_raw_payload(mapping, period, spec, store_root)
+        value = _apply_arithmetic_transform(mapping, value)
         status = "verified" if value is not None else "unresolved"
         return ResolvedFact(mapping.metric, period, value, mapping.units, mapping.basis,
                              mapping.dimension, mapping.transform, mapping.locator,
-                             "raw_payload", path or "", "", status)
+                             "raw_payload", path or "", key, status)
 
     if mapping.locator.startswith("derived:"):
         raise ValueError("derived facts are resolved by build_actuals, not resolve()")
@@ -569,6 +784,7 @@ def resolve(mapping: FactMapping, period: str, spec: dict) -> ResolvedFact:
 
 
 def build_actuals(fact_map: list[FactMapping], spec: dict, periods: list[str]) -> list[ResolvedFact]:
+    _verify_boundary(spec)
     explicit = period_end_dates(spec)
     if explicit:
         uncovered = [p for p in periods if p not in explicit]
@@ -590,7 +806,7 @@ def build_actuals(fact_map: list[FactMapping], spec: dict, periods: list[str]) -
             try:
                 r = resolve(m, p, spec)
             except Exception as e:
-                raise ValueError(f"{m.metric} {p}: evidence resolution failed") from e
+                raise ValueError(f"{m.metric} {p}: evidence resolution failed: {e}") from e
             # A declared reason is the frozen row's visible, specific missing reason for any
             # non-error unavailable/unresolved result of this mapping (interfaces.md §2/§5).
             if r.value is None and r.provenance_status != "error" and not r.notes \
@@ -599,6 +815,8 @@ def build_actuals(fact_map: list[FactMapping], spec: dict, periods: list[str]) -
             by_key[(m.metric, p)] = r
 
     for m in derived:
+        if m.transform != "direct" or m.scale:
+            raise ValueError(f"{m.metric}: derived facts support only the direct transform")
         expr = m.locator[len("derived:"):]
         for p in periods:
             ops = re.findall(r"[a-z_][a-z0-9_]*", expr)
@@ -627,6 +845,259 @@ def build_actuals(fact_map: list[FactMapping], spec: dict, periods: list[str]) -
         raise ValueError("required fact unresolved: " + "; ".join(required_missing))
     return list(by_key.values())
 
+
+
+_VALUE_TOLERANCE = 1e-8
+
+
+def _same_value(actual: str, expected: Optional[float]) -> bool:
+    try:
+        observed = float(actual)
+    except (TypeError, ValueError):
+        return False
+    return expected is not None and math.isclose(observed, expected, rel_tol=_VALUE_TOLERANCE, abs_tol=_VALUE_TOLERANCE)
+
+
+def replay_frozen_evidence(spec: dict, actual_rows: list[dict[str, str]],
+                           benchmark_rows: Optional[list[dict[str, str]]] = None,
+                           fact_map: Optional[list[FactMapping]] = None) -> dict[str, int]:
+    """Replay every populated actual and benchmark against the strictly pinned pull boundary."""
+    try:
+        root, tables, originals = _verify_boundary(spec)
+    except ValueError as exc:
+        message = str(exc)
+        populated = [row for row in actual_rows + (benchmark_rows or [])
+                     if str(row.get("value") or "").strip()]
+        source_refs = []
+        boundary = spec.get("source_boundary") or {}
+        table_pins = boundary.get("tables", []) if isinstance(boundary.get("tables", []), list) else []
+        original_pins = boundary.get("originals", []) if isinstance(boundary.get("originals", []), list) else []
+        snapshot_pins = boundary.get("snapshots", []) if isinstance(boundary.get("snapshots", []), list) else []
+        for row in populated:
+            metric, period = row.get("metric", "?"), row.get("period", "?")
+            lineage = " ".join(str(row.get(field) or "")
+                                for field in ("locator", "lineage_path", "lineage_key"))
+            source_hashes = [item.get("sha256", "") for item in table_pins + original_pins
+                             if isinstance(item, dict) and item.get("sha256")
+                             and item["sha256"] in message]
+            related = any(digest in lineage for digest in source_hashes)
+            if not related:
+                for snapshot in snapshot_pins:
+                    if not isinstance(snapshot, dict) or snapshot.get("run_id") not in message:
+                        continue
+                    related_hashes = [item.get("sha256", "")
+                                      for item in table_pins + original_pins
+                                      if isinstance(item, dict) and item.get("run_id") == snapshot.get("run_id")]
+                    related = any(digest in lineage for digest in related_hashes if digest)
+                    related = related or any(
+                        item.get("run_id") == snapshot.get("run_id")
+                        and item.get("name", "") in lineage
+                        and item.get("name", "") in message
+                        for item in table_pins if isinstance(item, dict))
+                    related = related or snapshot.get("run_id", "") in lineage
+            if related:
+                source_refs.append(f"{metric} {period}")
+        context = ", ".join(dict.fromkeys(source_refs))
+        if context:
+            raise ValueError(f"{context}: source boundary replay failed: {message}") from exc
+        raise ValueError(f"source boundary replay failed: {message}") from exc
+    ticker = spec.get("ticker")
+    if not ticker:
+        raise ValueError("model_spec.ticker is required for evidence replay")
+    if fact_map is None:
+        raise ValueError("fact_map is required for evidence replay")
+    mapping_by_key: dict[tuple[str, str], FactMapping] = {}
+    for mapping in fact_map:
+        for period in (mapping.periods or []):
+            mapping_by_key[(mapping.metric, period)] = mapping
+    historical = (spec.get("periods") or {}).get("historical_quarters", [])
+    for mapping in fact_map:
+        for period in (mapping.periods if mapping.periods is not None else historical):
+            mapping_by_key[(mapping.metric, period)] = mapping
+
+    actual_by_key: dict[tuple[str, str], dict[str, str]] = {}
+    seen: set[tuple[str, str, str]] = set()
+    for line, row in enumerate(actual_rows, start=2):
+        metric, period = str(row.get("metric") or ""), str(row.get("period") or "")
+        key = (metric, period, str(row.get("dimension") or ""))
+        if not metric or not period:
+            raise ValueError(f"actuals.csv line {line}: metric and period are required")
+        if key in seen:
+            raise ValueError(f"{metric} {period}: duplicate frozen actual (dimension={key[2]!r})")
+        seen.add(key)
+        actual_by_key[(metric, period)] = row
+        value = str(row.get("value") or "").strip()
+        status = str(row.get("provenance_status") or "").strip().lower()
+        if value:
+            missing_lineage = [field for field in ("lineage_scheme", "lineage_path", "lineage_key")
+                               if not str(row.get(field) or "").strip()]
+            if missing_lineage or status != "verified":
+                raise ValueError(f"{metric} {period}: populated fact lacks verified lineage metadata")
+        elif status in {"", "error"} or not str(row.get("notes") or "").strip():
+            raise ValueError(f"{metric} {period}: blank fact needs unavailable status and a specific reason")
+
+    for mapping in fact_map:
+        covered_periods = mapping.periods if mapping.periods is not None else historical
+        for period in covered_periods:
+            if (mapping.metric, period) not in actual_by_key:
+                raise ValueError(f"fact_map.json declares {mapping.metric} {period} but actuals.csv has no row")
+
+    replayed = 0
+    for row in actual_rows:
+        value = str(row.get("value") or "").strip()
+        if not value:
+            continue
+        metric, period = row.get("metric", ""), row.get("period", "")
+        mapping = mapping_by_key.get((metric, period))
+        if mapping is None:
+            raise ValueError(f"{metric} {period}: populated actual has no fact-map mapping")
+        expected_locator = (_materialize_role_locator(mapping, period).locator
+                            if mapping.locator.startswith("8k_exhibit_role:") else mapping.locator)
+        expected_metadata = {
+            "units": mapping.units, "basis": mapping.basis,
+            "dimension": mapping.dimension or "", "transform": mapping.transform,
+            "locator": expected_locator,
+        }
+        mismatched = [name for name, expected in expected_metadata.items()
+                      if str(row.get(name) or "") != str(expected)]
+        if mismatched:
+            raise ValueError(f"{metric} {period}: frozen metadata mismatch ({', '.join(mismatched)})")
+        if mapping.locator.startswith("derived:"):
+            if mapping.transform != "direct" or mapping.scale:
+                raise ValueError(f"{metric} {period}: derived facts support only the direct transform")
+            expression = mapping.locator[len("derived:"):]
+            operands = re.findall(r"[a-z_][a-z0-9_]*", expression)
+            missing = [op for op in operands if (op, period) not in actual_by_key
+                       or not str(actual_by_key[(op, period)].get("value") or "").strip()]
+            if missing:
+                raise ValueError(f"{metric} {period}: derived replay missing operands {missing}")
+            values = {op: float(actual_by_key[(op, period)]["value"]) for op in operands}
+            expected = eval(expression, {"__builtins__": {}}, values)  # closed fact-map arithmetic
+            if not _same_value(value, expected):
+                raise ValueError(f"{metric} {period}: frozen derived value does not replay from operands")
+            if row.get("lineage_scheme") != "derived" or not all(op in row.get("lineage_key", "") for op in operands):
+                raise ValueError(f"{metric} {period}: derived lineage does not identify every operand")
+            replayed += 1
+            continue
+
+        replay_spec = dict(spec)
+        boundary = dict(spec["source_boundary"])
+        lineage = str(row.get("lineage_path") or "")
+        if row.get("lineage_scheme") == "sec_snapshot":
+            match = re.match(r"data/tables/([^/]+)/([^/]+)/", lineage)
+            if not match or match.group(1) != ticker:
+                raise ValueError(f"{metric} {period}: invalid SEC source lineage {lineage!r}")
+            run_id = match.group(2)
+            boundary["selected_sec_snapshot"] = run_id
+            table_names = re.findall(r"data/tables/[^/]+/[^/]+/([^/]+)\.parquet", lineage)
+            for table_name in table_names:
+                if (run_id, table_name) not in tables:
+                    raise ValueError(f"{metric} {period}: source table is not pinned: {run_id}/{table_name}")
+        elif row.get("lineage_scheme") in {"8k_exhibit", "raw_payload"}:
+            # The locator's content address must be one of the originals pinned above.
+            parsed = re.search(r"(?:raw_payload:[^/]+/|data/raw/[^/]+/[^/]+/)([0-9a-f]{64})/", str(row.get("locator", "")) + "/" + lineage)
+            if not parsed:
+                parsed = re.search(r"([0-9a-f]{64})", str(row.get("lineage_key", "")))
+            if not parsed:
+                raise ValueError(f"{metric} {period}: raw source hash is absent from lineage")
+            digest = parsed.group(1)
+            provider_match = re.match(r"raw_payload:([^/]+)/", str(row.get("locator", "")))
+            if row.get("lineage_scheme") == "8k_exhibit":
+                provider = "sec"
+            elif provider_match is None:
+                raise ValueError(f"{metric} {period}: raw-payload locator is malformed")
+            else:
+                provider = provider_match.group(1)
+            if (ticker, provider, digest) not in originals:
+                raise ValueError(f"{metric} {period}: source original is not pinned: {provider}/{digest}")
+        else:
+            raise ValueError(f"{metric} {period}: unsupported populated lineage scheme {row.get('lineage_scheme')!r}")
+        replay_spec["source_boundary"] = boundary
+        try:
+            resolved = resolve(mapping, period, replay_spec)
+        except Exception as exc:
+            raise ValueError(f"{metric} {period}: source replay failed: {exc}") from exc
+        if not _same_value(value, resolved.value):
+            raise ValueError(f"{metric} {period}: frozen value {value!r} does not replay (source={resolved.value!r})")
+        if row.get("lineage_scheme") != resolved.lineage_scheme:
+            raise ValueError(f"{metric} {period}: frozen lineage scheme does not replay")
+        if row.get("lineage_path") != resolved.lineage_path:
+            raise ValueError(f"{metric} {period}: frozen source path does not replay")
+        if row.get("lineage_key") != resolved.lineage_key:
+            raise ValueError(f"{metric} {period}: frozen source locator key does not replay")
+        replayed += 1
+
+    benchmark_replayed = 0
+    for row in benchmark_rows or []:
+        if not str(row.get("value") or "").strip():
+            continue
+        metric, period = row.get("metric", "?"), row.get("period", "?")
+        locator = str(row.get("locator") or "")
+        if not locator.startswith("raw_payload:"):
+            raise ValueError(f"benchmark {metric} {period}: accepted benchmark must resolve from a pinned raw payload")
+        required_benchmark_fields = ("units", "basis", "dimension", "transform", "source",
+                                     "as_of_date", "locator", "lineage_scheme", "lineage_path", "lineage_key")
+        absent = [field for field in required_benchmark_fields if field not in row]
+        if absent:
+            raise ValueError(f"benchmark {metric} {period}: missing replay metadata {absent}")
+        if not str(row.get("units") or "").strip() or not str(row.get("basis") or "").strip():
+            raise ValueError(f"benchmark {metric} {period}: units and basis are required for replay")
+        if not str(row.get("as_of_date") or "").strip():
+            raise ValueError(f"benchmark {metric} {period}: as_of_date is required for replay")
+        if row.get("transform", "direct") != "direct":
+            raise ValueError(f"benchmark {metric} {period}: only direct raw-payload replay is supported")
+        as_of_date = str(row.get("as_of_date") or "")
+        if not _ISO_DATE.fullmatch(as_of_date):
+            raise ValueError(f"benchmark {metric} {period}: as_of_date must be an ISO date")
+        if _ISO_DATE.fullmatch(period) and as_of_date != period:
+            raise ValueError(f"benchmark {metric} {period}: dated benchmark as_of_date must equal its period")
+        provider_match = re.match(r"raw_payload:([^/]+)/", locator)
+        if (provider_match is None
+                or re.sub(r"[^a-z0-9]", "", provider_match.group(1).casefold())
+                != re.sub(r"[^a-z0-9]", "", str(row.get("source") or "").casefold())):
+            raise ValueError(f"benchmark {metric} {period}: source does not match the raw-payload provider")
+        mapping = FactMapping(metric, row.get("dimension") or None, str(row.get("basis") or ""),
+            str(row.get("units") or ""), locator, "date", "direct", "required")
+        try:
+            resolved = resolve(mapping, period, spec)
+        except Exception as exc:
+            raise ValueError(f"benchmark {metric} {period}: source replay failed: {exc}") from exc
+        if not _same_value(str(row["value"]), resolved.value):
+            raise ValueError(f"benchmark {metric} {period}: frozen value does not replay from pinned source")
+        if (row.get("lineage_scheme") != resolved.lineage_scheme
+                or row.get("lineage_path") != resolved.lineage_path
+                or row.get("lineage_key") != resolved.lineage_key):
+            raise ValueError(f"benchmark {metric} {period}: frozen source lineage does not replay")
+        benchmark_replayed += 1
+
+    price = spec.get("price")
+    if price is not None:
+        if not isinstance(price, dict):
+            raise ValueError("model_spec.price must be an object when present")
+        price_date = str(price.get("date") or "")
+        try:
+            if not _ISO_DATE.fullmatch(price_date):
+                raise ValueError
+            date.fromisoformat(price_date)
+            price_value = float(price["value"])
+            if not math.isfinite(price_value):
+                raise ValueError
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError("model_spec.price requires a finite value and ISO date") from exc
+        candidates = [row for row in (benchmark_rows or [])
+                      if str(row.get("metric") or "") == "price_dated"
+                      and str(row.get("value") or "").strip()
+                      and (str(row.get("period") or "") == price_date
+                           or str(row.get("as_of_date") or "") == price_date)]
+        if len(candidates) != 1:
+            raise ValueError(f"model_spec.price {price_date}: expected exactly one replayed price_dated benchmark, "
+                             f"found {len(candidates)}")
+        row = candidates[0]
+        if str(row.get("period") or "") != price_date or str(row.get("as_of_date") or "") != price_date:
+            raise ValueError(f"model_spec.price {price_date}: benchmark date conflicts with price date")
+        if not _same_value(str(row.get("value") or ""), price_value):
+            raise ValueError(f"model_spec.price {price_date}: value does not match replayed price_dated benchmark")
+    return {"actuals_replayed": replayed, "benchmarks_replayed": benchmark_replayed}
 
 def build_availability(actuals: list[ResolvedFact], metrics: list[str], periods: list[str]) -> str:
     lines = ["| metric | " + " | ".join(periods) + " |", "|---|" + "---|" * len(periods)]

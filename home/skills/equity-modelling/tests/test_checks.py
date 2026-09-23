@@ -17,6 +17,8 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 from openpyxl import Workbook  # noqa: E402
 from checks import check_full  # noqa: E402
+from evidence import build_actuals, freeze  # noqa: E402
+from pull_fixture import create_source, fact_mappings  # noqa: E402
 
 
 def _inject_cached_values(workbook_path: Path, cached: dict[str, object]) -> None:
@@ -55,15 +57,22 @@ class CheckFullCachedFormulaTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def _write_project(self, build) -> Path:
+    def _write_project(self, build, *, include_evidence: bool = True) -> Path:
         output = self.project / "Book.xlsx"
         workbook = Workbook()
         workbook.active.title = "SourceData"
         build(workbook.create_sheet("RegionalModel"))
         workbook.save(output)
-        (self.project / "model_spec.json").write_text(json.dumps({
-            "workbook": {"filename": "Book.xlsx", "sheets": ["SourceData", "RegionalModel"]},
-        }))
+        spec = {"workbook": {"filename": "Book.xlsx", "sheets": ["SourceData", "RegionalModel"]}}
+        if include_evidence:
+            source_spec, facts = create_source(self.project / "pull" / "data", "TST")
+            spec.update(source_spec)
+            spec["workbook"] = {"filename": "Book.xlsx", "sheets": ["SourceData", "RegionalModel"]}
+            (self.project / "fact_map.json").write_text(json.dumps({"schema_version": 1,
+                "ticker": "TST", "facts": facts[:1]}))
+            freeze(build_actuals(fact_mappings(facts[:1]), spec, ["2026Q2"]),
+                   self.project / "evidence")
+        (self.project / "model_spec.json").write_text(json.dumps(spec))
         return output
 
     def _cache_warnings(self, report) -> list[str]:
@@ -109,6 +118,13 @@ class CheckFullCachedFormulaTests(unittest.TestCase):
         report = check_full(self.project)
         self.assertTrue(report.ok, report.failures)
         self.assertEqual(self._cache_warnings(report), [])
+
+    def test_existing_workbook_without_mandatory_evidence_fails_closed(self):
+        self._write_project(lambda sheet: sheet.__setitem__("A1", 5), include_evidence=False)
+        report = check_full(self.project)
+        self.assertFalse(report.ok)
+        self.assertIn("mandatory frozen evidence is missing: evidence/actuals.csv", report.failures)
+        self.assertIn("mandatory frozen evidence is missing: fact_map.json", report.failures)
 
 
 if __name__ == "__main__":
