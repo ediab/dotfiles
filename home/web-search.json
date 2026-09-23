@@ -16,6 +16,7 @@
   "searchRouting": {
     "providers": [
       "tinyfish",
+      "openai",
       "exa"
     ],
     "fallbackOn": [
