@@ -34,14 +34,13 @@ ssh "$VPS_HOST" 'rm -f ~/.pi/agent/subagents-lite.json'  # legacy lite config, s
 # leftovers from packages that are no longer installed anywhere
 # NOTE: ~/.pi/agent/intercom was removed from this list when pi-intercom was installed —
 # it is the live config/state dir for npm:pi-intercom, not a leftover.
-ssh "$VPS_HOST" 'rm -rf ~/.pi/agent/pi-pretty; rm -f ~/.pi/agent/lsp.json ~/.pi/agent/claude-bridge.json ~/.pi/agent/pi-plan-build.json'  # pi-plan-build removed 2026-09-14, replaced by plan skill
+ssh "$VPS_HOST" 'rm -rf ~/.pi/agent/pi-pretty ~/.pi/agent/git/github.com/ayghri; rm -f ~/.pi/agent/lsp.json ~/.pi/agent/claude-bridge.json ~/.pi/agent/pi-plan-build.json ~/.pi/agent/i-have-adhd.json'  # pi-plan-build removed 2026-09-14, replaced by plan skill; i-have-adhd removed 2026-09-23
 
 # Versioned package configs: the repo is the source of truth, so the VPS gets the same
 # files bootstrap.sh / rebuild.sh deploy locally.
 ssh "$VPS_HOST" 'rm -f ~/.pi/agent/zentui.json ~/.pi/agent/zentui.json.bak'  # zentui removed 2026-09-21, replaced by pi-open-tui
 rsync -az "$REPO_DIR/home/open-tui.json" "$VPS_HOST:~/.pi/agent/open-tui.json"
 rsync -az "$REPO_DIR/home/pi-btw.json" "$VPS_HOST:~/.pi/agent/pi-btw.json"
-rsync -az "$REPO_DIR/home/i-have-adhd.json" "$VPS_HOST:~/.pi/agent/i-have-adhd.json"
 
 # code-previews.json is per-machine (local paths and state) — mirrored, not versioned.
 if [ -f "$PI_DIR/code-previews.json" ]; then

@@ -104,10 +104,6 @@ if ! diff -q "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.jso
     && echo "    ponytail.json  re-synced (defaultMode lite)"
 fi
 
-# i-have-adhd output style (opt-in via /i-have-adhd). Repo copy is the source of truth.
-cp "$SCRIPT_DIR/home/i-have-adhd.json" "$HOME/.pi/agent/i-have-adhd.json" \
-  && echo "    i-have-adhd.json  re-synced"
-
 # Subagent model router (Jev-judged tier chains + per-agent floors). Repo copy is
 # the source of truth; the extension also ships built-in defaults, so this file
 # only needs entries you want to override.

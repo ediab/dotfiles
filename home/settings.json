@@ -43,7 +43,6 @@
     "npm:pi-commandcode-provider",
     "npm:@andrewjacop/pi-herdr",
     "npm:@lll9p/pi-better-compaction",
-    "https://github.com/ayghri/i-have-adhd",
     "npm:omp-codex-reserve",
     {
       "source": "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
@@ -90,6 +89,7 @@
   },
   "showCacheMissNotices": false,
   "enabledModels": [
+    "deepseek/deepseek-flash",
     "openai-codex/gpt-6-astra",
     "openai-codex/gpt-6-luna",
     "openai-codex/gpt-6-sol",
