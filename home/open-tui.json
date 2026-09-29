@@ -24,7 +24,7 @@
     "capitalizeProviderName": true
   },
   "telemetry": {
-    "enabled": false,
+    "enabled": true,
     "tps": true,
     "ttft": true,
     "duration": true,
