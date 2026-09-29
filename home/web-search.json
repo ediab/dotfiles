@@ -13,20 +13,7 @@
     "providers": ["http", "jina", "tinyfish"],
     "allowRemoteHostedProviders": true
   },
-  "searchRouting": {
-    "providers": [
-      "tinyfish",
-      "openai",
-      "exa"
-    ],
-    "fallbackOn": [
-      "transient",
-      "quota",
-      "network",
-      "invalid-response",
-      "unsupported"
-    ]
-  },
+  "searchProvider": ["openai", "exa"],
   "allowBrowserCookies": false,
   "summaryModel": "deepseek/deepseek-v4-flash",
   "workflow": "auto-summary",
