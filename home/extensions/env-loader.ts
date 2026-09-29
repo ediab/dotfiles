@@ -1,7 +1,7 @@
 /**
  * env-loader — loads ~/.pi/agent/.env into process.env at pi startup.
  *
- * Runs before any per-request env reads (model router, subagent router, etc.).
+ * Runs before any per-request env reads by other extensions.
  * Never overrides variables already set in the environment.
  */
 

@@ -83,17 +83,11 @@ if ! diff -q "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.jso
     && echo "    ponytail.json  re-synced (defaultMode off)"
 fi
 
-# Subagent model router (Jev-judged tier chains + per-agent floors). Repo copy is
-# the source of truth; the extension also ships built-in defaults, so this file
-# only needs entries you want to override.
-cp "$SCRIPT_DIR/home/pi-subagent-router.json" "$HOME/.pi/agent/pi-subagent-router.json" \
-  && echo "    pi-subagent-router.json  re-synced"
-
 # Secrets file for pi sessions (loaded by home/extensions/env-loader.ts). Seed
 # once from the example; never overwrite an existing .env with real values in it.
 if [ ! -f "$HOME/.pi/agent/.env" ]; then
   cp "$SCRIPT_DIR/home/.env.example" "$HOME/.pi/agent/.env" \
-    && echo "    .env  seeded from example (fill in TYPESAFE_API_KEY)" \
+    && echo "    .env  seeded from example" \
     || echo "    FAILED: .env seed"
   chmod 600 "$HOME/.pi/agent/.env"
 fi
