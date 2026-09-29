@@ -53,5 +53,6 @@
   "observational-memory": {
     "showWorkerNotifications": true
   },
-  "showCacheMissNotices": false
+  "showCacheMissNotices": false,
+  "deviceId": "4867752c-ac6b-43a5-85b4-aeada0361eaf"
 }
