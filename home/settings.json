@@ -36,7 +36,8 @@
     },
     "npm:@narumitw/pi-btw",
     "npm:pi-open-tui",
-    "npm:pi-extmgr"
+    "npm:pi-extmgr",
+    "npm:pi-blackhole"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
