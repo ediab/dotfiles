@@ -22,7 +22,7 @@ than symlinked. Ordinary home files stay separate from agent-content ownership.
 
 ## What you get
 
-Running the bootstrap installs:
+The setup scripts manage:
 
 - **pi harness** — via npm (`@earendil-works/pi-coding-agent`), falling back to the official
   curl installer (`https://pi.dev/install.sh`) if npm fails.
@@ -63,21 +63,21 @@ Running the bootstrap installs:
   `home/settings.json` so activation comes only from the default mode (no double-trigger); the extension, its `/ponytail` mode
   commands, and the companion skills (`ponytail-review/-audit/-debt/-gain/-help`)
   keep working.
-- **Web-search config** — `home/web-search.json` deployed to `~/.pi/agent/web-search.json`
-  (pi-web-access routing: TinyFish primary, Exa fallback). The TinyFish key is a macOS
-  Keychain lookup (`!security find-generic-password …`), so `bootstrap.sh` leaves the file
-  alone; `deploy-vps.sh` writes a Linux variant that reads `~/.pi/agent/tinyfish-api-key`
-  (0600, managed directly on the VPS — deploy never overwrites it).
-- **Agent config** — `home/settings.json` is the canonical Pi agent settings. The shared
-  policy in `home/AGENTS.md` is composed with optional client and machine overlays by
-  `sync-agent-content.sh`.
+- **Web-search config** — `home/web-search.json` configures OpenAI and Exa as search
+  providers, plus separate fetch routing. `rebuild.sh` copies it to
+  `~/.pi/agent/web-search.json` (bootstrap does not). The TinyFish key is looked up from
+  the local macOS Keychain; `deploy-vps.sh` writes a VPS-specific lookup for
+  `~/.pi/agent/tinyfish-api-key` (0600, managed directly on the VPS — deploy never
+  overwrites it).
+- **Agent config** — `home/settings.json` is the canonical Pi agent settings and is copied
+  by `bootstrap.sh` and a full `rebuild.sh`, including its provider, model, and theme
+  defaults. The shared policy in `home/AGENTS.md` is composed with optional client and
+  machine overlays by `sync-agent-content.sh`.
 
 ## What it does NOT install
 
 - MCP servers (`~/.pi/agent/mcp.json`)
 - Auth / API keys (`~/.pi/agent/auth.json`)
-- Provider / model / theme settings (configure those in `~/.pi/agent/settings.json` after
-  bootstrap, or edit `home/settings.json` and rebuild)
 - The Herdr integration file — `herdr integration install pi` writes and updates
   `~/.pi/agent/extensions/herdr-agent-state.ts` (`HERDR_INTEGRATION_VERSION=8`; check with
   `herdr integration status`, which flags outdated installs). Vendoring it here would let
