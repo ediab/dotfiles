@@ -8,7 +8,6 @@
   "externalEditor": "druk",
   "packages": [
     "npm:pi-web-access",
-    "npm:pi-mcp-adapter",
     "npm:@ff-labs/pi-fff",
     "npm:pi-code-previews",
     "npm:@tintinweb/pi-subagents",
