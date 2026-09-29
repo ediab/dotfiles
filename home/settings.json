@@ -43,7 +43,6 @@
   "skills": [
     "!**/.agents/skills/use-tinyfish",
     "!**/.agents/skills/simplify",
-    "-skills/simplify/SKILL.md",
     "-skills/ATTRIBUTION.md",
     "-skills/pull-financial-data/SKILL.md",
     "-skills/excel/SKILL.md",
