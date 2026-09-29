@@ -315,4 +315,7 @@ bindkey '^[[1;5D' backward-word         # ctrl+left
 # zprof   # uncomment with the zmodload at the top to profile startup
 # TinyFish API key — stored in macOS Keychain (service "tinyfish-api-key"), not in this file.
 # Add/update with: security add-generic-password -s tinyfish-api-key -a tinyfish -w '<key>' -U
-export TINYFISH_API_KEY='sk-tinyfish-qwLzHHu486vihkMLA9fXzbhfm1llacmz'
+if command -v security >/dev/null 2>&1; then
+  TINYFISH_API_KEY="$(security find-generic-password -s tinyfish-api-key -a tinyfish -w 2>/dev/null || true)"
+  if [ -n "$TINYFISH_API_KEY" ]; then export TINYFISH_API_KEY; fi
+fi
