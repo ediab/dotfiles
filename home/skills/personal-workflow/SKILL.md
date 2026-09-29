@@ -73,7 +73,7 @@ The gates and rules for how the main agent works. Default execution model: the t
 * Do not commit unless explicitly requested — except: `/skill:implement`, and the ticket-pipeline implementation it executes, commits to the current branch when the work completes. The ticket-sized commit is the review boundary. Push, deploy, branch, or open PRs only when requested.
 * Do not overwrite or revert unrelated working-tree changes.
 * Assume other work may exist in the repository.
-* **Standing exception:** `~/dev/configs` and `~/dev/pi-dotfiles` are repos where committing after an edit is expected. Pushing still requires an explicit request.
+* **Standing exception:** `~/Dev/dotfiles` is a repo where committing after an edit is expected. Pushing still requires an explicit request.
 
 ## Communication
 

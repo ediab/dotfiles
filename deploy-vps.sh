@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # deploy-vps.sh — push local pi config to VPS, sync packages/agent content/extensions.
 #
-# Stable interface for the configs repo's sync-vps.sh orchestrator:
+# Stable interface for the merged repo's config/bin/sync-vps.sh orchestrator:
 #   deploy-vps.sh [host]   (default host: vps)
 #   deploy-vps.sh --prepare-agent-content [host]   (stage only; no live deployment)
 # Reads this repo's home/ plus the live ~/.pi/agent/ files noted below
@@ -25,7 +25,7 @@ LOCAL_STAGE=""
 
 stage_agent_content() {
   "$REPO_DIR/lint-agent-content.sh"
-  LOCAL_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/pi-dotfiles-vps-stage.XXXXXX")"
+  LOCAL_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-vps-stage.XXXXXX")"
   trap 'if [ -n "$LOCAL_STAGE" ]; then rm -rf "$LOCAL_STAGE"; fi' EXIT HUP INT TERM
   mkdir -p "$LOCAL_STAGE/home"
   cp -p "$REPO_DIR/sync-agent-content.sh" "$LOCAL_STAGE/"

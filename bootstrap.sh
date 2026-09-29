@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pi-dotfiles — install the pi coding-agent harness + Elias's packages + skills.
+# dotfiles — install the pi coding-agent harness + Elias's packages + skills.
 # Does NOT install MCPs, auth keys, or provider/model settings.
 set -euo pipefail
 
@@ -25,11 +25,11 @@ else
   command -v pi >/dev/null 2>&1 || { echo "    ERROR: pi still not on PATH"; exit 1; }
 fi
 
-echo "==> 2/4  packages (canonical list = home/settings.json, auto-synced from live by sync-settings.sh)"
+echo "==> 2/4  packages (canonical list = home/settings.json, captured from live by capture.sh)"
 
 # Deploy canonical pi agent settings.json from this repo as the base; pi install
 # below appends each installed package into it. Live edits to settings.json are
-# re-synced back into the repo automatically by sync-settings.sh (launchd).
+# captured back into the repo by capture.sh (launchd).
 cp "$SCRIPT_DIR/home/settings.json" "$HOME/.pi/agent/settings.json" \
   && echo "    settings.json  deployed" \
   || echo "    FAILED: home/settings.json"

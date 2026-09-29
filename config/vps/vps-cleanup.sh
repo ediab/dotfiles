@@ -5,7 +5,7 @@
 #   vps-cleanup.sh --dry-run  print what would happen, change nothing
 #
 # Run by vps-cleanup.timer (Sunday 04:30, persistent) as `diab`. Deployed from the
-# configs repo — edit there, not on the VPS.
+# dotfiles repo's config/vps/ — edit there, not on the VPS.
 #
 # What it reclaims:
 #   * Docker build cache, capped with --max-used-space (the older --keep-storage is now

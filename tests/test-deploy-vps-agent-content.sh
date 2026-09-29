@@ -2,7 +2,7 @@
 set -eo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WORK="$(mktemp -d "${TMPDIR:-/tmp}/pi-dotfiles-vps-test.XXXXXX")"
+WORK="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-vps-test.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT HUP INT TERM
 
 fail() { echo "FAIL: $*" >&2; exit 1; }

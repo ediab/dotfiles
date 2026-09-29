@@ -35,7 +35,7 @@ A contract lives in exactly one file. Everything else links to it.
   approved pull-data-only acquisition happens before evidence freeze.
 - A data-driven engine **is** wanted (V2 §12.1); a formula DSL or a database is not.
 - `company-model` was the donor skill and is **archived** (2026-09-22) at
-  `~/Downloads/archive/company-model-2026-09-22/` — repo copy under `pi-dotfiles-home-skills/`, VPS
+  `~/Downloads/archive/company-model-2026-09-22/` — source copy in the archived bundle, VPS
   copy at `~/archive/company-model-2026-09-22`. Treat it as reference-only: port from the archive
   rather than recreating equivalents, and do not reinstall it under `home/skills/`.
 - Keep `SKILL.md`'s runtime contract and the shipped files in `scripts/` consistent — change them
@@ -44,7 +44,7 @@ A contract lives in exactly one file. Everything else links to it.
 
 ## Workflow
 
-Edit this source folder, then deploy with `~/Dev/pi-dotfiles/rebuild.sh --sync-only`.
+Edit this source folder, then deploy with `~/Dev/dotfiles/rebuild.sh --sync-only`.
 
 Run the tests before committing:
 

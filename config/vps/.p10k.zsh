@@ -15,7 +15,7 @@
 # CATPPUCCIN MOCHA PALETTE (hand-edited on top of the wizard output).
 # p10k's `_p10k_translate_color` passes '#rrggbb' straight through to zsh's %F{},
 # and the VPS runs zsh 5.9, so these render as exact 24-bit colour. Keep these in
-# sync with ~/dev/configs/starship.toml (same palette name + hexes) and with
+# sync with ~/Dev/dotfiles/config/starship.toml (same palette name + hexes) and with
 # Ghostty's "Catppuccin Mocha" theme.
 #
 # Only the segments actually rendered below are converted -- the active prompt is

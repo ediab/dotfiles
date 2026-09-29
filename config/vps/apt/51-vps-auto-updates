@@ -2,7 +2,7 @@
 //
 // `50unattended-upgrades` in this directory belongs to the package: it is shipped from
 // /usr/share/unattended-upgrades/ (with an md5sum alongside it) and is deliberately NOT
-// managed by the configs repo. Copying it into the repo re-pinned a stale snapshot of a
+// managed by the dotfiles repo. Copying it into the repo re-pinned a stale snapshot of a
 // package file, and hand-editing it is what produced the stray `.bak-*` that made apt warn
 // about an invalid filename extension.
 //
@@ -10,7 +10,7 @@
 // are stated here as well: if the package's own file is ever narrowed or replaced by an
 // upgrade, general updates still install unattended.
 //
-// Deployed by vps/deploy-vps.sh (sudo install) from the configs repo — edit it there,
+// Deployed by config/vps/deploy-vps.sh (sudo install) from the dotfiles repo — edit it there,
 // never on the VPS. `~/apps/AGENTS.md` documents the resulting behaviour.
 
 Unattended-Upgrade::Allowed-Origins {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pi-dotfiles — update pi + all installed packages, and re-sync bundled custom skills.
+# dotfiles — update pi + all installed packages, and re-sync bundled custom skills.
 # For day-to-day updates on a machine already bootstrapped by bootstrap.sh.
 # New machine? Use bootstrap.sh instead.
 #   rebuild.sh              → full: pi update --all + settings.json + all bundled config
@@ -26,7 +26,7 @@ else
   echo "==> 2/3  settings.json (repo → live)"
   # Repo is source of truth for the pi agent settings.json. NOTE: pi itself rewrites
   # this file (changelog version, installed-packages list); if you edit the live file,
-  # re-sync it back into the repo (`cp ~/.pi/agent/settings.json ~/Dev/pi-dotfiles/settings.json`)
+  # re-sync it back into the repo (`cp ~/.pi/agent/settings.json ~/Dev/dotfiles/home/settings.json`)
   # before re-running rebuild.sh to avoid clobbering local changes.
   cp "$SCRIPT_DIR/home/settings.json" "$HOME/.pi/agent/settings.json" \
     && echo "    settings.json  re-synced" \

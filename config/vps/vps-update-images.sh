@@ -5,7 +5,7 @@
 #   vps-update-images.sh --dry-run  print what would run, change nothing
 #
 # Run by vps-update-images.timer (Sunday 05:30, persistent) as `diab`. Deployed from the
-# configs repo — edit there, not on the VPS.
+# dotfiles repo's config/vps/ — edit there, not on the VPS.
 #
 # Scope: only projects whose runtime is a published image.
 #   note-sx      ghcr.io/note-sx/server:latest   (its push-to-deploy step is the same pull)

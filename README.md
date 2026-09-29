@@ -1,21 +1,24 @@
-# pi-dotfiles
+# dotfiles
 
-Elias's personal [pi](https://github.com/earendil-works/pi) (coding-agent harness) setup.
-One repo keeps portable skills and instructions aligned across Pi, Codex, and Claude Code.
+Elias's private `ediab/dotfiles` repository combines ordinary home configuration with
+portable agent content for Pi, Codex, and Claude Code.
 
-## Why this repo exists separately from `configs`
+## Ownership boundaries
 
-Two repos, one rule: **if the app writes the live file at runtime → it lives here
-(copy-deployed). If the app only reads it → it lives in `configs` (symlinked).**
+- `config/` is the imported, history-preserving subtree from the former standalone configuration checkout.
+  It is transitional for Milestone 1; ordinary Mac settings remain symlinked from it until
+  Milestone 2 moves them to chezmoi. App-specific sync stays explicit.
+- `home/` owns portable and Pi-only agent content. `sync-agent-content.sh` is the sole owner
+  of shared/Pi-only skills, Claude links, generated instructions, and their local manifest
+  and backups.
+- `capture.sh` replaces both old committers: it captures the two live Pi JSON files and
+  tracked configuration edits through one allowlisted commit, then pushes it.
+- VPS system and app state continue to use explicit deploy scripts, not a generic dotfiles
+  manager. Secrets do not belong in Git, even though this repository is private.
 
-pi manages `~/.pi/agent/` itself — it rewrites `settings.json` on every install and
-package code is written into `extensions/` and `skills/` — so a symlink would drag
-third-party package code into this repo. Files are **copied** on bootstrap/rebuild
-instead (see *How the sync works*). Shell, terminal, and editor configs are read-only
-from the app's perspective, so symlinks are fine and simpler — those are `configs`.
-
-This keeps this repo a shareable template ("Make it yours" below) while `configs`
-stays plainly personal.
+Pi manages `~/.pi/agent/` itself — it rewrites `settings.json` on installs and stores package
+code in `extensions/` and `skills/` — so those sources are copied by bootstrap/rebuild rather
+than symlinked. Ordinary home files stay separate from agent-content ownership.
 
 ## What you get
 
@@ -23,11 +26,9 @@ Running the bootstrap installs:
 
 - **pi harness** — via npm (`@earendil-works/pi-coding-agent`), falling back to the official
   curl installer (`https://pi.dev/install.sh`) if npm fails.
-- **pi packages** — the canonical list is the `packages` array in `home/settings.json`. It stays
-  in sync automatically: when you `pi install` / `pi uninstall` on a live machine,
-  `sync-settings.sh` records the change in the repo. `bootstrap.sh` installs every package
-  in that list. Package-installed skills come along automatically with their packages —
-  nothing extra to do.
+- **pi packages** — the canonical list is the `packages` array in `home/settings.json`.
+  `capture.sh` records live `settings.json` changes; `bootstrap.sh` installs every package in
+  the list. Package-installed skills come along automatically with their packages.
 - **Custom skills** — portable skills under `home/shared-skills/` are copied to
   `~/.agents/skills/` for Pi and Codex, with per-skill links into `~/.claude/skills/`
   when Claude Code is installed. Pi-only skills under `home/skills/` are copied to
@@ -89,8 +90,8 @@ Running the bootstrap installs:
 Clone and run (recommended — fully self-contained):
 
 ```sh
-git clone https://github.com/ediab/pi-dotfiles.git
-cd pi-dotfiles
+git clone git@github.com:ediab/dotfiles.git ~/Dev/dotfiles
+cd ~/Dev/dotfiles
 ./bootstrap.sh
 ```
 
@@ -98,7 +99,7 @@ Or run directly via curl (note: the bundled skills and extensions won't be prese
 a clone — `bootstrap.sh` will warn and skip them; clone for the full set):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ediab/pi-dotfiles/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ediab/dotfiles/main/bootstrap.sh | bash
 ```
 
 `bootstrap.sh` does four things, in order:
@@ -107,12 +108,13 @@ curl -fsSL https://raw.githubusercontent.com/ediab/pi-dotfiles/main/bootstrap.sh
 2. Deploys `home/settings.json` and installs every package in its `packages` list.
 3. Runs `sync-agent-content.sh` for shared/Pi-only skills and generated instructions, then
    deploys `home/extensions/` and the remaining Pi configuration.
-4. Installs the launchd auto-sync agent (`com.pi-dotfiles.sync-settings.plist`, templated
-   with your repo path) so `settings.json` changes flow back into the repo automatically.
+4. Installs the templated `com.diab.dotfiles.capture` launchd job from a clone. It watches
+   the two Pi JSON files and also runs every 15 minutes. VPS sync is installed separately,
+   only after adoption is approved and a forced four-step sync succeeds.
 
 ## Daily use
 
-Edit the config files under `home/` in place, then re-apply:
+Edit agent-content sources under `home/` and re-apply:
 
 ```sh
 ./rebuild.sh
@@ -120,7 +122,8 @@ Edit the config files under `home/` in place, then re-apply:
 
 That's `pi update --all` plus the content helper (skills and generated instructions),
 `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/web-search.json`, and
-`home/settings.json` into their managed destinations.
+`home/settings.json` into their managed destinations. Ordinary Mac config sources remain in
+`config/` and are edited through their live symlinks until Milestone 2.
 
 ### Code review
 
@@ -181,23 +184,25 @@ Settings reference: https://github.com/elpapi42/pi-observational-memory/blob/mas
 
 | What | Direction | How |
 |---|---|---|
-| `settings.json` (provider, model, theme, packages) | live → repo, **automatic** | launchd agent (installed by `bootstrap.sh` step 4) watches the live file; `sync-settings.sh` commits any `pi`-made change within seconds |
+| `home/settings.json`, `home/open-tui.json` | live → repo, **automatic** | `capture.sh` watches the live files and runs every 15 minutes; commits only allowlisted changes |
+| `config/` ordinary home files | repo ↔ live symlinks | Imported transitional subtree; ordinary home targets move to chezmoi in Milestone 2 |
+| `config/vscode/extensions.txt` | live → repo, best effort | `capture.sh` refreshes with `code --list-extensions` |
 | `home/shared-skills/`, `home/skills/`, `home/extensions/`, `home/agents/`, Pi config files | repo → live | edit the correct source directory, then `./rebuild.sh`; the helper owns only its recorded skill paths |
 | `home/AGENTS.md`, `home/instructions/` | repo → generated live files | shared policy + optional client overlay + `~/.config/pi-dotfiles/local/{pi,codex,claude}.md`; drift is backed up and stops that target |
 | `~/.config/pi-dotfiles/local/` | machine → generated live files | optional, untracked client-specific facts; preserved across regeneration |
 | `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS). `models.json` is gone: it declared only the deprecated `opencode-go/omen-alpha` shim; provider models come from the built-in catalog |
 
-Bottom line: settings reflect into the repo by themselves; the repo owns portable and
-Pi-only skill sources, extensions, and shared/client instruction sources. Machine overlays,
-ownership state, hashes, and backups stay local.
+Bottom line: one repository contains the sources, while each owner has a narrow boundary:
+agent content uses its manifest-backed helper, ordinary home config is currently symlinked
+from `config/`, app sync is explicit, and VPS deployment stays script-driven.
 
 ## Make it yours
 
 This repo is Elias's. If you clone it, review these before you run `bootstrap.sh`:
 
 - **Packages**: `pi install <pkg>` / `pi uninstall <pkg>` on a live machine —
-  `sync-settings.sh` records it in `home/settings.json` — or edit `home/settings.json`'s
-  `packages` list directly.
+  `capture.sh` records it in `home/settings.json` — or edit `home/settings.json`'s `packages`
+  list directly.
 - **Skills**: add portable skills under `home/shared-skills/` and Pi-only skills under
   `home/skills/`. `sync-agent-content.sh` deploys only these repo-owned sources, records
   exactly which paths it owns, and refuses same-name unmanaged collisions. Ordinary runs
@@ -239,28 +244,29 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
 - `home/AGENTS.md` is Elias's personal shared agent policy. If you clone this repo you'd
   inherit it in every installed client — edit or delete it if you don't want that. Put
   machine-only content in `~/.config/pi-dotfiles/local/{pi,codex,claude}.md` instead.
-- `home/settings.json` is the repo copy of your live pi agent settings. pi itself rewrites
-  the live file (changelog version, installed-packages list). `sync-settings.sh` (below)
-  keeps the repo copy fresh automatically; if you edit the live file by hand, re-sync it
-  back into the repo before your next `./rebuild.sh` to avoid clobbering local changes.
+- `home/settings.json` is the repo copy of your live pi agent settings. Pi itself rewrites
+  the live file (changelog version, installed-packages list); `capture.sh` copies existing
+  live Pi JSON files back to the repo. Review live edits before rebuilding from repo sources.
 
 ## Repo tour
 
-- `home/` — configuration sources: `home/shared-skills/` -> `~/.agents/skills/` with Claude
+- `home/` — agent-content sources: `home/shared-skills/` -> `~/.agents/skills/` with Claude
   links, `home/skills/` -> `~/.pi/agent/skills/`, `home/AGENTS.md` plus
   `home/instructions/<client>.md` -> generated `AGENTS.md`/`CLAUDE.md` targets,
-  `home/settings.json` -> `~/.pi/agent/settings.json`, plus Pi extensions, agents, and configs.
-  The helper's machine-local manifest, instruction hashes, and backups live under
-  `~/.local/state/pi-dotfiles/`; local instruction overlays live under
-  `~/.config/pi-dotfiles/local/`.
+  `home/settings.json` -> `~/.pi/agent/settings.json`, plus Pi extensions and agents.
+- `config/` — imported transitional subtree containing ordinary home symlink sources,
+  exceptional app sync, and VPS deploy assets. Milestone 2 will remove it after reorganizing
+  those contents.
 - `bootstrap.sh` — fresh-machine setup. Run once.
 - `rebuild.sh` — re-apply the config after any change. Supports `--sync-only` to deploy
   skills, generated instructions, extensions, and agent config without package updates or
   the `settings.json` copy.
-- `sync-settings.sh` — auto-syncs the live `~/.pi/agent/settings.json` back into
-  `home/settings.json` when pi rewrites it. Triggered by the launchd agent
-  `com.pi-dotfiles.sync-settings.plist` (a template in this repo, installed and path-substituted
-  by `bootstrap.sh` step 4; watch path: `~/.pi/agent/settings.json`).
+- `capture.sh` — replaces both old capture jobs. It copies existing live Pi settings files,
+  refreshes `config/vscode/extensions.txt` best-effort, and stages tracked changes only under
+  its allowlist. `com.diab.dotfiles.capture` is installed by `bootstrap.sh` from templates in
+  `launchd/`; it watches both Pi JSON files and also runs every 15 minutes.
+- `install-launchd.sh` — installs one selected job. Bootstrap installs capture only; install
+  `sync-vps` after the VPS agent-content adoption gate has passed.
 - `deploy-vps.sh` — syncs settings, auth, agents, extensions, and package configs to the VPS.
   It stages skill and instruction sources under `~/.cache/pi-dotfiles-agent-content/` and runs
   the same helper there; native skill roots are never rsynced with `--delete`. Use
@@ -269,16 +275,16 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   live config changes. Once adoption creates the manifest, routine deploys run a dry preflight
   and automatically apply the managed plan; they never enable adoption or force.
   `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).
-  Normally invoked automatically by the configs repo's `com.diab.sync-vps` launch agent
-  (change-gated, every 15 minutes); run it by hand when you want the VPS updated now.
-  Stable interface: `deploy-vps.sh [host]`. It reads only its own `home/` plus the live
-  `~/.pi/agent/` files noted here (`settings.json`, `auth.json`, `code-previews.json`) —
-  nothing outside this repo — and takes the target host as `$1` (default `vps`), so the
-  configs orchestrator can call it without knowing its internals.
+  Normally invoked by the merged repository's `config/bin/sync-vps.sh` launchd job
+  (change-gated, every 15 minutes); run `./deploy-vps.sh` by hand when you want the agent
+  content updated now. Stable interface: `deploy-vps.sh [host]`. It reads only its own
+  `home/` plus the live `~/.pi/agent/` files noted here (`settings.json`, `auth.json`,
+  `code-previews.json`) — nothing outside this repo — and takes the target host as `$1`
+  (default `vps`), so the orchestrator need not know its internals.
 - `CONCEPTS.md` — shared domain vocabulary (glossary, tracked). `docs/specs/` holds
   saved briefs/plans (tracked); `docs/plans/` is gitignored scaffolding recreated on demand.
-  All historical documents were removed on 2026-09-16 as stale — the workflow spec had
-  been fully implemented and the rest described retired setups.
+  The imported `config/docs/` subtree retains its own guides and historical records until
+  Milestone 2 reorganizes that content.
 
 ## How the sync works
 
@@ -291,7 +297,13 @@ and optional local overlay; hashes detect edits, and backups are retained under
 `~/.local/state/pi-dotfiles/backups/`.
 
 `bootstrap.sh` and `rebuild.sh` call the helper locally. `deploy-vps.sh` stages the same
-sources in a dedicated remote directory and calls the same helper against the VPS's own
-manifest and local overlay. It requires explicit first-time adoption, then preflights every
-automatic apply before changing other live VPS config. No local state or local overlay is
-sent to the VPS.
+sources in a dedicated remote directory and calls the helper against the VPS's own manifest
+and local overlay. It requires explicit first-time adoption, then preflights every automatic
+apply before changing other live VPS config. No local state or local overlay is sent to the
+VPS.
+
+The repository rename deliberately does not rename machine-local runtime state:
+`~/.local/state/pi-dotfiles/` holds the agent-content manifest and backups,
+`~/.config/pi-dotfiles/local/` holds local instruction overlays, and
+`~/.cache/pi-dotfiles-agent-content/` is the VPS staging directory. Keeping these paths
+preserves ownership and avoids an unnecessary second adoption migration.
