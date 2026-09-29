@@ -14,7 +14,6 @@
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:pi-terminal-theme",
     "git:github.com/earendil-works/pi-review",
-    "npm:omp-codex-reserve",
     {
       "source": "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
       "extensions": [
