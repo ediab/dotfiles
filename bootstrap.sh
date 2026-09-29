@@ -113,27 +113,19 @@ mkdir -p "$HOME/.config/ponytail"
 cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
   && echo "    ponytail.json  installed (defaultMode off)"
 
-echo "==> 4/4  launchd auto-sync agent (settings.json live -> repo)"
-# com.pi-dotfiles.sync-settings.plist is a template: bootstrap.sh substitutes the repo
-# path and $HOME (launchd doesn't expand ~). Skipped under curl|bash (no plist).
-if command -v launchctl >/dev/null 2>&1 && [ -f "$SCRIPT_DIR/com.pi-dotfiles.sync-settings.plist" ]; then
-  LAUNCH_AGENT_DIR="$HOME/Library/LaunchAgents"
-  LAUNCH_AGENT="$LAUNCH_AGENT_DIR/com.pi-dotfiles.sync-settings.plist"
-  mkdir -p "$LAUNCH_AGENT_DIR"
-  sed -e "s|__PI_DOTFILES_REPO__|$SCRIPT_DIR|g" \
-      -e "s|__PI_HOME__|$HOME|g" \
-      "$SCRIPT_DIR/com.pi-dotfiles.sync-settings.plist" > "$LAUNCH_AGENT"
-  if grep -q '__PI_' "$LAUNCH_AGENT"; then
-    echo "    WARNING: plist still has unsubstituted placeholders — auto-sync will fail"
-  fi
-  launchctl unload "$LAUNCH_AGENT" 2>/dev/null || true
-  if launchctl load "$LAUNCH_AGENT"; then
-    echo "    launchd agent installed: watches $HOME/.pi/agent/settings.json"
+echo "==> 4/4  launchd capture agent"
+# Install the capture job from a clone; curl|bash has no installer or template.
+# Install only capture here. VPS sync is loaded explicitly after its adoption gate.
+if command -v launchctl >/dev/null 2>&1 \
+    && [ -x "$SCRIPT_DIR/install-launchd.sh" ] \
+    && [ -f "$SCRIPT_DIR/launchd/com.diab.dotfiles.capture.plist" ]; then
+  if "$SCRIPT_DIR/install-launchd.sh" capture; then
+    echo "    launchd capture agent installed"
   else
-    echo "    WARNING: launchctl load failed — auto-sync disabled (see /tmp/com.pi-dotfiles.sync-settings.err)"
+    echo "    WARNING: launchd capture agent installation failed"
   fi
 else
-  echo "    launchctl or template plist not available — auto-sync not installed"
+  echo "    launchd or clone template unavailable — capture agent not installed"
 fi
 
 echo "==> verify"
