@@ -15,5 +15,8 @@ HANDOFF.md
 # Scratch
 .scratch/
 
+# Test caches
+.pytest_cache/
+
 # macOS
 .DS_Store
