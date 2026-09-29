@@ -50,12 +50,6 @@
         "+dist/index.js"
       ]
     },
-    {
-      "source": "npm:pi-codex-goal",
-      "prompts": [
-        "+prompts/create-goal.md"
-      ]
-    },
     "npm:@narumitw/pi-btw",
     "npm:pi-open-tui",
     "npm:pi-rtk-optimizer",
