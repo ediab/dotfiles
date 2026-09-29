@@ -3,9 +3,8 @@
 # Does NOT install MCPs, auth keys, or provider/model settings.
 set -euo pipefail
 
-# Skills bundled in this repo under home/skills (whole directories, including subdocs, plus any
-# top-level files such as ATTRIBUTION.md).
-# Add/remove a skill by adding/removing its directory under home/skills/; no script edit needed.
+# Skills under home/shared-skills are portable; home/skills remains Pi-only.
+# sync-agent-content.sh owns skill deployment and generated global instructions.
 
 # Custom extensions bundled in this repo under home/extensions.
 # Everything under that directory is copied to pi's extensions directory; no script edit needed.
@@ -65,23 +64,15 @@ for pkg in "${APT_PACKAGES[@]}"; do
   fi
 done
 
-echo "==> 3/4  skills (every dir + top-level file in $SCRIPT_DIR/home/skills/) + extensions + AGENTS.md seed + ponytail default"
-mkdir -p "$PI_SKILLS_DIR"
-shopt -s nullglob
-for src in "$SCRIPT_DIR/home/skills"/*/; do
-  skill="$(basename "$src")"
-  rm -rf "$PI_SKILLS_DIR/$skill"
-  cp -R "$SCRIPT_DIR/home/skills/$skill" "$PI_SKILLS_DIR/"
-  echo "    $skill  installed"
-done
-# Top-level files in home/skills/ (e.g. ATTRIBUTION.md) deploy beside the skill dirs.
-for src in "$SCRIPT_DIR/home/skills/"*; do
-  if [ -f "$src" ]; then
-    cp "$src" "$PI_SKILLS_DIR/"
-    echo "    $(basename "$src")  installed"
-  fi
-done
-shopt -u nullglob
+echo "==> 3/4  skills + generated instructions + extensions + agents + ponytail default"
+if [ -x "$SCRIPT_DIR/lint-agent-content.sh" ]; then
+  "$SCRIPT_DIR/lint-agent-content.sh"
+fi
+if [ -x "$SCRIPT_DIR/sync-agent-content.sh" ]; then
+  "$SCRIPT_DIR/sync-agent-content.sh" --yes
+else
+  echo "    WARNING: sync-agent-content.sh is unavailable under curl|bash; clone the repo for the full skill and instruction set"
+fi
 
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
 if [ -d "$SCRIPT_DIR/home/extensions" ]; then
@@ -122,15 +113,6 @@ mkdir -p "$HOME/.config/ponytail"
 cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
   && echo "    ponytail.json  installed (defaultMode off)"
 
-# Seed ~/.pi/agent/AGENTS.md from the sanitized repo copy. Only when absent — never clobber
-# local-only sections like VPS access details.
-if [ ! -f "$HOME/.pi/agent/AGENTS.md" ] && [ -f "$SCRIPT_DIR/home/AGENTS.md" ]; then
-  cp "$SCRIPT_DIR/home/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
-  echo "    AGENTS.md  seeded (add any local-only sections, e.g. VPS access, manually)"
-else
-  echo "    AGENTS.md  already present — left untouched (local edits preserved)"
-fi
-
 echo "==> 4/4  launchd auto-sync agent (settings.json live -> repo)"
 # com.pi-dotfiles.sync-settings.plist is a template: bootstrap.sh substitutes the repo
 # path and $HOME (launchd doesn't expand ~). Skipped under curl|bash (no plist).
@@ -159,15 +141,13 @@ command -v pi >/dev/null 2>&1 && echo "    pi: $(pi --version)" || echo "    pi:
 echo "    packages:"
 pi list 2>/dev/null || echo "    pi list failed"
 shopt -s nullglob
+for src in "$SCRIPT_DIR/home/shared-skills"/*/; do
+  skill="$(basename "$src")"
+  [ -f "$HOME/.agents/skills/$skill/SKILL.md" ] && echo "    ok: shared $skill" || echo "    MISSING: shared $skill"
+done
 for src in "$SCRIPT_DIR/home/skills"/*/; do
   skill="$(basename "$src")"
-  [ -f "$PI_SKILLS_DIR/$skill/SKILL.md" ] && echo "    ok: $skill" || echo "    MISSING: $skill"
-done
-for src in "$SCRIPT_DIR/home/skills/"*; do
-  file="$(basename "$src")"
-  if [ -f "$src" ]; then
-    [ -f "$PI_SKILLS_DIR/$file" ] && echo "    ok: $file" || echo "    MISSING: $file"
-  fi
+  [ -f "$PI_SKILLS_DIR/$skill/SKILL.md" ] && echo "    ok: Pi-only $skill" || echo "    MISSING: Pi-only $skill"
 done
 shopt -u nullglob
 shopt -s nullglob

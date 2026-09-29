@@ -9,7 +9,7 @@ Lookup reference for this machine's environment. Not for editing application cod
 
 ## pi-dotfiles sync
 
-Keep pi-dotfiles in sync with the live harness: whenever you install/remove a package, edit `~/.pi/agent/settings.json`, or add/edit a skill, extension, or agent, mirror that change in `~/dev/pi-dotfiles` (`home/settings.json`, `home/skills/`, `home/extensions/`, `home/agents/`) and commit it, so other machines reinstall identically. Packages need no manual mirroring — `sync-settings.sh` records `pi install`/`pi uninstall` into `home/settings.json` automatically. `rebuild.sh` deploys skills/extensions/agents/settings but **not** `AGENTS.md`; `bootstrap.sh` seeds it only when absent, so keep the repo copy in step by hand. `rebuild.sh --sync-only` deploys skills/extensions/agents/config files without the package update or the `settings.json` copy.
+Keep pi-dotfiles as the source of truth. Edit portable skills in `home/shared-skills/`, Pi-only skills in `home/skills/`, extensions in `home/extensions/`, and agents in `home/agents/`. `rebuild.sh` runs the shared deployment helper for skills and generated instructions; it also deploys Pi extensions, agents, and config. `rebuild.sh --sync-only` skips package updates and the `settings.json` copy. Packages need no manual mirroring — `sync-settings.sh` records `pi install`/`pi uninstall` into `home/settings.json` automatically. Edit global policy in `home/AGENTS.md`, client-specific repo instructions in `home/instructions/`, or machine-only additions under `~/.config/pi-dotfiles/local/`; do not copy live edits into the repo except after reviewing and choosing to adopt them.
 
 ## Dotfiles and configs
 
@@ -22,7 +22,7 @@ Symlinked (edit in `~/dev/configs/` directly):
 - `vscode/settings.json` → `~/Library/Application Support/Code/User/settings.json`
 - `vscode/keybindings.json` → `~/Library/Application Support/Code/User/keybindings.json`
 
-Pi agent files — `settings.json`, `extensions/` — are **not** in configs. They live in `~/dev/pi-dotfiles/home/` and are deployed to `~/.pi/agent/` as copies by `bootstrap.sh`/`rebuild.sh`. Edit them in `~/dev/pi-dotfiles/home/`, then run `~/dev/pi-dotfiles/rebuild.sh`. Note: `pi` itself rewrites `settings.json` (changelog version, installed-packages list); re-sync live→repo after such changes to avoid backup drift.
+Pi agent settings and extensions live in `~/dev/pi-dotfiles/home/` and are deployed by `bootstrap.sh`/`rebuild.sh`. Portable skills live in `home/shared-skills/` and deploy to `~/.agents/skills/` (with Claude links when Claude Code is installed); Pi-only skills live in `home/skills/` and deploy to `~/.pi/agent/skills/`. Edit sources in the repo, then run `~/dev/pi-dotfiles/rebuild.sh`. Note: `pi` itself rewrites `settings.json` (changelog version, installed-packages list); re-sync live→repo after such changes to avoid backup drift.
 
 Also: `vscode/extensions.txt` — list of installed VS Code extensions, regenerated with `code --list-extensions`.
 

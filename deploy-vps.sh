@@ -1,15 +1,49 @@
 #!/usr/bin/env bash
-# deploy-vps.sh — push local pi config to VPS, sync packages/skills/extensions.
+# deploy-vps.sh — push local pi config to VPS, sync packages/agent content/extensions.
 #
 # Stable interface for the configs repo's sync-vps.sh orchestrator:
 #   deploy-vps.sh [host]   (default host: vps)
-# Reads only this repo's home/ plus the live ~/.pi/agent/ files noted below
+#   deploy-vps.sh --prepare-agent-content [host]   (stage only; no live deployment)
+# Reads this repo's home/ plus the live ~/.pi/agent/ files noted below
 # (settings.json, auth.json, code-previews.json) — nothing outside this repo.
 set -euo pipefail
 
-VPS_HOST="${1:-vps}"
+PREPARE_AGENT_CONTENT=0
+if [ "${1:-}" = "--prepare-agent-content" ]; then
+  PREPARE_AGENT_CONTENT=1
+  VPS_HOST="${2:-vps}"
+elif [ "$#" -le 1 ]; then
+  VPS_HOST="${1:-vps}"
+else
+  echo "Usage: deploy-vps.sh [host] | --prepare-agent-content [host]" >&2
+  exit 2
+fi
 PI_DIR="$HOME/.pi/agent"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REMOTE_STAGE=".cache/pi-dotfiles-agent-content"
+LOCAL_STAGE=""
+
+stage_agent_content() {
+  "$REPO_DIR/lint-agent-content.sh"
+  LOCAL_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/pi-dotfiles-vps-stage.XXXXXX")"
+  trap 'if [ -n "$LOCAL_STAGE" ]; then rm -rf "$LOCAL_STAGE"; fi' EXIT HUP INT TERM
+  mkdir -p "$LOCAL_STAGE/home"
+  cp -p "$REPO_DIR/sync-agent-content.sh" "$LOCAL_STAGE/"
+  cp -R "$REPO_DIR/home/skills" "$LOCAL_STAGE/home/skills"
+  cp -R "$REPO_DIR/home/shared-skills" "$LOCAL_STAGE/home/shared-skills"
+  cp -R "$REPO_DIR/home/instructions" "$LOCAL_STAGE/home/instructions"
+  cp "$REPO_DIR/home/AGENTS.md" "$LOCAL_STAGE/home/AGENTS.md"
+  ssh "$VPS_HOST" "mkdir -p \"\$HOME/$REMOTE_STAGE\""
+  rsync -az --delete "$LOCAL_STAGE/" "$VPS_HOST:~/$REMOTE_STAGE/"
+}
+
+if [ "$PREPARE_AGENT_CONTENT" -eq 1 ]; then
+  echo "==> stage agent content only; no live config deployment"
+  stage_agent_content
+  printf 'Dry run: ssh %s %s\n' "$VPS_HOST" "bash ~/.cache/pi-dotfiles-agent-content/sync-agent-content.sh --adopt"
+  printf 'After reviewing that plan: ssh %s %s\n' "$VPS_HOST" "bash ~/.cache/pi-dotfiles-agent-content/sync-agent-content.sh --adopt --yes"
+  exit 0
+fi
 
 echo "==> 1/4  settings.json + auth.json"
 # Snapshot the old settings on the VPS first — step 4 needs it to find surplus packages
@@ -24,12 +58,14 @@ ssh "$VPS_HOST" 'chmod 600 ~/.pi/agent/auth.json'
 ssh "$VPS_HOST" 'mkdir -p ~/.config/ponytail'
 rsync -az "$REPO_DIR/home/ponytail.json" "$VPS_HOST:~/.config/ponytail/config.json"
 
-echo "==> 2/4  skills + agents + AGENTS.md + configs"
-rsync -az --delete "$REPO_DIR/home/skills/" "$VPS_HOST:~/.pi/agent/skills/"
+echo "==> 2/4  agent content + agents + configs"
+stage_agent_content
+# Routine deploys never enable --adopt or --force. Run the helper's explicit
+# migration plan on the VPS before this unattended path can manage old installs.
+ssh "$VPS_HOST" "bash \"\$HOME/$REMOTE_STAGE/sync-agent-content.sh\" --yes"
 rsync -az --delete "$REPO_DIR/home/agents/" "$VPS_HOST:~/.pi/agent/agents/"
 ssh "$VPS_HOST" 'rm -f ~/.pi/agent/models.json'  # removed 2026-09-29: declared only opencode-go/omen-alpha, deprecated upstream (HTTP 410 ModelDeprecated)
 rsync -az "$REPO_DIR/home/subagents.json" "$VPS_HOST:~/.pi/agent/subagents.json"
-rsync -az "$REPO_DIR/home/AGENTS.md" "$VPS_HOST:~/.pi/agent/AGENTS.md"
 ssh "$VPS_HOST" 'rm -f ~/.pi/agent/subagents-lite.json'  # legacy lite config, superseded by tintinweb pi-subagents
 # leftovers from packages that are no longer installed anywhere
 # NOTE: ~/.pi/agent/intercom was removed from this list when pi-intercom was installed —

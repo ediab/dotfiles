@@ -3,9 +3,8 @@
 # For day-to-day updates on a machine already bootstrapped by bootstrap.sh.
 # New machine? Use bootstrap.sh instead.
 #   rebuild.sh              → full: pi update --all + settings.json + all bundled config
-#   rebuild.sh --sync-only  → bundled config only (skills, extensions, agents, models,
-#                             subagents, web-search); skips the package
-#                             update and the settings.json copy — for skill/extension edits
+#   rebuild.sh --sync-only  → bundled config only (skills, instructions, extensions, agents,
+#                             and config); skips package updates and the settings.json copy
 set -euo pipefail
 
 SYNC_ONLY=0
@@ -14,10 +13,8 @@ if [ "${1:-}" = "--sync-only" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-PI_SKILLS_DIR="$HOME/.pi/agent/skills"
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
-# Skills deployed below = every dir in $SCRIPT_DIR/home/skills/ (whole-dir copies) plus any
-# top-level files such as ATTRIBUTION.md.
+# Skill and generated-instruction deployment is owned by sync-agent-content.sh.
 # Everything under home/extensions/ is copied recursively; no script edit needed.
 
 if [ "$SYNC_ONLY" = "1" ]; then
@@ -36,23 +33,9 @@ else
     || echo "    FAILED: home/settings.json"
 fi
 
-echo "==> 3/3  skills (every dir + top-level file in $SCRIPT_DIR/home/skills/) + extensions"
-mkdir -p "$PI_SKILLS_DIR"
-shopt -s nullglob
-for src in "$SCRIPT_DIR/home/skills"/*/; do
-  skill="$(basename "$src")"
-  rm -rf "$PI_SKILLS_DIR/$skill"
-  cp -R "$SCRIPT_DIR/home/skills/$skill" "$PI_SKILLS_DIR/"
-  echo "    $skill  re-synced"
-done
-# Top-level files in home/skills/ (e.g. ATTRIBUTION.md) deploy beside the skill dirs.
-for src in "$SCRIPT_DIR/home/skills/"*; do
-  if [ -f "$src" ]; then
-    cp "$src" "$PI_SKILLS_DIR/"
-    echo "    $(basename "$src")  re-synced"
-  fi
-done
-shopt -u nullglob
+echo "==> 3/3  skills + generated instructions + extensions"
+"$SCRIPT_DIR/lint-agent-content.sh"
+"$SCRIPT_DIR/sync-agent-content.sh" --yes
 
 if [ -d "$SCRIPT_DIR/home/extensions" ]; then
   mkdir -p "$PI_EXTENSIONS_DIR"
