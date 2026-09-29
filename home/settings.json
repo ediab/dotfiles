@@ -27,7 +27,6 @@
     "npm:@juicesharp/rpiv-advisor",
     "git:github.com/earendil-works/pi-review",
     "npm:@andrewjacop/pi-herdr",
-    "npm:@lll9p/pi-better-compaction",
     "npm:omp-codex-reserve",
     {
       "source": "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
