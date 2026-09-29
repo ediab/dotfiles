@@ -47,7 +47,8 @@
     "-skills/use-tinyfish/SKILL.md",
     "-skills/ATTRIBUTION.md",
     "-skills/pull-financial-data/SKILL.md",
-    "-skills/excel/SKILL.md"
+    "-skills/excel/SKILL.md",
+    "-skills/equity-modelling/SKILL.md"
   ],
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
