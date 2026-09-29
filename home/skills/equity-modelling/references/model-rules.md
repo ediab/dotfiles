@@ -53,6 +53,16 @@ Every SourceData actual is written once, and historical model sheets link the so
 name. Company rows supply their own causal calculations and independently grounded Checks; the
 shared renderer does not provide a generic financial formula engine.
 
+A company-owned revenue bridge names its comparison base (for example, **same fiscal quarter last
+year**), shows only disclosed or approved drivers, derives current category/revenue levels with
+Excel formulas, and links the resulting levels into the Operating Model and Financial Statements.
+Reconcile the summed company-defined categories to a separately sourced consolidated fact; show the
+numeric residual and a **Pass / Fail / Unavailable** status in Bridge Model and link it to Checks
+and Outlook. A missing category or comparator stays blank and makes the reconciliation Unavailable,
+never zero or Pass. Do not infer volume, price, mix, FX, or other contributions without evidence.
+The shared renderer accepts the company module's rows and formulas and must not branch on issuer or
+sector.
+
 In the legacy renderer, every remaining declared sheet is a company-module sheet (`interfaces.md`
 §8), not a fixed tab. A company that needs an investment view, regional model, earnings bridge,
 cash and debt, scenarios, sensitivities, consensus comparison or checks block declares a sheet for

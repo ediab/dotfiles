@@ -22,7 +22,8 @@ def digest(data: bytes) -> str:
 def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = False,
                   duplicate_generic: bool = False, duplicate_sec_rows: bool = False,
                   duplicate_quote_date: bool = False, cross_table_scope: bool = False,
-                  nine_sheet: bool = False) -> tuple[dict, list[dict]]:
+                  nine_sheet: bool = False, revenue_bridge: bool = False,
+                  revenue_bridge_mismatch: bool = False) -> tuple[dict, list[dict]]:
     """Create two immutable source kinds: a snapshot parquet and an SEC HTML original."""
     import pandas as pd
 
@@ -50,6 +51,16 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
                 ("WeightedAverageNumberOfDilutedShares", "Diluted shares", 10.0, 10.0),
             )
         ]
+        if revenue_bridge:
+            sec_rows.extend([
+                {"concept": "Revenues", "dimension_member": member,
+                 "dimension_label": f"RevenueSegmentAxis:{member}", "label": label,
+                 "2025-03-31 (Q1)": prior, "2026-03-31 (Q1)": current}
+                for member, label, prior, current in (
+                    ("HardwareMember", "Hardware Revenue", 45.0, 50.0),
+                    ("SoftwareMember", "Software Revenue", 55.0, 75.0),
+                )
+            ])
     if duplicate_sec_rows:
         sec_rows.append(dict(sec_rows[0], label="Revenue duplicate"))
     frame = pd.DataFrame(sec_rows)
@@ -84,7 +95,10 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
 
     independent_releases = []
     if nine_sheet:
-        for year, revenue in ((2025, 100.0), (2026, 125.0)):
+        totals = ((2025, 100.0), (2026, 125.0))
+        if revenue_bridge:
+            totals = ((2025, 100.0), (2026, 126.0 if revenue_bridge_mismatch else 125.0))
+        for year, revenue in totals:
             release = ("<!doctype html><html><body><table><caption>Consolidated Results</caption>"
                        f"<thead><tr><th>Metric</th><th>Three months ended March 31, {year}</th></tr></thead>"
                        f"<tbody><tr><td>Consolidated revenue</td><td>{revenue}</td></tr></tbody>"
@@ -136,6 +150,20 @@ def create_source(root: Path, ticker: str = "TST", *, duplicate_role: bool = Fal
                                                   if nine_sheet else {})},
             "periods": {"historical_quarters": ["2026Q2"]}}
     if nine_sheet:
+        if revenue_bridge:
+            return spec, [
+                {"metric": "hardware_revenue", "dimension": "RevenueSegmentAxis=HardwareMember",
+                 "basis": "GAAP", "units": "USDm",
+                 "locator": "sec_snapshot:income#concept=Revenues&dimension_member=HardwareMember",
+                 "transform": "segment_axis_filter", "missing_treatment": "required"},
+                {"metric": "software_revenue", "dimension": "RevenueSegmentAxis=SoftwareMember",
+                 "basis": "GAAP", "units": "USDm",
+                 "locator": "sec_snapshot:income#concept=Revenues&dimension_member=SoftwareMember",
+                 "transform": "segment_axis_filter", "missing_treatment": "required"},
+                {"metric": "consolidated_revenue", "basis": "GAAP", "units": "USDm",
+                 "locator": "8k_exhibit:row_label=Consolidated revenue|col_pattern={month} {day}, {year}",
+                 "transform": "direct", "missing_treatment": "required"},
+            ]
         return spec, [
             {"metric": metric, "basis": "GAAP", "units": units,
              "locator": locator, "transform": "direct", "missing_treatment": "required"}
