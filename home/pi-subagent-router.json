@@ -1,20 +1,19 @@
 {
-  "enabled": false,
+  "mode": "off",
   "tiers": {
     "quick": [
-      { "provider": "deepseek", "model": "deepseek-flash" },
       { "provider": "opencode-go", "model": "glm-5.3-flash" },
-      { "provider": "opencode-go", "model": "deepseek-v4-flash" }
+      { "provider": "deepseek", "model": "deepseek-flash" }
     ],
     "standard": [
-      { "provider": "opencode-go", "model": "kimi-k2.7-code" },
-      { "provider": "opencode-go", "model": "glm-5.2" },
-      { "provider": "deepseek", "model": "deepseek-v4-pro" }
+      { "provider": "openai", "model": "gpt-6-luna" },
+      { "provider": "opencode-go", "model": "glm-5.3" },
+      { "provider": "deepseek", "model": "deepseek-v4-pro" },
+      { "provider": "opencode-go", "model": "kimi-k2.7-code" }
     ],
     "high": [
-      { "provider": "openai-codex", "model": "gpt-5.6-terra" },
-      { "provider": "opencode-go", "model": "kimi-k3" },
-      { "provider": "commandcode", "model": "claude-sonnet-5" }
+      { "provider": "openai", "model": "gpt-6-astra" },
+      { "provider": "opencode-go", "model": "kimi-k3" }
     ]
   }
 }
