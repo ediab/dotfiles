@@ -1,6 +1,6 @@
 # Borrowed skills — provenance
 
-Some skills in this directory are adapted from third-party repos. This file
+Some skills in `home/skills/` and `home/shared-skills/` are adapted from third-party repos. This file
 records where each one came from, which upstream commit it was last reviewed
 against, and what was deliberately changed locally. When checking for upstream
 updates, diff the borrowed paths below between the pinned SHA and upstream HEAD.
@@ -39,13 +39,3 @@ deliberately not copied (repo-wide removal — pi has no use for them).
   - https://github.com/openai/role-specific-plugins @ `ebf5795` — `plugins/data-analytics/skills/spreadsheets/` (MIT). Bundled license: `excel/LICENSE.openai-role-specific-plugins.txt`.
 - Local: `excel/` — original skill, not a copy. Conventions adapted from the pinned sources: formulas for derived values, restrained professional formatting, sources/attribution, charts, bounded edits, QA loops. Nothing from the unavailable `@oai/artifact-tool` tooling or plugin routing is used; commands are `asp` (agent-spreadsheet) and local `openpyxl`/`xlwings` scripts.
 - **No Anthropic material**: Anthropic's public `skills/xlsx` was reviewed for comparison only; its license prohibits derivatives, and no text, scripts, assets, or structure from it were copied.
-
-## humanlayer/skills
-
-- Upstream: https://github.com/humanlayer/skills
-- Pinned SHA: `ca7c808` (Merge pull request #9, "fix/show-me-user-invocation")
-- License: MIT, Copyright (c) 2026 HumanLayer
-
-| Local skill | Upstream path | Local adaptations |
-|---|---|---|
-| `show-me/` | `plugins/show-me/skills/show-me/SKILL.md` | Kept upstream's `disable-model-invocation: true` (user-invoked only); replaced the `Bash(open path/to/...)` snippet with a plain ` ```bash / open ...` block (pi convention); flattened the trailing `### guidance` header into the body. |
