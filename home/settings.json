@@ -22,7 +22,8 @@
     "npm:@narumitw/pi-btw",
     "npm:pi-open-tui",
     "npm:@saccolabs/pi-claude-cli",
-    "npm:pi-extmgr"
+    "npm:pi-extmgr",
+    "npm:pi-terminal-theme"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
