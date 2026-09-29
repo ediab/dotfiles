@@ -2,8 +2,8 @@
 # sync-vps.sh — keep `ssh vps` in step with this Mac.
 #
 # Runs the four VPS deploys, in order:
-#   1. pi-dotfiles harness  (skills, extensions, settings, AGENTS.md, package reconcile)
-#   2. configs VPS dotfiles (.zshrc, .zshenv, .p10k.zsh, .tmux.conf)
+#   1. agent content        (skills, extensions, settings, AGENTS.md, package reconcile)
+#   2. VPS dotfiles         (.zshrc, .zshenv, .p10k.zsh, .tmux.conf)
 #   3. Herdr VPS config     (config.vps.toml + server reload-config)
 #   4. druk editor config   (settings partial, market extensions, pi-opener)
 #
@@ -20,8 +20,9 @@
 
 set -uo pipefail
 
-REPO="$HOME/dev/configs"
-PI_DOTFILES="$HOME/dev/pi-dotfiles"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+CONFIG_ROOT="$DOTFILES_ROOT/config"
 STAMP="$HOME/.cache/sync-vps.stamp"
 NOTIFY_STAMP="$HOME/.cache/sync-vps.notified"
 NOTIFY_INTERVAL=3600   # seconds between failure notifications
@@ -30,26 +31,24 @@ LOG="/tmp/com.diab.sync-vps.out"
 # launchd starts agents with a minimal PATH; Homebrew is needed for terminal-notifier.
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 
-# Watched inputs = exactly the sources the deploys read. `.git` is deliberately
-# excluded: the autocommit agent churns it every 15 minutes and nothing deploys from it.
+# Watched inputs are exactly the sources the deploys read. Repository metadata
+# is excluded because it is not a deployed input.
 INPUTS=(
-  "$PI_DOTFILES/home"
-  "$PI_DOTFILES/deploy-vps.sh"
-  "$REPO/vps"
-  "$REPO/herdr/config.vps.toml"
-  "$REPO/druk"
+  "$DOTFILES_ROOT/home"
+  "$DOTFILES_ROOT/deploy-vps.sh"
+  "$CONFIG_ROOT/vps"
+  "$CONFIG_ROOT/herdr/config.vps.toml"
+  "$CONFIG_ROOT/druk"
 )
 
 failed=""
 
-# pi-dotfiles is a dependency with a stable interface: deploy-vps.sh [host],
-# reading only its own home/ plus the live ~/.pi/agent/ config files (its README
-# documents the contract) — never paths inside this repo. So the only inputs
-# watched here for that step are its script and its home/ (plus a checkout guard).
-PI_DOTFILES_DEP="$PI_DOTFILES/deploy-vps.sh"
-[ -x "$PI_DOTFILES_DEP" ] || { echo "missing: $PI_DOTFILES_DEP (pi-dotfiles checkout?)" >&2; failed="pi-dotfiles(checkout)"; }
+# The agent-content deploy reads home/ and live ~/.pi/agent files, so watch only
+# those repository inputs and guard the entry point separately.
+AGENT_CONTENT_DEPLOY="$DOTFILES_ROOT/deploy-vps.sh"
+[ -x "$AGENT_CONTENT_DEPLOY" ] || { echo "missing: $AGENT_CONTENT_DEPLOY (dotfiles checkout?)" >&2; failed="agent-content(checkout)"; }
 
-# One host, three spellings: pi-dotfiles takes it as $1, the configs scripts as env vars.
+# One host, three spellings: agent-content takes it as $1; the other deploys use env vars.
 VPS_HOST="${VPS_HOST:-vps}"
 export VPS_HOST
 export HERDR_VPS_HOST="${HERDR_VPS_HOST:-$VPS_HOST}"
@@ -97,17 +96,17 @@ if [ "${1:-}" != "--force" ] && ! changed; then
 fi
 
 if [ -z "$failed" ]; then
-  run_step pi-dotfiles "$PI_DOTFILES_DEP" "$VPS_HOST"
+  run_step agent-content "$AGENT_CONTENT_DEPLOY" "$VPS_HOST"
 else
-  echo "==> pi-dotfiles SKIPPED (checkout missing)"
+  echo "==> agent-content SKIPPED (entrypoint missing)"
 fi
-run_step vps-dotfiles "$REPO/vps/deploy-vps.sh"
-run_step herdr "$REPO/herdr/deploy-vps.sh"
-run_step druk "env" "DEPLOY_DRUK_HOST=$VPS_HOST" "$REPO/druk/deploy-druk.sh"
+run_step vps-dotfiles "$CONFIG_ROOT/vps/deploy-vps.sh"
+run_step herdr "$CONFIG_ROOT/herdr/deploy-vps.sh"
+run_step druk "env" "DEPLOY_DRUK_HOST=$VPS_HOST" "$CONFIG_ROOT/druk/deploy-druk.sh"
 
 if [ -z "$failed" ]; then
   touch "$STAMP"
-  echo "==> deployed: pi-dotfiles, vps-dotfiles, herdr, druk (stamp $STAMP)"
+  echo "==> deployed: dotfiles agent content, VPS dotfiles, Herdr, druk (stamp $STAMP)"
   exit 0
 fi
 
