@@ -100,10 +100,6 @@ for src in "$SCRIPT_DIR/home/agents/"*.md; do
 done
 shopt -u nullglob
 
-# Custom models (providers + model defs)
-cp "$SCRIPT_DIR/home/models.json" "$HOME/.pi/agent/models.json" \
-  && echo "    models.json  installed"
-
 # Subagent defaults (tintinweb pi-subagents global settings; pi never writes this file)
 cp "$SCRIPT_DIR/home/subagents.json" "$HOME/.pi/agent/subagents.json" \
   && echo "    subagents.json  installed"

@@ -56,8 +56,6 @@ Running the bootstrap installs:
   `home/settings.json` so activation comes only from the default mode (no double-trigger); the extension, its `/ponytail` mode
   commands, and the companion skills (`ponytail-review/-audit/-debt/-gain/-help`)
   keep working.
-- **Custom models** — `home/models.json` deployed to `~/.pi/agent/models.json`
-  (provider + model defs).
 - **Web-search config** — `home/web-search.json` deployed to `~/.pi/agent/web-search.json`
   (pi-web-access routing: TinyFish primary, Exa fallback). The TinyFish key is a macOS
   Keychain lookup (`!security find-generic-password …`), so `bootstrap.sh` leaves the file
@@ -113,7 +111,7 @@ Edit the config files under `home/` in place, then re-apply:
 ```
 
 That's `pi update --all` plus a re-sync of `home/skills/`, `home/extensions/`,
-`home/agents/`, `home/subagents.json`, `home/models.json`,
+`home/agents/`, `home/subagents.json`,
 `home/web-search.json`, `home/settings.json` into `~/.pi/agent/`.
 
 ### Code review
@@ -176,9 +174,9 @@ Settings reference: https://github.com/elpapi42/pi-observational-memory/blob/mas
 | What | Direction | How |
 |---|---|---|
 | `settings.json` (provider, model, theme, packages) | live → repo, **automatic** | launchd agent (installed by `bootstrap.sh` step 4) watches the live file; `sync-settings.sh` commits any `pi`-made change within seconds |
-| `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/models.json`, `home/web-search.json`, `home/ponytail.json`, `home/open-tui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
+| `home/skills/`, `home/extensions/`, `home/agents/`, `home/subagents.json`, `home/web-search.json`, `home/ponytail.json`, `home/open-tui.json` | repo → live | edit in the repo, then `./rebuild.sh`; live edits are overwritten (copy back after tuning subagents) |
 | `home/AGENTS.md` | repo → live (seed only) | seeded only when absent — local-only environment facts (VPS, symlinks, deploy) live in the `local-env` skill, not in this file |
-| `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS) |
+| `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS). `models.json` is gone: it declared only the deprecated `opencode-go/omen-alpha` shim; provider models come from the built-in catalog |
 
 Bottom line: your settings reflect into the repo by themselves; the repo is the source of
 truth for skills, extensions, and the base `settings.json` that gets deployed to new machines.
@@ -220,7 +218,6 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   `home/settings.json` -> `~/.pi/agent/settings.json`, `home/skills/` -> `~/.pi/agent/skills/`,
   `home/extensions/` -> `~/.pi/agent/extensions/`, `home/agents/` -> `~/.pi/agent/agents/`,
   `home/subagents.json` -> `~/.pi/agent/subagents.json`,
-  `home/models.json` -> `~/.pi/agent/models.json`,
   `home/web-search.json` -> `~/.pi/agent/web-search.json`,
   `home/open-tui.json` -> `~/.pi/agent/open-tui.json`,
   `home/ponytail.json` -> `~/.config/ponytail/config.json` (ponytail's own config dir, not pi's),
