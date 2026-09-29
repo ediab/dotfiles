@@ -55,7 +55,9 @@ function modelList() {
     input: ["text"],
     contextWindow: 200_000,
     maxTokens: 8_000,
-    thinkingLevelMap: undefined,
+    thinkingLevelMap: candidate.provider === "opencode-go" && candidate.model === "glm-5.3-flash"
+      ? { off: null, minimal: null, low: "low", medium: null, high: "high", xhigh: null, max: "max" }
+      : undefined,
   }));
 }
 
@@ -167,7 +169,7 @@ test("quality-first tier, uncertainty, stakes, role-floor, and effort rules are 
   const easy = decide(classification({ capability: "quick", reasoning: "off" }), "explorer", policy(), all, 100);
   assert.equal(easy.model, "opencode-go/glm-5.3-flash");
   assert.equal(easy.tier, "quick");
-  assert.equal(easy.thinking, "off");
+  assert.equal(easy.thinking, "low");
 
   const uncertain = decide(classification({ capability: "quick", capabilityConfidence: 0.74 }), "explorer", policy(), all, 100);
   assert.equal(uncertain.tier, "high");
@@ -188,6 +190,11 @@ test("quality-first tier, uncertainty, stakes, role-floor, and effort rules are 
   assert.equal(effortUncertain.thinking, "high");
   assert.ok(effortUncertain.reasonCodes.includes("reasoning_uncertain"));
 
+  const lowEffort = decide(classification({ capability: "standard", reasoning: "low" }), "worker", policy(), all, 100);
+  assert.equal(lowEffort.thinking, "low");
+  const mediumEffort = decide(classification({ capability: "standard", reasoning: "medium" }), "worker", policy(), all, 100);
+  assert.equal(mediumEffort.thinking, "medium");
+
   const reviewer = decide(classification({ capability: "high", reasoning: "high", highStakes: 0.9 }), "reviewer", policy(), all, 100);
   assert.equal(reviewer.model, "openai-codex/gpt-6-astra");
   assert.equal(reviewer.tier, "high");
@@ -198,6 +205,11 @@ test("routing requires exact provider, honors availability, and falls upward onl
   const judgment = classification({ capability: "standard" });
   const crossProvider = [{ ...modelList()[2], provider: "openai", id: "gpt-6-luna" }];
   assert.equal(decide(judgment, "general-purpose", policy(), crossProvider, 100), undefined);
+
+  const sameTier = decide(judgment, "general-purpose", policy(), modelList().filter((model) => model.provider === "opencode-go" && model.id === "glm-5.3"), 100);
+  assert.equal(sameTier.model, "opencode-go/glm-5.3");
+  assert.equal(sameTier.tier, "standard");
+  assert.ok(!sameTier.reasonCodes.includes("stronger_tier_fallback"));
 
   const standard = decide(judgment, "general-purpose", policy(), modelList().filter((model) => model.provider === "openai-codex" && model.id === "gpt-6-astra"), 100);
   assert.equal(standard.model, "openai-codex/gpt-6-astra");
@@ -368,7 +380,7 @@ test("shadow does not mutate; active changes only model and unpinned thinking", 
       description: "Look up symbol",
       custom: 17,
       model: "opencode-go/glm-5.3-flash",
-      thinking: "off",
+      thinking: "low",
     });
   }));
 
@@ -553,7 +565,7 @@ test("installed Pi beforeToolCall path passes routed args to the tool executor",
     session._installAgentToolHooks();
     await agent.prompt("start");
     assert.equal(toolArgs.model, "opencode-go/glm-5.3-flash", JSON.stringify(toolArgs));
-    assert.equal(toolArgs.thinking, "off");
+    assert.equal(toolArgs.thinking, "low");
 
     // Installed pi-subagents 0.19.0 resolver check: agent frontmatter wins over
     // routed parameters; the router's transcript only says "requested".
