@@ -1,0 +1,105 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+add_newline = true
+command_timeout = 1000
+scan_timeout = 30
+
+# Text-only Catppuccin Mocha — soft 2-line
+# Hexes below are the canonical Catppuccin Mocha palette (identical to Ghostty's
+# "Catppuccin Mocha" theme and Herdr's "catppuccin"). Keep them in sync — the
+# prompt sits directly on Ghostty's base #1e1e2e, so a stray other-flavor hex shows.
+# L1: [user@host ]dir branch [dirty] [venv] [duration]
+# L2: [status] [jobs] ❯
+format = """
+$username\
+$hostname\
+$directory\
+$git_branch\
+$git_status\
+$python\
+$cmd_duration\
+$line_break\
+$status\
+$jobs\
+$character"""
+
+right_format = ""
+
+palette = "catppuccin_mocha"
+
+[palettes.catppuccin_mocha]
+blue   = "#89b4fa"   # blue
+purple = "#cba6f7"   # mauve
+green  = "#a6e3a1"   # green
+yellow = "#f9e2af"   # yellow
+red    = "#f38ba8"   # red
+grey   = "#6c7086"   # overlay0
+
+# ── Modules ───────────────────────────────────────────────────
+
+[directory]
+style = "fg:blue"
+format = "[$path]($style) "
+truncation_length = 3
+truncate_to_repo = true
+truncation_symbol = "…/"
+read_only = " RO"
+read_only_style = "fg:red"
+
+[git_branch]
+style = "fg:purple"
+format = "[$branch]($style) "
+
+[git_status]
+style = "fg:yellow"
+ignore_submodules = true
+# Parent () = hidden when clean (no status, not ahead/behind)
+format = '([${all_status}${ahead_behind}]($style) )'
+conflicted = "="
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕${count}"
+untracked = "?${count}"
+stashed = '\$'
+modified = "!${count}"
+staged = "+${count}"
+renamed = "»${count}"
+deleted = "✘${count}"
+
+[python]
+style = "fg:green"
+# Parent () = hidden when no venv
+format = '([$virtualenv]($style) )'
+
+[cmd_duration]
+min_time = 2000
+style = "fg:grey"
+format = "[$duration]($style) "
+
+[status]
+disabled = false
+style = "bold fg:red"
+symbol = "✘"
+map_symbol = true
+format = '[$symbol]($style) '
+
+[jobs]
+style = "bold fg:yellow"
+number_threshold = 1
+format = "[&$number]($style) "
+
+[character]
+success_symbol = "[❯](bold fg:green)"
+error_symbol = "[❯](bold fg:red)"
+
+[username]
+# show_always=false → only root or SSH (ssh_only removed in Starship 1.25)
+show_always = false
+style_user = "fg:grey"
+format = "[$user]($style)@"
+
+[hostname]
+ssh_only = true
+ssh_symbol = ""
+style = "fg:grey"
+format = "[$hostname]($style) "

@@ -1,0 +1,11 @@
+[Unit]
+Description=Weekly VPS disk cleanup
+
+[Timer]
+OnCalendar=Sun 04:30
+# 03:30 is the unattended-upgrades reboot window; stay clear of it, and of the 03:20 cron.
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

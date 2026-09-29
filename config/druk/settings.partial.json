@@ -1,0 +1,11 @@
+{
+  "transparent": true,
+  "trimOnSave": true,
+  "showDotfiles": true,
+  "respectGitignore": false,
+  "diffView": "split",
+  "sidebarWidth": "auto",
+  "autoSaveOnBlur": true,
+  "scrollPastEnd": true,
+  "wrap": true
+}

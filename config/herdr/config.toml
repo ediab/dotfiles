@@ -1,0 +1,126 @@
+onboarding = false
+
+# ============================================================ theme
+[theme]
+name = "catppuccin"   # Catppuccin Mocha — herdr names the dark flavor just "catppuccin"
+# auto_switch is off because the theme is picked by hand (Settings wrote the explicit
+# false). To follow Ghostty's light/dark appearance instead, enable it in Settings and
+# give it explicit dark_name/light_name — "catppuccin" / "catppuccin-latte".
+
+# =============================================================== ui
+auto_switch = false
+[ui]
+# --- mouse + clipboard ------------------------------------------------------
+# mouse_capture = true keeps Herdr's mouse-first UI (click panes/tabs, drag split
+#   borders, right-click menus). Set it to false to hand plain clicks back to
+#   Ghostty — Cmd-click URLs, native drag-select — at the cost of Herdr's mouse UI.
+# copy_on_select = true mirrors Ghostty's `copy-on-select = true`: Herdr copies on
+#   release and confirms with a bottom-center toast. Set false to keep the
+#   selection alive and copy with Cmd+C instead.
+mouse_capture = true
+copy_on_select = true
+mouse_scroll_lines = 5          # one wheel notch scrolls 5 lines (default 3)
+
+# --- sidebar + agent panel --------------------------------------------------
+sidebar_width = 30          # default 26 auto-scales to workspace names
+sidebar_min_width = 20
+sidebar_max_width = 40
+sidebar_start_collapsed = false
+sidebar_collapsed_mode = "compact"
+agent_panel_sort = "priority"   # blocked/done agents float to the top ("spaces" to group by project)
+status_indicators = "dots"
+
+# --- tab bar ----------------------------------------------------------------
+tab_bar_position = "top"
+tab_bar_right = [
+  { type = "zoom" },
+  { type = "datetime", format = "%H:%M" },
+]
+tab_bar_right_separator = " · "
+# window_title keeps its default "{hostname}: {workspace}" — the title renders on
+# the server, so it names the machine the panes run on, which is what you want to
+# see when attached with `herdr --remote`.
+
+# --- pane presentation ------------------------------------------------------
+# pane_borders stays at its default ("auto"): borders between split panes only,
+# never around a lone pane. 0.9.0+ spelling, if you ever want it explicit:
+#   pane_borders = "auto"
+pane_outer_borders = false      # no frame around the pane area — tmux-style open edges
+pane_gaps = false               # panes share one divider instead of gapped frames
+pane_scrollbars = true
+show_agent_labels_on_pane_borders = true
+confirm_close = true
+prompt_new_tab_name = false     # tab-smart-rename names tabs; no prompt on prefix+c
+
+# ===================================================== notifications
+[ui.sound]
+enabled = false
+
+[ui.toast]
+delivery = "system"   # terminal-notifier is installed, so clicks focus Ghostty
+delay_seconds = 2     # skip notifications for work that finishes almost instantly
+
+[ui.toast.clipboard]
+enabled = true
+position = "bottom-center"
+
+# ======================================================= keybindings
+[keys]
+# prefix+shift+r is both the built-in reload-config default and the ohmyzsh plugin
+# binding below, so reload-config moves off it and both stay reachable.
+reload_config = "prefix+shift+c"
+
+# Smart Rename plugin bindings
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "tab-smart-rename.rename-now"
+description = "smart rename current tab"
+
+[[keys.command]]
+key = "prefix+alt+t"
+type = "plugin_action"
+command = "tab-smart-rename.rename-all"
+description = "force smart rename all tabs"
+
+# Annotate (plannotator/herdr-annotate)
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "annotate.capture"
+description = "annotate text"
+
+[[keys.command]]
+key = "prefix+shift+a"
+type = "plugin_action"
+command = "annotate.copy-context"
+description = "copy annotations as context"
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "annotate.manage"
+description = "manage annotations"
+
+[[keys.command]]
+key = "prefix+d"
+type = "plugin_action"
+command = "annotate.open"
+description = "review documents in this folder"
+
+[[keys.command]]
+key = "prefix+shift+o"
+type = "plugin_action"
+command = "annotate.last"
+description = "review the agent's last reply"
+
+# Oh My Zsh (robbyrussell/herdr-ohmyzsh)
+[[keys.command]]
+key = "prefix+shift+r"
+type = "plugin_action"
+command = "ohmyzsh.shell.reload-all"
+description = "reload Oh My Zsh in idle panes"
+
+[experimental]
+# Allow launching herdr (e.g. herdr --remote vps) from inside a herdr-managed pane.
+allow_nested = true

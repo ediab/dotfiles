@@ -1,0 +1,34 @@
+// VPS update policy — the complete policy for this box.
+//
+// `50unattended-upgrades` in this directory belongs to the package: it is shipped from
+// /usr/share/unattended-upgrades/ (with an md5sum alongside it) and is deliberately NOT
+// managed by the configs repo. Copying it into the repo re-pinned a stale snapshot of a
+// package file, and hand-editing it is what produced the stray `.bak-*` that made apt warn
+// about an invalid filename extension.
+//
+// apt merges the Allowed-Origins lists from every file in this directory, so the origins
+// are stated here as well: if the package's own file is ever narrowed or replaced by an
+// upgrade, general updates still install unattended.
+//
+// Deployed by vps/deploy-vps.sh (sudo install) from the configs repo — edit it there,
+// never on the VPS. `~/apps/AGENTS.md` documents the resulting behaviour.
+
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}";
+        "${distro_id}:${distro_codename}-security";
+        "${distro_id}ESMApps:${distro_codename}-apps-security";
+        "${distro_id}ESM:${distro_codename}-infra-security";
+};
+
+Unattended-Upgrade::Automatic-Reboot "true";
+
+// Reboot even with a user logged in. Consequence: an active mosh/ssh session is cut at
+// the window below. Deploys are protected from this by the shutdown inhibit in
+// ~/bin/vps-deploy.sh, so a reboot waits for an in-flight deploy to finish.
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+
+Unattended-Upgrade::Automatic-Reboot-Time "03:30";
+
+// Reboots leave the previous kernel behind; let the updater reap them instead of
+// accumulating ~90 MB per kernel.
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";

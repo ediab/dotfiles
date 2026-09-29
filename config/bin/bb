@@ -1,0 +1,12 @@
+#!/bin/sh
+# bb CLI, taken from the Homebrew-cask desktop app (the cask installs no PATH
+# binary). Runs the bundled CLI through the app's Electron binary in Node mode,
+# so its version always matches the installed app.
+#
+# Talks to the running server (BB_SERVER_URL, default http://127.0.0.1:38886),
+# so launch the bb app first.
+set -eu
+
+app="/Applications/bb.app"
+exec env ELECTRON_RUN_AS_NODE=1 "$app/Contents/MacOS/bb" \
+  "$app/Contents/Resources/app.asar.unpacked/node_modules/bb-app/dist/bb.js" "$@"

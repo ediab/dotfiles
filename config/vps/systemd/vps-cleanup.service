@@ -1,0 +1,9 @@
+[Unit]
+Description=VPS bounded disk cleanup (docker cache, runner/npm/apt caches, journal)
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/vps-cleanup.sh
+# Keep it out of the way of anything interactive.
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,9 @@
+[Unit]
+Description=VPS third-party container image refresh (note-sx, karakeep-app)
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/vps-update-images.sh
+# Pulls and health checks can legitimately take minutes.
+TimeoutStartSec=1800
+Nice=10

@@ -1,0 +1,15 @@
+[Unit]
+Description=Herdr headless server
+# Keeps `herdr --remote vps` (alias `hvps`) working after a reboot: nothing else starts
+# this server, so without the unit it stays down until someone runs `herdr` by hand.
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/herdr server
+# on-failure, not always: an explicit `herdr server stop` should stay stopped.
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

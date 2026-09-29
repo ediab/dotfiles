@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.diab.sync-vps</string>
+  <key>Program</key>
+  <string>/Users/eliasdiab/dev/configs/bin/sync-vps.sh</string>
+  <key>StartInterval</key>
+  <integer>900</integer> <!-- every 15 minutes -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/com.diab.sync-vps.out</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/com.diab.sync-vps.err</string>
+</dict>
+</plist>

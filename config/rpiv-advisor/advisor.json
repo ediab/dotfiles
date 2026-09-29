@@ -1,0 +1,35 @@
+{
+  "modelKey": "openai-codex/gpt-6-astra",
+  "effort": "low",
+  "disabledForModels": [
+    "openai-codex/gpt-6-astra",
+    "openai-codex/gpt-5.6-sol",
+    {
+      "model": "openai-codex/gpt-5.6-terra",
+      "minEffort": "high"
+    },
+    "opencode-go/glm-5.3",
+    "opencode-go/grok-4.6",
+    "opencode-go/kimi-k3",
+    {
+      "model": "opencode-go/qwen3.8-max",
+      "minEffort": "high"
+    },
+    {
+      "model": "commandcode/claude-sonnet-5",
+      "minEffort": "high"
+    },
+    "anthropic/claude-fable-5"
+  ],
+  "guidance": {
+    "promptSnippet": "Escalate to the GPT-5.6 Sol reviewer when an approach isn't converging or a decision is expensive to reverse",
+    "promptGuidelines": [
+      "Call `advisor` when choosing between approaches that are expensive to reverse — schema, API shape, file layout, a new dependency.",
+      "Call `advisor` when the same failure recurs twice, or results contradict what you read in the code.",
+      "Call `advisor` BEFORE any destructive or irreversible action: force-push, rm -rf, migrations, rewriting files you didn't author.",
+      "Do NOT call `advisor` for orientation, routine edits, or questions you can settle by reading the code or running a command yourself.",
+      "After each `advisor` result, restate its key guidance in your next visible reply — collapsed tool cards hide it from the user.",
+      "If you already have primary-source evidence contradicting the advisor, surface the conflict in one more `advisor` call rather than silently switching."
+    ]
+  }
+}

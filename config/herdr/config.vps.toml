@@ -1,0 +1,114 @@
+# Herdr config for the VPS (`ssh vps` → ~/.config/herdr/config.toml).
+# Deploy with herdr/deploy-vps.sh. The VPS copy is NOT symlinked — nothing on the
+# VPS reads this repo, so this file is the source of truth and is pushed by script.
+#
+# Kept deliberately close to the local config.toml so a `diff` stays readable.
+# Intentional differences from the local file:
+#   * [ui.toast] delivery = "terminal" — the VPS is headless, so "system" has no
+#     notification service to talk to. "terminal" hands it to the outer terminal,
+#     which is Ghostty when attached over SSH.
+#   * No Oh My Zsh plugin bindings (that plugin is installed on the Mac only).
+#   * reload_config is pinned to the same key as the Mac for consistent muscle
+#     memory, even though nothing on the VPS occupies prefix+shift+r.
+
+onboarding = false
+
+# ============================================================ theme
+[theme]
+name = "catppuccin"  # Catppuccin Mocha; matches the Mac so ssh-attached sessions look the same
+auto_switch = false
+
+# =============================================================== ui
+[ui]
+# --- mouse + clipboard ------------------------------------------------------
+# Over plain SSH, a copy leaves the machine as OSC 52; Ghostty allows those writes.
+# Over `herdr --remote`, the local client owns the clipboard instead.
+mouse_capture = true
+copy_on_select = true
+mouse_scroll_lines = 5          # one wheel notch scrolls 5 lines (default 3)
+
+# --- sidebar + agent panel --------------------------------------------------
+sidebar_width = 30
+sidebar_min_width = 20
+sidebar_max_width = 40
+sidebar_start_collapsed = false
+sidebar_collapsed_mode = "compact"
+agent_panel_sort = "priority"   # blocked/done agents float to the top
+status_indicators = "symbols"   # distinguishable by shape, not by color alone
+
+# --- tab bar ----------------------------------------------------------------
+tab_bar_position = "top"
+tab_bar_right = [
+  { type = "zoom" },
+  { type = "datetime", format = "%H:%M" },
+]
+tab_bar_right_separator = " · "
+
+# --- pane presentation ------------------------------------------------------
+# pane_borders stays at its default ("auto"): borders between split panes only.
+pane_outer_borders = false      # no frame around the pane area — tmux-style open edges
+pane_gaps = false               # panes share one divider instead of gapped frames
+pane_scrollbars = true
+show_agent_labels_on_pane_borders = true
+confirm_close = true
+prompt_new_tab_name = false     # tab-smart-rename names tabs; no prompt on prefix+c
+
+# ===================================================== notifications
+[ui.sound]
+enabled = false
+
+[ui.toast]
+delivery = "terminal"   # headless host: let the outer terminal own notifications
+delay_seconds = 2
+
+[ui.toast.clipboard]
+enabled = true
+position = "bottom-center"
+
+# ======================================================= keybindings
+[keys]
+reload_config = "prefix+shift+c"   # matches the Mac; frees prefix+shift+r there
+
+# Smart Rename plugin bindings
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "tab-smart-rename.rename-now"
+description = "smart rename current tab"
+
+[[keys.command]]
+key = "prefix+alt+t"
+type = "plugin_action"
+command = "tab-smart-rename.rename-all"
+description = "force smart rename all tabs"
+
+# Annotate (plannotator/herdr-annotate)
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "annotate.capture"
+description = "annotate text"
+
+[[keys.command]]
+key = "prefix+shift+a"
+type = "plugin_action"
+command = "annotate.copy-context"
+description = "copy annotations as context"
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "annotate.manage"
+description = "manage annotations"
+
+[[keys.command]]
+key = "prefix+d"
+type = "plugin_action"
+command = "annotate.open"
+description = "review documents in this folder"
+
+[[keys.command]]
+key = "prefix+shift+o"
+type = "plugin_action"
+command = "annotate.last"
+description = "review the agent's last reply"
