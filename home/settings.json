@@ -13,7 +13,6 @@
     "npm:@tintinweb/pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:pi-terminal-theme",
-    "npm:@juicesharp/rpiv-advisor",
     "git:github.com/earendil-works/pi-review",
     "npm:omp-codex-reserve",
     {
