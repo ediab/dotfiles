@@ -1,10 +1,10 @@
 {
   "tinyfishApiKey": "!security find-generic-password -s tinyfish-api-key -w",
   "webSearch": {
-    "enabled": false
+    "enabled": true
   },
   "tools": {
-    "webSearch": { "enabled": false },
+    "webSearch": { "enabled": true },
     "sourceCheck": { "enabled": false },
     "fetchContent": { "enabled": true },
     "getSearchContent": { "enabled": true }
