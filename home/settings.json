@@ -23,19 +23,6 @@
     "npm:@tintinweb/pi-subagents",
     "npm:@tintinweb/pi-tasks",
     "npm:@juicesharp/rpiv-ask-user-question",
-    {
-      "source": "https://github.com/cathrynlavery/diagram-design",
-      "skills": [
-        "-skills/diagram-design/SKILL.md"
-      ],
-      "prompts": [
-        "-prompts/doctor.md",
-        "-prompts/export-diagram.md",
-        "-prompts/import-excalidraw.md",
-        "-prompts/import-mermaid.md",
-        "-prompts/profile.md"
-      ]
-    },
     "npm:pi-terminal-theme",
     "npm:@juicesharp/rpiv-advisor",
     "git:github.com/earendil-works/pi-review",
