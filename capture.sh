@@ -11,7 +11,7 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 
 cd "$REPO"
 for file in settings.json open-tui.json; do
-  if [ -f "$LIVE_DIR/$file" ]; then
+  if [ -f "$LIVE_DIR/$file" ] && ! cmp -s "$LIVE_DIR/$file" "$REPO/home/$file"; then
     cp -p "$LIVE_DIR/$file" "$REPO/home/$file"
   fi
 done

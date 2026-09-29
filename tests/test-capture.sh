@@ -73,11 +73,16 @@ assert_unrelated_staged() {
   cmp "$WORK/expected-staged" "$WORK/staged-paths" || fail "unrelated staged file was not preserved"
 }
 
-# Unchanged live/repo state produces no commit and no push.
+# Unchanged live/repo state produces no commit or push and does not refresh
+# repository mtimes that the VPS orchestrator uses as its change signal.
+touch -t 202001010000 "$REPO/home/settings.json" "$REPO/home/open-tui.json"
+touch -t 202101010000 "$TEST_HOME/.pi/agent/settings.json" "$TEST_HOME/.pi/agent/open-tui.json"
 base_head="$("$REAL_GIT" -C "$REPO" rev-parse HEAD)"
 run_capture > "$WORK/no-change.out" 2>&1 || { cat "$WORK/no-change.out"; fail "no-change capture"; }
 [ "$("$REAL_GIT" -C "$REPO" rev-parse HEAD)" = "$base_head" ] || fail "no-change capture made a commit"
 [ ! -s "$PUSH_LOG" ] || fail "no-change capture pushed"
+[ "$REPO/home/settings.json" -ot "$TEST_HOME/.pi/agent/settings.json" ] || fail "no-change capture refreshed settings mtime"
+[ "$REPO/home/open-tui.json" -ot "$TEST_HOME/.pi/agent/open-tui.json" ] || fail "no-change capture refreshed open-tui mtime"
 
 # One Pi setting is copied and committed; unrelated staged work remains staged.
 printf '{"settings":"captured"}\n' > "$TEST_HOME/.pi/agent/settings.json"
