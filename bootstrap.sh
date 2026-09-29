@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # dotfiles — install the pi coding-agent harness + Elias's packages + skills.
-# Does NOT install MCPs, auth keys, or provider/model settings.
+# MCP servers and auth keys stay machine-local; home/settings.json (including
+# provider/model/theme defaults) is deployed.
 set -euo pipefail
 
 # Skills under home/shared-skills are portable; home/skills remains Pi-only.
