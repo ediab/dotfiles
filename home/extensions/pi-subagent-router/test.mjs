@@ -189,18 +189,18 @@ test("quality-first tier, uncertainty, stakes, role-floor, and effort rules are 
   assert.ok(effortUncertain.reasonCodes.includes("reasoning_uncertain"));
 
   const reviewer = decide(classification({ capability: "high", reasoning: "high", highStakes: 0.9 }), "reviewer", policy(), all, 100);
-  assert.equal(reviewer.model, "openai/gpt-6-astra");
+  assert.equal(reviewer.model, "openai-codex/gpt-6-astra");
   assert.equal(reviewer.tier, "high");
   assert.equal(reviewer.thinking, "high");
 });
 
 test("routing requires exact provider, honors availability, and falls upward only", () => {
   const judgment = classification({ capability: "standard" });
-  const crossProvider = [{ ...modelList()[2], provider: "openai-codex", id: "gpt-6-luna" }];
+  const crossProvider = [{ ...modelList()[2], provider: "openai", id: "gpt-6-luna" }];
   assert.equal(decide(judgment, "general-purpose", policy(), crossProvider, 100), undefined);
 
-  const standard = decide(judgment, "general-purpose", policy(), modelList().filter((model) => model.provider === "openai" && model.id === "gpt-6-astra"), 100);
-  assert.equal(standard.model, "openai/gpt-6-astra");
+  const standard = decide(judgment, "general-purpose", policy(), modelList().filter((model) => model.provider === "openai-codex" && model.id === "gpt-6-astra"), 100);
+  assert.equal(standard.model, "openai-codex/gpt-6-astra");
   assert.equal(standard.tier, "high");
   assert.ok(standard.reasonCodes.includes("stronger_tier_fallback"));
 
@@ -394,7 +394,7 @@ test("global off cannot be re-enabled at the tool boundary", async () => {
 test("explicit model, resume, schedule, inherited context, and unrelated tools skip Jev", async () => {
   await withRouter({}, async ({ cwd, handler }) => withFetch(async () => { throw new Error("must not call Jev"); }, async () => {
     const cases = [
-      { model: "openai/gpt-6-astra" },
+      { model: "openai-codex/gpt-6-astra" },
       { resume: "old-agent" },
       { schedule: "5m" },
       { inherit_context: true },
@@ -461,7 +461,7 @@ test("concurrent launches keep judgments and transcript correlation separate", a
       invoke(handler, cwd, reviewer, { toolCallId: "call-reviewer" }),
     ]);
     assert.equal(explorer.model, "opencode-go/glm-5.3-flash", JSON.stringify(entries));
-    assert.equal(reviewer.model, "openai/gpt-6-astra");
+    assert.equal(reviewer.model, "openai-codex/gpt-6-astra");
     const byId = new Map(entries.map((entry) => [entry.data.toolCallId, entry.data]));
     assert.equal(byId.get("call-explorer").candidate, explorer.model);
     assert.equal(byId.get("call-reviewer").candidate, reviewer.model);
@@ -558,17 +558,18 @@ test("installed Pi beforeToolCall path passes routed args to the tool executor",
     // Installed pi-subagents 0.19.0 resolver check: agent frontmatter wins over
     // routed parameters; the router's transcript only says "requested".
     const resolved = resolver.resolveAgentInvocationConfig(
-      { model: "openai/gpt-6-astra", thinking: "high" },
+      { model: "openai-codex/gpt-6-astra", thinking: "high" },
       { model: toolArgs.model, thinking: toolArgs.thinking },
     );
-    assert.equal(resolved.modelInput, "openai/gpt-6-astra");
+    assert.equal(resolved.modelInput, "openai-codex/gpt-6-astra");
     assert.equal(resolved.thinking, "high");
   }));
 });
 
-test("repository routing source stays off and carries the agreed candidate chains", () => {
+test("repository routing config activates the agreed chains while defaults stay off", () => {
   const source = JSON.parse(readFileSync(new URL("../../pi-subagent-router.json", import.meta.url), "utf8"));
-  assert.equal(source.mode, "off");
+  assert.equal(DEFAULTS.mode, "off");
+  assert.equal(source.mode, "active");
   assert.deepEqual(source.tiers, DEFAULTS.tiers);
 });
 

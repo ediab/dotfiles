@@ -85,13 +85,13 @@ export const DEFAULTS: RouterConfig = {
       { provider: "deepseek", model: "deepseek-flash" },
     ],
     standard: [
-      { provider: "openai", model: "gpt-6-luna" },
+      { provider: "openai-codex", model: "gpt-6-luna" },
       { provider: "opencode-go", model: "glm-5.3" },
       { provider: "deepseek", model: "deepseek-v4-pro" },
       { provider: "opencode-go", model: "kimi-k2.7-code" },
     ],
     high: [
-      { provider: "openai", model: "gpt-6-astra" },
+      { provider: "openai-codex", model: "gpt-6-astra" },
       { provider: "opencode-go", model: "kimi-k3" },
     ],
   },
