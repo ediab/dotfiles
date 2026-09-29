@@ -65,7 +65,8 @@
       "extensions": [
         "-extensions/pi-jev-model-router/index.ts"
       ]
-    }
+    },
+    "npm:pi-extmgr"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
