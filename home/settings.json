@@ -11,15 +11,6 @@
     "npm:pi-mcp-adapter",
     "npm:@ff-labs/pi-fff",
     "npm:pi-code-previews",
-    {
-      "source": "npm:@dietrichgebert/ponytail",
-      "skills": [
-        "!ponytail",
-        "+skills/ponytail/SKILL.md",
-        "-skills/ponytail-debt/SKILL.md",
-        "-skills/ponytail-gain/SKILL.md"
-      ]
-    },
     "npm:@tintinweb/pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:pi-terminal-theme",
