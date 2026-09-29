@@ -53,7 +53,6 @@ existing ownership and avoid a new adoption migration.
 | `firefox/` | Firefox profile backup sources and the exceptional sync script |
 | `bin/sync-vps.sh` | Change-gated four-step VPS orchestrator |
 | `docs/tmux.md`, `docs/herdr.md` | Operator guides |
-| `docs/tmux_proposal.md` | Historical tmux integration proposal |
 
 ## VPS synchronization
 

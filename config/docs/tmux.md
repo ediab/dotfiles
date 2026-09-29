@@ -114,7 +114,7 @@ pio               # alias: opens a session named "orchestrator" with PI_ORCHESTR
 ## pi-subagents: what tmux now shows you
 
 When pi spawns a subagent:
-- **Window titles** update to show the child agent's name (e.g. "reviewer", "planner"). This works because `automatic-rename` and `allow-rename` are off, letting pi set the title.
+- **Window titles** update to show the child agent's name (e.g. "reviewer", "explorer"). This works because `automatic-rename` and `allow-rename` are off, letting pi set the title.
 - **When a background agent finishes**, the window status bar turns **red** (bell) or **yellow** (activity). Glance at your status bar to see if work completed while you were in another window.
 - **Pane borders** show `[pane#] [process name]` at the top of each split, so you always know what's running where.
 - **Shift+Enter** inserts a newline in pi's TUI (multiline input). Plain Enter submits. This works because `extended-keys` is on and Ghostty supports it.

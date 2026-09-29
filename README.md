@@ -43,15 +43,15 @@ Running the bootstrap installs:
 - **Custom agents** — every `.md` under `home/agents/`, copied to `~/.pi/agent/agents/`
   (user agents for `@tintinweb/pi-subagents`).
   `explorer` replaces the built-in `Explore`; disabled overrides keep `Explore`
-  and `Plan` from reappearing. Planning runs in the main session via the `plan` skill.
+  and `Plan` from reappearing. Planning runs in the main session via `to-spec`.
 - **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
   (`backgroundByDefault`, `reportUsage`, `showCost`, `maxConcurrent: 4` — at most
   4 active leaf agents per task; reviewers and follow-ups count).
 - **Open-TUI config** — `home/open-tui.json` deployed to `~/.pi/agent/open-tui.json`
   (footer segments, telemetry toggles, thinking peek).
-- **Plan skill** — `home/skills/plan/` (`/skill:plan` or automatic for substantial
-  architectural choices: read-only investigation, right-sized plan, offer to save
-  to `docs/plans/` unless saving was already requested).
+- **Spec/ticket pipeline** — the user-invoked `to-spec`, `to-tickets`, and shared
+  `implement` skills keep planning and implementation explicit; planning never authorizes
+  implementation by itself.
 - **Brainstorm skill** — `home/skills/brainstorm/` (`/skill:brainstorm`, explicit
   invocation only: one question at a time with a recommendation, ends at an
   agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
@@ -156,7 +156,7 @@ silently retried on another model. Never pass a `model`/`effort` override unless
 explicitly names a model (in workflows, always pass an explicit existing `agentType` —
 workflows default to `general-purpose`, and orchestrators are forbidden in workflows).
 
-Also: the built-in `general-purpose` profile is overridden; `worker-astra`, `agent-orchestrator`, and `planner` are retired (implementation runs in the main session; use main-session orchestration via `/skill:orchestrate` and main-session planning via `/skill:plan`). No subagent profile runs on Astra; Astra is only ever the main session.
+Also: the built-in `general-purpose` profile is overridden; `worker-astra`, `agent-orchestrator`, and `planner` are retired. Implementation, orchestration, and planning stay in the main session via `implement`, `/skill:orchestrate`, and `/skill:to-spec`.
 
 ### Observational memory
 
@@ -166,8 +166,7 @@ top-level `observational-memory` key in `home/settings.json`.
 
 Defaults are correct for this setup, so only one key is set:
 
-- `showWorkerNotifications: false` — routine worker progress is hidden (matches the quiet-UI
-  prefs above); failures, compaction notices, and `/om:*` output still show.
+- `showWorkerNotifications: true` — observational-memory worker progress is visible.
 - Everything else defaults. `model` stays unset so workers follow the rotating session model
   (commandcode custom APIs are supported); the deepseek-flash models' 1M context / 64K max
   output mean `agentMaxTokens` never clamps badly and `compactAfterTokens: 81000` never
