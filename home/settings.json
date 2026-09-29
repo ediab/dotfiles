@@ -36,7 +36,6 @@
     "npm:@narumitw/pi-btw",
     "npm:pi-open-tui",
     "npm:pi-extmgr",
-    "npm:pi-blackhole",
     "npm:@saccolabs/pi-claude-cli"
   ],
   "skills": [
