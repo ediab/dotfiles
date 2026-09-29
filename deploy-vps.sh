@@ -37,13 +37,26 @@ stage_agent_content() {
   rsync -az --delete "$LOCAL_STAGE/" "$VPS_HOST:~/$REMOTE_STAGE/"
 }
 
-if [ "$PREPARE_AGENT_CONTENT" -eq 1 ]; then
-  echo "==> stage agent content only; no live config deployment"
-  stage_agent_content
+print_adoption_commands() {
   printf 'Dry run: ssh %s %s\n' "$VPS_HOST" "bash ~/.cache/pi-dotfiles-agent-content/sync-agent-content.sh --adopt"
   printf 'After reviewing that plan: ssh %s %s\n' "$VPS_HOST" "bash ~/.cache/pi-dotfiles-agent-content/sync-agent-content.sh --adopt --yes"
+}
+
+echo "==> preflight agent content; no live config changes yet"
+stage_agent_content
+if [ "$PREPARE_AGENT_CONTENT" -eq 1 ]; then
+  print_adoption_commands
   exit 0
 fi
+if ! ssh "$VPS_HOST" 'test -f "$HOME/.local/state/pi-dotfiles/managed-paths"'; then
+  echo "    ownership manifest missing; explicit one-time adoption is required"
+  ssh "$VPS_HOST" "bash \"\$HOME/$REMOTE_STAGE/sync-agent-content.sh\" --adopt" || true
+  print_adoption_commands
+  exit 1
+fi
+# Once adoption has established ownership, every unattended run still proves
+# that the exact steady-state plan is safe before any live config is changed.
+ssh "$VPS_HOST" "bash \"\$HOME/$REMOTE_STAGE/sync-agent-content.sh\""
 
 echo "==> 1/4  settings.json + auth.json"
 # Snapshot the old settings on the VPS first — step 4 needs it to find surplus packages
@@ -59,9 +72,8 @@ ssh "$VPS_HOST" 'mkdir -p ~/.config/ponytail'
 rsync -az "$REPO_DIR/home/ponytail.json" "$VPS_HOST:~/.config/ponytail/config.json"
 
 echo "==> 2/4  agent content + agents + configs"
-stage_agent_content
-# Routine deploys never enable --adopt or --force. Run the helper's explicit
-# migration plan on the VPS before this unattended path can manage old installs.
+# The manifest and successful dry-run above make --yes a steady-state apply;
+# unattended deploys never enable ownership adoption or forced drift replacement.
 ssh "$VPS_HOST" "bash \"\$HOME/$REMOTE_STAGE/sync-agent-content.sh\" --yes"
 rsync -az --delete "$REPO_DIR/home/agents/" "$VPS_HOST:~/.pi/agent/agents/"
 ssh "$VPS_HOST" 'rm -f ~/.pi/agent/models.json'  # removed 2026-09-29: declared only opencode-go/omen-alpha, deprecated upstream (HTTP 410 ModelDeprecated)

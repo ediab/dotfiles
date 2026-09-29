@@ -218,7 +218,12 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   ```
 
   Backups and the ownership manifest stay in `~/.local/state/pi-dotfiles/`. Use `--force --yes`
-  only after reviewing a generated-instruction drift backup.
+  only after reviewing a generated-instruction drift backup. Do not manually remove existing
+  skill directories to make migration pass: stage the VPS inputs with
+  `./deploy-vps.sh --prepare-agent-content vps`, review the printed remote `--adopt` plan,
+  then run its `--adopt --yes` command. Until that VPS manifest exists, normal deployment
+  stops before changing live config. After adoption, each routine deploy dry-runs the helper
+  first and automatically applies only a clean managed plan.
 - **Extensions**: everything under `home/extensions/` is copied; no script edit needed.
 - `home/settings.json` keeps `"!**/.agents/skills/use-tinyfish"` and
   `"!**/.agents/skills/simplify"` so Pi does not load externally owned shared copies twice
@@ -260,7 +265,9 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
   It stages skill and instruction sources under `~/.cache/pi-dotfiles-agent-content/` and runs
   the same helper there; native skill roots are never rsynced with `--delete`. Use
   `deploy-vps.sh --prepare-agent-content [host]` to stage only, then review/apply the helper
-  remotely with `--adopt` as needed. Normal deploy never enables adoption or force.
+  remotely with `--adopt` as needed. A missing manifest stops normal deployment before any
+  live config changes. Once adoption creates the manifest, routine deploys run a dry preflight
+  and automatically apply the managed plan; they never enable adoption or force.
   `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).
   Normally invoked automatically by the configs repo's `com.diab.sync-vps` launch agent
   (change-gated, every 15 minutes); run it by hand when you want the VPS updated now.
@@ -285,4 +292,6 @@ and optional local overlay; hashes detect edits, and backups are retained under
 
 `bootstrap.sh` and `rebuild.sh` call the helper locally. `deploy-vps.sh` stages the same
 sources in a dedicated remote directory and calls the same helper against the VPS's own
-manifest and local overlay. No local state or local overlay is sent to the VPS.
+manifest and local overlay. It requires explicit first-time adoption, then preflights every
+automatic apply before changing other live VPS config. No local state or local overlay is
+sent to the VPS.

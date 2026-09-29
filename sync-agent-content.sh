@@ -174,12 +174,12 @@ backup_existing() {
 blocked_collision() {
   local rel="$1" path="$HOME_DIR/$1" action="$2" approved
   approved="$(adoption_action "$rel")"
-  if [ "$ADOPT" -eq 1 ] && [ "$approved" = "$action" ]; then
-    return 1
+  if [ -n "$approved" ] && [ "$ADOPT" -eq 0 ]; then
+    printf 'BLOCKED: unmanaged collision for %s at %s; rerun with --adopt to approve %s.\n' "${rel##*/}" "$path" "$approved"
+  else
+    printf 'BLOCKED: unmanaged collision for %s at %s; --adopt has no approved %s action for this path.\n' "${rel##*/}" "$path" "$action"
   fi
-  printf 'BLOCKED: unmanaged collision for %s at %s; --adopt has no approved %s action for this path.\n' "${rel##*/}" "$path" "$action"
   SKILL_BLOCKED=1
-  return 0
 }
 
 plan_directory_copy() {
@@ -195,7 +195,7 @@ plan_directory_copy() {
         show_diff "$source" "$path"
       fi
     else
-      blocked_collision "$rel" "$path" "$action" || true
+      blocked_collision "$rel" "$action"
     fi
   else
     printf 'COPY directory: %s -> %s\n' "$source" "$path"
@@ -215,7 +215,7 @@ plan_file_copy() {
         diff -u "$source" "$path" || true
       fi
     else
-      blocked_collision "$rel" "$path" "$action" || true
+      blocked_collision "$rel" "$action"
     fi
   else
     printf 'COPY file: %s -> %s\n' "$source" "$path"
@@ -231,7 +231,7 @@ plan_claude_link() {
       elif [ "$ADOPT" -eq 1 ] && [ "$(adoption_action "$rel")" = "replace-claude-copy-with-link" ]; then
         printf 'ADOPT existing Claude link: %s\n' "$path"
       else
-        blocked_collision "$rel" "$path" "link" || true
+        blocked_collision "$rel" "replace-claude-copy-with-link"
       fi
     elif is_managed "$rel"; then
       printf 'REPLACE managed Claude path with link: %s\n' "$path"
@@ -239,7 +239,7 @@ plan_claude_link() {
       printf 'BACK UP if different, then replace Claude copy with link: %s\n' "$path"
       show_diff "$source" "$path"
     else
-      blocked_collision "$rel" "$path" "link" || true
+      blocked_collision "$rel" "replace-claude-copy-with-link"
     fi
   else
     printf 'LINK Claude skill: %s -> %s\n' "$path" "$HOME_DIR/.agents/skills/$name"

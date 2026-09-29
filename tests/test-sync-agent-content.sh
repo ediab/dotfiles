@@ -94,11 +94,15 @@ HOME="$home" bash "$repo/sync-agent-content.sh" --yes > "$WORK/output" 2>&1 || {
 repo="$WORK/collision-repo"
 home="$WORK/collision-home"
 new_repo "$repo"
-mkdir -p "$home/.agents/skills/bro"
+mkdir -p "$home/.agents/skills/bro" "$home/.pi/agent/skills/personal-workflow"
 printf 'user-owned\n' > "$home/.agents/skills/bro/SKILL.md"
+printf 'legacy repo-owned\n' > "$home/.pi/agent/skills/personal-workflow/SKILL.md"
 expect_failure "$home" "$repo" --yes
 contains "$WORK/output" 'unmanaged collision for bro'
 contains "$WORK/output" "$home/.agents/skills/bro"
+contains "$WORK/output" 'no approved copy action'
+contains "$WORK/output" 'rerun with --adopt to approve copy'
+not_contains "$WORK/output" "approved $home/.agents/skills/bro action"
 contains "$home/.agents/skills/bro/SKILL.md" 'user-owned'
 [ ! -e "$home/.agents/skills/tdd" ] || fail "collision preflight partially deployed skills"
 
@@ -115,6 +119,19 @@ contains "$WORK/output" 'unmanaged collision for bro'
 [ "$(readlink "$home/.agents/skills/bro")" = "$home/user-owned/bro" ] || fail "unmanaged skill symlink target changed"
 contains "$home/user-owned/bro/SKILL.md" 'user-owned symlink target'
 [ ! -e "$home/.agents/skills/tdd" ] || fail "symlink collision preflight partially deployed skills"
+
+# Claude collisions name the exact link-replacement action rather than an absolute path.
+repo="$WORK/claude-collision-repo"
+home="$WORK/claude-collision-home"
+new_repo "$repo"
+mkdir -p "$home/.claude/skills/bro"
+printf 'user-owned Claude copy\n' > "$home/.claude/skills/bro/SKILL.md"
+expect_failure "$home" "$repo" --yes
+contains "$WORK/output" 'unmanaged collision for bro'
+contains "$WORK/output" 'no approved replace-claude-copy-with-link action'
+not_contains "$WORK/output" "approved $home/.claude/skills/bro action"
+contains "$home/.claude/skills/bro/SKILL.md" 'user-owned Claude copy'
+[ ! -e "$home/.agents/skills/tdd" ] || fail "Claude collision preflight partially deployed skills"
 
 # A normal rebuild never claims or deletes an unmanaged same-name old Pi copy.
 repo="$WORK/old-pi-repo"
