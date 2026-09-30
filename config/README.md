@@ -1,26 +1,26 @@
 # Imported configuration subtree
 
-`config/` is the history-preserving import of the former standalone configuration checkout. It is a
-transitional layout for Milestone 1; the single repository is `ediab/dotfiles`, checked out at
-`~/Dev/dotfiles`. Do not recreate a second configs checkout. Milestone 2 will move ordinary
-home files out of this subtree and into the chezmoi source root.
+`config/` is the history-preserving import of the former standalone configuration checkout.
+The single repository is `ediab/dotfiles`, checked out at `~/Dev/dotfiles`; do not recreate a
+second configs checkout. This directory holds ordinary Mac settings and app/VPS configuration.
+No chezmoi migration is assumed.
 
-Until then, this directory remains the source for ordinary Mac settings and exceptional app
-configuration. See the top-level `README.md` for agent-content ownership and the complete
-repository overview.
+See the [top-level README](../README.md) for the manual save/apply workflow, agent-content
+ownership, scoped configuration commands, and separately requested deployment.
 
 ## Ownership boundaries
 
-- Ordinary home files are currently symlinked from this subtree. Edit the source here; do not
-  edit or replace a live symlink target separately. These files are planned for chezmoi in
-  Milestone 2, but are not managed by chezmoi yet.
+- Ordinary home files are symlinked from this subtree. Edit their repo sources; keep the
+  existing links intact. These edits are already live.
 - Agent content lives in the top-level `home/` directory. `sync-agent-content.sh` alone owns
   shared/Pi-only skills, Claude links, generated instructions, and the local manifest/backups.
-- `capture.sh` is the one capture committer. It captures only the two live Pi JSON files and
-  tracked changes under `config/`; untracked files and unrelated staged paths stay out of its
-  commit. It refreshes the VS Code extension list best-effort.
-- VPS changes stay explicit in this subtree's deploy scripts; they are not managed by
-  chezmoi.
+- Save application-written preferences explicitly. Review, commit, and push changes yourself.
+  Use the explicitly invoked `update-dotfiles` skill for save/apply guidance once deployed.
+- VPS deployment is separate and requires an explicit request. Maintained deployment helpers
+  copy/merge configuration and perform only their documented optional reloads. Software,
+  services, timers, and system policy are separate operations.
+- There is no automatic capture/commit/push or VPS synchronization. The two old jobs were
+  persistently disabled and their installed plists removed on this Mac.
 
 Machine-local agent state intentionally keeps its legacy names across the repository rename:
 `~/.local/state/pi-dotfiles/` (manifest/backups), `~/.config/pi-dotfiles/local/` (instruction
@@ -37,8 +37,7 @@ existing ownership and avoid a new adoption migration.
 | `herdr/config.toml` | `~/.config/herdr/config.toml` |
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
-| `Brewfile` | installed with `brew bundle --file=...` |
-| `vscode/extensions.txt` | refreshed from `code --list-extensions` by `capture.sh` |
+| `vscode/extensions.txt` | saved extension inventory; refresh explicitly with `code --list-extensions` |
 
 ## Other maintained content
 
@@ -48,32 +47,26 @@ existing ownership and avoid a new adoption migration.
 | `herdr/plugins.txt` | Installed Herdr plugin list; refresh with `herdr plugin list` |
 | `herdr/config.vps.toml` | VPS Herdr config; deploy with `herdr/deploy-vps.sh` |
 | `vps/` | VPS shell files, upkeep scripts, user units, apt policy, and app-root instructions |
-| `bin/sync-vps.sh` | Change-gated four-step VPS orchestrator |
 | `docs/tmux.md`, `docs/herdr.md` | Operator guides |
 
-## VPS synchronization
+## Explicit VPS/app configuration deployment
 
-Run the merged orchestrator from the repository root:
-
-```sh
-~/Dev/dotfiles/config/bin/sync-vps.sh            # deploy when inputs changed
-~/Dev/dotfiles/config/bin/sync-vps.sh --force    # bypass only the timestamp gate
-```
-
-It runs, in order, top-level `deploy-vps.sh` (agent content), `config/vps/deploy-vps.sh`,
-`config/herdr/deploy-vps.sh`, and `config/druk/deploy-druk.sh`. It watches exactly top-level
-`home/` and `deploy-vps.sh`, plus `config/vps/`, `config/herdr/config.vps.toml`, and
-`config/druk/`. An idle run opens no SSH connection. Every step runs after a failure; the
-success stamp advances only when all four succeed. Logs are `/tmp/com.diab.sync-vps.{out,err}`.
-
-Do not install/load the VPS launchd job until the remote agent-content ownership manifest has
-been explicitly adopted and verified, and one forced orchestrator run has completed all four
-steps successfully. `bootstrap.sh` installs only capture; afterward the VPS job is installed
-separately with:
+Choose only the scope requested; there is no four-step orchestrator or background job:
 
 ```sh
-~/Dev/dotfiles/install-launchd.sh sync-vps
+./deploy-vps.sh vps                     # repo-source agent configuration (from repo root)
+./config/vps/deploy-vps.sh              # shell files + ~/apps/AGENTS.md, optional tmux reload
+./config/herdr/deploy-vps.sh            # Herdr config + reload
+./config/druk/deploy-druk.sh            # local settings/pi-opener only
+DEPLOY_DRUK_HOST=vps ./config/druk/deploy-druk.sh  # also merge remote settings
 ```
+
+Agent deployment preserves remote auth, runtime state, package declarations, and machine
+settings. Its manifest requires separate explicit remote adoption and a clean preflight;
+see the root README for staging/adoption guidance. The VPS helper does not install weekly
+upkeep, services, or apt policy; those operational assets remain here but require separate
+installation/maintenance. Druk deployment does not download extensions; `extensions.txt`
+remains an inventory.
 
 ## Setup and app-specific sync
 
@@ -100,13 +93,14 @@ ln -s "$PWD/config/rpiv-advisor/advisor.json" ~/.config/rpiv-advisor/advisor.jso
 mkdir -p "$HOME/Library/Application Support/Code/User"
 ln -s "$PWD/config/vscode/settings.json" "$HOME/Library/Application Support/Code/User/settings.json"
 ln -s "$PWD/config/vscode/keybindings.json" "$HOME/Library/Application Support/Code/User/keybindings.json"
-brew bundle --file="$PWD/config/Brewfile"
 ```
 
-`bootstrap.sh` installs the capture job from the root `launchd/` templates. Do not copy or load
-the old launchd plist files by hand.
+Inspect existing destinations first; preserve or back them up rather than replacing files
+or links blindly. Software installation is separate from applying these links. `Brewfile`
+is an inventory for a separately requested Homebrew install, not a dotfiles apply step.
+No machine installer or background-job installation is provided.
 
-Tmux plugins can be installed with TPM:
+For separately requested tmux plugin installation, TPM can be installed manually:
 
 ```sh
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm

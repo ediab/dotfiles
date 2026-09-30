@@ -1,298 +1,185 @@
 # dotfiles
 
-Elias's private `ediab/dotfiles` repository combines ordinary home configuration with
-portable agent content for Pi, Codex, and Claude Code.
+Elias's private `ediab/dotfiles` repository stores ordinary home configuration and
+agent content for Pi, Codex, and Claude Code. It is a configuration repo, not a
+machine installer.
 
-## Ownership boundaries
+## Working model
 
-- `config/` is the imported, history-preserving subtree from the former standalone configuration checkout.
-  It is transitional for Milestone 1; ordinary Mac settings remain symlinked from it until
-  Milestone 2 moves them to chezmoi. App-specific sync stays explicit.
-- `home/` owns portable and Pi-only agent content. `sync-agent-content.sh` is the sole owner
-  of shared/Pi-only skills, Claude links, generated instructions, and their local manifest
-  and backups.
-- `capture.sh` replaces both old committers: it captures the two live Pi JSON files and
-  tracked configuration edits through one allowlisted commit, then pushes it.
-- VPS system and app state continue to use explicit deploy scripts, not a generic dotfiles
-  manager. Secrets do not belong in Git, even though this repository is private.
+- Edit ordinary dotfiles through their existing repo-backed symlinks.
+- Edit agent content in the repo, then explicitly **apply** it locally.
+- When an application changes its live settings, explicitly **save** the preferences
+  you want to keep back into the repo.
+- Review, commit, and push changes yourself. VPS deployment is a separate request.
+- Install and update software separately. Saving or applying dotfiles does not authorize
+  package installation, removal, or updates.
 
-Pi manages `~/.pi/agent/` itself — it rewrites `settings.json` on installs and stores managed
-packages under `npm/` and `git/` — so custom content is copied by bootstrap/rebuild rather
-than symlinked. Ordinary home files stay separate from agent-content ownership.
+No new dotfiles manager or chezmoi migration is part of this direction.
 
-## What you get
-
-The setup scripts manage:
-
-- **pi harness** — via npm (`@earendil-works/pi-coding-agent`), falling back to the official
-  curl installer (`https://pi.dev/install.sh`) if npm fails.
-- **pi packages** — the canonical list is the `packages` array in `home/settings.json`.
-  `capture.sh` records live `settings.json` changes. Bootstrap, full rebuild, and VPS deploy
-  use `reconcile-pi-packages.py` to handle string/object sources, preserve resource filters,
-  install missing or changed pinned packages, and remove previously configured surplus.
-  Failed cleanup remains recorded for the next attempt. Package-installed skills come along
-  automatically with their packages.
-- **Custom skills** — portable skills under `home/shared-skills/` are copied to
-  `~/.agents/skills/` for Pi and Codex, with per-skill links into `~/.claude/skills/`
-  when Claude Code is installed. Pi-only skills under `home/skills/` are copied to
-  `~/.pi/agent/skills/`.
-- **Generated global instructions** — `home/AGENTS.md`, an optional client overlay under
-  `home/instructions/`, and an optional machine overlay under
-  `~/.config/pi-dotfiles/local/` generate `~/.pi/agent/AGENTS.md`, `~/.codex/AGENTS.md`,
-  and `~/.claude/CLAUDE.md` only for installed clients. Edits are drift-guarded and backed up.
-- **Custom extensions** — every file under `home/extensions/` (`terminal-status-title.js`),
-  copied to `~/.pi/agent/extensions/`. Herdr's integration file is deliberately not vendored
-  here (see *What it does NOT install*).
-- **Custom agents** — every `.md` under `home/agents/`, copied to `~/.pi/agent/agents/`
-  (user agents for `@tintinweb/pi-subagents`).
-  `explorer` replaces the built-in `Explore`; disabled overrides keep `Explore`
-  and `Plan` from reappearing. Planning runs in the main session via `to-spec`.
-- **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
-  (`backgroundByDefault`, `reportUsage`, `showCost`, `maxConcurrent: 4` — at most
-  4 active leaf agents per task; reviewers and follow-ups count). `showModel` labels running
-  agents, and `toolDescriptionMode: compact` reduces the Agent tool's description (not the
-  separate workflow description).
-- **Open-TUI config** — `home/open-tui.json` deployed to `~/.pi/agent/open-tui.json`
-  (footer segments, telemetry toggles, thinking peek).
-- **Spec/ticket pipeline** — the user-invoked `to-spec`, `to-tickets`, and shared
-  `implement` skills keep planning and implementation explicit; planning never authorizes
-  implementation by itself.
-- **Brainstorm skill** — `home/skills/brainstorm/` (`/skill:brainstorm`, explicit
-  invocation only: one question at a time with a recommendation, ends at an
-  agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
-  implementation).
-- **Side questions** — `home/pi-btw.json` configures `/btw`; bootstrap/rebuild and VPS
-  deploy copy it to `~/.pi/agent/pi-btw.json`.
-- **Web-search config** — `home/web-search.json` configures OpenAI and Exa as search
-  providers, plus separate fetch routing. `rebuild.sh` copies it to
-  `~/.pi/agent/web-search.json` (bootstrap does not). The TinyFish key is looked up from
-  the local macOS Keychain; `deploy-vps.sh` writes a VPS-specific lookup for
-  `~/.pi/agent/tinyfish-api-key` (0600, managed directly on the VPS — deploy never
-  overwrites it).
-- **Agent config** — `home/settings.json` is the canonical Pi agent settings and is copied
-  by `bootstrap.sh` and a full `rebuild.sh`, including its provider, model, and theme
-  defaults. The shared policy in `home/AGENTS.md` is composed with optional client and
-  machine overlays by `sync-agent-content.sh`.
-
-## What it does NOT install
-
-- MCP servers (`~/.pi/agent/mcp.json`)
-- Auth / API keys (`~/.pi/agent/auth.json`)
-- The Herdr integration file — `herdr integration install pi` writes and updates
-  `~/.pi/agent/extensions/herdr-agent-state.ts` (`HERDR_INTEGRATION_VERSION=8`; check with
-  `herdr integration status`, which flags outdated installs). Vendoring it here would let
-  `./rebuild.sh` push an older copy over a newer one, and the file no-ops unless
-  `HERDR_ENV=1` anyway — so the repo leaves it to Herdr. The `herdr` skill alone does not
-  install it.
-
-## Fresh-machine setup
-
-Clone and run (recommended — fully self-contained):
-
-```sh
-git clone git@github.com:ediab/dotfiles.git ~/Dev/dotfiles
-cd ~/Dev/dotfiles
-./bootstrap.sh
-```
-
-Bootstrap requires a clone and Python 3.9+: canonical settings, the package helper, and
-agent-content sources must be present before setup starts. Running the script alone via curl is unsupported.
-
-`bootstrap.sh` does four things, in order:
-
-1. Installs the pi harness if it isn't already installed.
-2. Records previous package declarations, applies `home/settings.json`, and reconciles
-   packages. Settings and package failures stop setup instead of reporting success.
-3. Runs `sync-agent-content.sh` for shared/Pi-only skills and generated instructions, then
-   deploys `home/extensions/` and the remaining Pi configuration.
-4. Installs the templated `com.diab.dotfiles.capture` launchd job from a clone. It watches
-   the two Pi JSON files and also runs every 15 minutes. VPS sync is installed separately,
-   only after adoption is approved and a forced four-step sync succeeds.
+Saving and applying configuration never installs software, commits/pushes changes, or
+starts background synchronization. The old installer/capture/orchestrator scripts are
+retired. The capture and VPS-sync jobs were persistently disabled and their installed
+plists removed on this Mac; any old installation on another machine needs separate removal.
 
 ## Daily use
 
-Edit agent-content sources under `home/` and re-apply:
+The explicitly invoked [`update-dotfiles`](home/shared-skills/update-dotfiles/SKILL.md) skill
+owns the save/apply procedure. Once deployed to Pi, examples are:
 
-```sh
-./rebuild.sh
+```text
+/skill:update-dotfiles save my live Pi settings into the repo
+/skill:update-dotfiles apply the agent-content changes I made locally
 ```
 
-Full rebuild first applies repo settings and reconciles packages, then runs
-`pi update --all --no-approve` against the wanted global package list. It then deploys the
-content helper (skills and generated instructions), extensions, agents, and versioned Pi
-config. `--sync-only` skips settings replacement and all package commands. Ordinary Mac
-config sources remain in `config/` and are edited through their live symlinks until Milestone 2.
+A bare invocation starts with inspection, not an all-files apply. The skill compares
+live and repo versions, preserves unrelated work, checks for unexpected background side
+effects, and verifies the requested result. It selects only the approved files/preferences.
+It does not commit, push, or deploy to the VPS without an explicit request.
 
-The package helper records pending work in `~/.pi/agent/settings.json.pre-reconcile` before
-replacing settings. A failure leaves that ledger intact; rerunning bootstrap/rebuild/deploy
-merges it with the current declarations and retries. Only previously declared packages can
-be removed; unrelated installed directories are not swept.
+[`local-env`](home/shared-skills/local-env/SKILL.md) is the companion environment reference:
+repo location, symlink sources, machine-specific paths, and VPS access. It does not
+provide permission to apply or deploy.
 
-### Code review
+Saving is a scoped edit/copy through the skill, not a daemon or a whole live-directory
+capture. Applying uses `apply.sh`: it requires explicit files/groups and previews by default.
 
-`pi-review` (from the `packages` list) adds two commands:
+```sh
+./apply.sh --file web-search.json                 # preview one file
+./apply.sh --file web-search.json --yes           # apply just that file
+./apply.sh --file agents/researcher.md --yes       # one profile
+./apply.sh --group themes --yes                   # standalone themes + license
+./apply.sh --group agent-content                  # full skill/instruction ownership plan
+```
 
-- `/review` — review uncommitted changes, a base branch, a commit, a GitHub PR (checked out
-  locally with `gh`), or a folder snapshot. Reports prioritized findings plus a verdict, and
-  separates feedback for the agent from callouts for the human.
-- `/end-review` — close an active review session: return only, return and summarize, or
-  return and queue the fixing work.
+Other groups are `configs` (the five maintained JSON preference files), `agents`, and
+`extensions`. Repeat `--file`/`--group` to combine scopes. `agent-content` means **all** managed
+skills and installed-client instructions, not a single edited skill. Inspect its complete
+plan before adding `--yes`; first-time adoption remains a separate approval.
 
-A `REVIEW_GUIDELINES.md` beside the project's `.pi/` directory is appended to the review
-prompt, so a repo carries its own review rules without touching this harness.
+JSON is validated before writes. Replacements are atomic and previous bytes are backed up
+under `~/.local/state/pi-dotfiles/backups/apply/`. Unselected and foreign files are not pruned;
+symlink destinations/parents are refused rather than silently writing elsewhere.
 
-`home/agents/reviewer.md` is the complementary path, not a duplicate: `/review` runs the
-review in the current session, while `reviewer` is a fresh-context, report-only subagent,
-used when you explicitly request review delegation. Substantial changes (deletion, auth,
-money, live deploy) are reviewed inline by the owner, who offers a fresh reviewer rather
-than dispatching one. “Review this”, `/review`, and generic orchestration requests keep
-the review inline.
-The same explicit-delegation rule applies to research evidence: the owner synthesizes and source-checks it inline rather than dispatching an audit agent.
+## Sources and destinations
 
-### Subagent models
+| Source | Destination / use |
+|---|---|
+| `config/` ordinary home files | Existing symlinks into `$HOME`, `~/.config/`, and app config locations; see [`config/README.md`](config/README.md) |
+| `home/shared-skills/` | Portable skills copied to `~/.agents/skills/`, with per-skill Claude links when Claude Code is installed |
+| `home/skills/` | Pi-only skills copied to `~/.pi/agent/skills/` |
+| `home/AGENTS.md`, `home/instructions/` | Shared policy and client overlays composed into installed clients' global instructions |
+| `home/extensions/`, `home/agents/` | Custom Pi extensions and agent profiles copied to `~/.pi/agent/` |
+| `home/themes/` | Standalone Pi themes and their license copied to `~/.pi/agent/themes/` by scoped apply or explicit VPS deployment |
+| `home/settings.json` | Versioned Pi settings; compare with live `~/.pi/agent/settings.json` before saving or applying |
+| Other `home/*.json` | Pi/package preferences, including subagents, Open-TUI, side questions, and web-search configuration |
+| `config/vscode/extensions.txt` | Saved VS Code extension inventory; refresh explicitly when wanted |
+| `config/vps/`, `config/herdr/`, `config/druk/` | Sources for separate VPS/app deployment scripts |
 
-Implementation happens in the main session — subagents are for independent parallel work
-and fresh second opinions, not a default implementation hop. `home/agents/explorer.md`
-selects its search model explicitly; other profiles inherit the dispatching session's model.
-There are no backup profiles and no automatic failover — a failed dispatch is reported as a blocker, not
-silently retried on another model. Never pass a `model`/`effort` override unless the user
-explicitly names a model (in workflows, always pass an explicit existing `agentType` —
-workflows default to `general-purpose`, and orchestrators are forbidden in workflows).
+Ordinary symlinked settings are already live when edited. Pi rewrites its own
+`settings.json`, and copied agent content does not change live until applied. These are
+different ownership models; do not copy all of `~/.pi/agent/` into Git.
 
-Also: the built-in `general-purpose` profile is overridden; `worker-astra`, `agent-orchestrator`, and `planner` are retired. Implementation, orchestration, and planning stay in the main session via `implement`, `/skill:orchestrate`, and `/skill:to-spec`.
+The `packages` array in `home/settings.json` records Pi package declarations. Saving
+that array is configuration capture, not permission to reconcile installed packages.
+Applying settings preserves live `packages`, `deviceId`, `lastChangelogVersion`,
+`sessionDir`, and `httpProxy` by default. Only an explicitly approved `--include-packages`
+changes package declarations; **Pi may install declared packages at startup**, although
+`apply.sh` itself never runs package commands. Review that consequence separately.
 
-### Compaction
+## Agent-content ownership
 
-Compaction uses Pi's built-in behavior. Observational-memory and better-compaction packages
-are not part of the current setup; the old observational-memory settings have been removed.
+`sync-agent-content.sh` is the sole owner of managed skills, Claude links, and generated
+global instructions. It copies repo-owned sources and prunes only paths recorded in
+that machine's manifest. Unmanaged skills and other clients' directories stay untouched.
+A same-name unmanaged collision blocks applying; a missing manifest does not authorize
+pruning or adopting existing destinations.
 
-### Keeping the repo in sync
+The helper defaults to a dry run. For an explicitly requested local agent-content apply,
+inspect the plan first:
 
-| What | Direction | How |
-|---|---|---|
-| `home/settings.json`, `home/open-tui.json` | live → repo, **automatic** | `capture.sh` watches the live files and runs every 15 minutes; commits only allowlisted changes |
-| `config/` ordinary home files | repo ↔ live symlinks | Imported transitional subtree; ordinary home targets move to chezmoi in Milestone 2 |
-| `config/vscode/extensions.txt` | live → repo, best effort | `capture.sh` refreshes with `code --list-extensions` |
-| `home/shared-skills/`, `home/skills/`, `home/extensions/`, `home/agents/`, Pi config files | repo → live | edit the correct source directory, then `./rebuild.sh`; the helper owns only its recorded skill paths |
-| `home/AGENTS.md`, `home/instructions/` | repo → generated live files | shared policy + optional client overlay + `~/.config/pi-dotfiles/local/{pi,codex,claude}.md`; drift is backed up and stops that target |
-| `~/.config/pi-dotfiles/local/` | machine → generated live files | optional, untracked client-specific facts; preserved across regeneration |
-| `auth.json`, `mcp.json`, `models-store.json`, `code-previews.json`, sessions, caches | never in repo | secrets, runtime state, and per-machine package configs, by design (`deploy-vps.sh` still mirrors `code-previews.json` onto the VPS). `models.json` is gone: it declared only the deprecated `opencode-go/omen-alpha` shim; provider models come from the built-in catalog |
+```sh
+./lint-agent-content.sh
+./sync-agent-content.sh --dry-run
+```
 
-Bottom line: one repository contains the sources, while each owner has a narrow boundary:
-agent content uses its manifest-backed helper, ordinary home config is currently symlinked
-from `config/`, app sync is explicit, and VPS deployment stays script-driven.
+Only apply a reviewed plan whose scope matches the request using `--yes`. First-time
+adoption is a separate approval: inspect `--adopt` before authorizing `--adopt --yes`.
+Keep the safeguards intact rather than deleting live skill directories to bypass them.
 
-## Make it yours
+Generated instructions combine the shared policy, optional repo client overlay, and
+optional machine overlay. Drift is detected and backed up; forced replacement requires
+review and approval. Edit the sources, not the generated live instruction file.
 
-This repo is Elias's. If you clone it, review these before you run `bootstrap.sh`:
+Machine-local state intentionally retains its existing paths:
 
-- **Packages**: `pi install <pkg>` / `pi uninstall <pkg>` on a live machine —
-  `capture.sh` records it in `home/settings.json` — or edit `home/settings.json`'s `packages`
-  list directly.
-- **Skills**: add portable skills under `home/shared-skills/` and Pi-only skills under
-  `home/skills/`. `sync-agent-content.sh` deploys only these repo-owned sources, records
-  exactly which paths it owns, and refuses same-name unmanaged collisions. Ordinary runs
-  prune only paths in that machine's manifest. If the manifest is missing, nothing is
-  pruned and existing destinations need explicit adoption again.
-- **Third-party skills**: inspect candidates with `npx skills@latest add owner/repo --list`.
-  After review, vendor portable skills into `home/shared-skills/` or Pi-specific skills into
-  `home/skills/`, preserve their license and attribution, and remove vendored names from the
-  Vercel lockfile. A skill name has one owner. `show-me` is upstream/Vercel-owned; keep it
-  outside these source folders and install it with `npx skills add humanlayer/skills --skill show-me -g`.
-  `bro` is the exception: its reviewed upstream copy is vendored verbatim in this repo.
-- **First migration**: inspect before applying. `--adopt` prints the audited path/action plan
-  without changing anything; only the approved local command applies it:
+- `~/.local/state/pi-dotfiles/` — ownership manifest, instruction hashes, and backups;
+- `~/.config/pi-dotfiles/local/{pi,codex,claude}.md` — optional untracked instruction overlays;
+- `~/.cache/pi-dotfiles-agent-content/` — VPS staging directory.
 
-  ```sh
-  ./sync-agent-content.sh --adopt
-  ./sync-agent-content.sh --adopt --yes
-  ```
+Keeping these paths preserves ownership and avoids another adoption migration.
 
-  Backups and the ownership manifest stay in `~/.local/state/pi-dotfiles/`. Use `--force --yes`
-  only after reviewing a generated-instruction drift backup. Do not manually remove existing
-  skill directories to make migration pass: stage the VPS inputs with
-  `./deploy-vps.sh --prepare-agent-content vps`, review the printed remote `--adopt` plan,
-  then run its `--adopt --yes` command. Until that VPS manifest exists, normal deployment
-  stops before changing live config. After adoption, each routine deploy dry-runs the helper
-  first and automatically applies only a clean managed plan.
-- **Extensions**: everything under `home/extensions/` is copied; no script edit needed.
-- `home/settings.json` keeps `"!**/.agents/skills/use-tinyfish"` and
-  `"!**/.agents/skills/simplify"` so Pi does not load externally owned shared copies twice
-  (Pi does not expand `~` in these glob patterns). `-skills/use-tinyfish/SKILL.md` also stays
-  as protection if `tinyfish connect` recreates a Pi-local copy. Neither skill is mirrored
-  into this repo; external installers keep ownership and the sync helper leaves them alone.
-- The vendored `bro` skill uses each client's native invocation: Pi `/skill:bro`, Codex
-  `$bro`, and Claude Code `/bro`. These are client-specific entry points; no extra
-  slash-command wrappers are installed.
+### Adding content
 
-**Heads-up:**
+- Put portable skills in `home/shared-skills/` and Pi-only skills in `home/skills/`.
+  A skill name has one source owner. Preserve attribution and licenses for vendored content.
+- Keep externally installed skills outside these managed source folders. `show-me` is
+  upstream-owned; `bro` is a reviewed, verbatim vendored exception.
+- The shared-skill exclusions in `home/settings.json` prevent duplicate loading of
+  externally owned skills. Their rationale lives in [`CONCEPTS.md`](CONCEPTS.md).
+- Put custom extensions in `home/extensions/` and profiles in `home/agents/`; the deployment
+  scripts discover these files without an inventory edit.
+- Keep machine-only instruction facts in the untracked local overlays.
 
-- `home/AGENTS.md` is Elias's personal shared agent policy. If you clone this repo you'd
-  inherit it in every installed client — edit or delete it if you don't want that. Put
-  machine-only content in `~/.config/pi-dotfiles/local/{pi,codex,claude}.md` instead.
-- `home/settings.json` is the repo copy of your live pi agent settings. Pi itself rewrites
-  the live file (changelog version, installed-packages list); `capture.sh` copies existing
-  live Pi JSON files back to the repo. Review live edits before rebuilding from repo sources.
+## Secrets and externally owned files
 
-## Repo tour
+Auth/API keys, `.env` values, MCP configuration, sessions, caches, `models-store.json`,
+and `code-previews.json` stay outside Git. `home/.env.example` is a template, not a place
+for real values. MCP servers and credentials remain machine-specific.
 
-- `home/` — agent-content sources: `home/shared-skills/` -> `~/.agents/skills/` with Claude
-  links, `home/skills/` -> `~/.pi/agent/skills/`, `home/AGENTS.md` plus
-  `home/instructions/<client>.md` -> generated `AGENTS.md`/`CLAUDE.md` targets,
-  `home/settings.json` -> `~/.pi/agent/settings.json`, plus Pi extensions and agents.
-- `config/` — imported transitional subtree containing ordinary home symlink sources,
-  exceptional app sync, and VPS deploy assets. Milestone 2 will remove it after reorganizing
-  those contents.
-- `bootstrap.sh` — fresh-machine setup. Run once.
-- `rebuild.sh` — re-apply the config after any change. Supports `--sync-only` to deploy
-  skills, generated instructions, extensions, and agent config without package updates or
-  the `settings.json` copy.
-- `reconcile-pi-packages.py` — shared global-settings/package prepare and reconcile phases
-  for bootstrap, full rebuild, and VPS deploy. Pi's CLI owns installation/removal; the helper
-  preserves object filters and retry state.
-- `capture.sh` — replaces both old capture jobs. It copies existing live Pi settings files,
-  refreshes `config/vscode/extensions.txt` best-effort, and stages tracked changes only under
-  its allowlist. `com.diab.dotfiles.capture` is installed by `bootstrap.sh` from templates in
-  `launchd/`; it watches both Pi JSON files and also runs every 15 minutes.
-- `install-launchd.sh` — installs one selected job. Bootstrap installs capture only; install
-  `sync-vps` after the VPS agent-content adoption gate has passed.
-- `deploy-vps.sh` — syncs settings, auth, agents, extensions, and package configs to the VPS.
-  It stages skill and instruction sources under `~/.cache/pi-dotfiles-agent-content/` and runs
-  the same helper there; native skill roots are never rsynced with `--delete`. Use
-  `deploy-vps.sh --prepare-agent-content [host]` to stage only, then review/apply the helper
-  remotely with `--adopt` as needed. A missing manifest stops normal deployment before any
-  live config changes. Once adoption creates the manifest, routine deploys run a dry preflight
-  and automatically apply the managed plan; they never enable adoption or force.
-  `mcp.json` stays per-machine (its `youtube-music` server runs a local macOS node build).
-  Normally invoked by the merged repository's `config/bin/sync-vps.sh` launchd job
-  (change-gated, every 15 minutes); run `./deploy-vps.sh` by hand when you want the agent
-  content updated now. Stable interface: `deploy-vps.sh [host]`. It reads only its own
-  `home/` plus the live `~/.pi/agent/` files noted here (`settings.json`, `auth.json`,
-  `code-previews.json`) — nothing outside this repo — and takes the target host as `$1`
-  (default `vps`), so the orchestrator need not know its internals.
-- `CONCEPTS.md` — shared domain vocabulary (glossary, tracked). `docs/specs/` holds
-  saved briefs/plans (tracked); `docs/plans/` is gitignored scaffolding recreated on demand.
-  The imported `config/docs/` subtree retains its own guides and historical records until
-  Milestone 2 reorganizes that content.
+Herdr owns `~/.pi/agent/extensions/herdr-agent-state.ts`. Do not vendor it here or overwrite
+it through dotfiles deployment. Herdr's skill and its installed integration are separate.
 
-## How the sync works
+Web-search preferences are versioned, but TinyFish credentials are not: local lookup uses
+the macOS Keychain; the VPS lookup uses its own `~/.pi/agent/tinyfish-api-key` file. The
+explicit VPS script changes only the lookup, without reading/transferring credentials.
 
-`sync-agent-content.sh` is the only writer of deployed skills and generated global
-instructions. It copies shared skills to `~/.agents/skills/`, links those copies into Claude
-when installed, copies Pi-only skills into `~/.pi/agent/skills/`, and prunes only paths listed
-in its machine-local manifest. Other clients' skill directories and unmanaged skills are
-left alone. Instruction targets combine the generated header, shared policy, repo overlay,
-and optional local overlay; hashes detect edits, and backups are retained under
-`~/.local/state/pi-dotfiles/backups/`.
+## Maintained commands and explicit deployment
 
-`bootstrap.sh` and `rebuild.sh` call the helper locally. `deploy-vps.sh` stages the same
-sources in a dedicated remote directory and calls the helper against the VPS's own manifest
-and local overlay. It requires explicit first-time adoption, then preflights every automatic
-apply before changing other live VPS config. No local state or local overlay is sent to the
-VPS.
+| Command | Scope / side effects |
+|---|---|
+| `apply.sh` | Selected local configuration only; preview by default, backups on replacement |
+| `sync-agent-content.sh` | Manifest-backed skill/instruction helper; dry run by default, `--yes` applies the whole printed plan |
+| `lint-agent-content.sh` | Checks skill ownership and shared/Pi-only boundaries |
+| `deploy-vps.sh [host]` | Explicit repo-source agent/config deployment; keeps remote package declarations, auth, runtime state, and overlays |
+| `config/vps/deploy-vps.sh` | VPS shell dotfiles and app-root instructions; optional tmux reload, no service/timer/apt-policy provisioning |
+| `config/herdr/deploy-vps.sh` | Herdr config copy and reload only |
+| `config/druk/deploy-druk.sh` | Local editor preference merge; remote copy/merge only with `DEPLOY_DRUK_HOST=<host>`; no extension downloads |
 
-The repository rename deliberately does not rename machine-local runtime state:
-`~/.local/state/pi-dotfiles/` holds the agent-content manifest and backups,
-`~/.config/pi-dotfiles/local/` holds local instruction overlays, and
-`~/.cache/pi-dotfiles-agent-content/` is the VPS staging directory. Keeping these paths
-preserves ownership and avoids an unnecessary second adoption migration.
+Invoke only the requested deployment helper. There is no automatic four-step orchestrator.
+Operational VPS scripts, systemd/apt assets, `Brewfile`, and extension inventories are retained
+for separately authorized maintenance or installation. Configuration deployment does not
+install/activate those assets or alter existing services.
+
+For an explicitly requested VPS agent-content deployment, the remote machine needs its
+own ownership adoption. `deploy-vps.sh --prepare-agent-content [host]` stages sources only;
+review the printed remote adoption plan and obtain approval before applying it. Normal
+deployment requires the remote manifest and a clean preflight. No local ownership state
+or machine overlay is sent to the VPS.
+
+No live VPS deployment accompanies this cleanup. Existing remote services and machine-local
+ownership/backups/overlays stay intact; a passing fixture is not proof of live service health.
+
+## Agent workflows and documentation
+
+Planning and implementation are explicit: `brainstorm`, `to-spec`, `to-tickets`, and
+`implement` own their respective procedures. `personal-workflow` owns execution/Git gates;
+agent profile files and JSON settings are the source of truth for models and runtime options.
+
+`/review` reviews in the current session; the `reviewer` profile is a fresh-context,
+report-only subagent used when explicitly requested. Project `REVIEW_GUIDELINES.md` files
+can supply review rules. See the relevant skills/profiles rather than duplicating their
+procedures here.
+
+- `CONCEPTS.md` — shared domain vocabulary and configuration rationale.
+- `docs/audits/` — historical investigations; measurements describe their recorded baseline, not current performance.
+- `config/docs/` — imported configuration guides and historical records.

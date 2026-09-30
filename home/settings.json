@@ -4,6 +4,7 @@
   "defaultProvider": "openai",
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "high",
+  "defaultTools": ["+codemode"],
   "tuiMode": "fullscreen",
   "externalEditor": "druk",
   "packages": [
@@ -22,8 +23,7 @@
     "npm:@narumitw/pi-btw",
     "npm:pi-open-tui",
     "npm:@saccolabs/pi-claude-cli",
-    "npm:pi-extmgr",
-    "npm:pi-terminal-theme"
+    "npm:pi-extmgr"
   ],
   "skills": [
     "!**/.agents/skills/use-tinyfish",
@@ -31,8 +31,6 @@
     "-skills/simplify/SKILL.md",
     "-skills/ATTRIBUTION.md",
     "-skills/pull-financial-data/SKILL.md",
-    "-skills/excel/SKILL.md",
-    "-skills/equity-modelling/SKILL.md",
     "-skills/use-tinyfish/SKILL.md"
   ],
   "enableInstallTelemetry": false,

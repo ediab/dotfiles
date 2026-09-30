@@ -1,133 +1,105 @@
 #!/usr/bin/env bash
-set -eo pipefail
-
+# Isolated SSH/rsync fixture: no live VPS or local agent configuration is touched.
+set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-vps-test.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT HUP INT TERM
-
 fail() { echo "FAIL: $*" >&2; exit 1; }
 contains() { grep -Fq "$2" "$1" || fail "expected '$2' in $1"; }
-not_contains() { grep -Fq "$2" "$1" && fail "did not expect '$2' in $1" || true; }
 
-REAL_RSYNC="$(command -v rsync)"
+REPO="$WORK/repo"
 LOCAL_HOME="$WORK/local-home"
 REMOTE_HOME="$WORK/remote-home"
 FAKE_BIN="$WORK/bin"
-mkdir -p "$LOCAL_HOME/.pi/agent" "$REMOTE_HOME/.pi/agent/skills/personal-workflow" "$FAKE_BIN"
-printf '%s\n' '{"packages":[]}' > "$LOCAL_HOME/.pi/agent/settings.json"
-printf '%s\n' '{"localAuth":true}' > "$LOCAL_HOME/.pi/agent/auth.json"
-printf '%s\n' '{"packages":[],"old":true}' > "$REMOTE_HOME/.pi/agent/settings.json"
-printf '%s\n' '{"remoteAuth":true}' > "$REMOTE_HOME/.pi/agent/auth.json"
-cp -R "$ROOT/home/skills/personal-workflow/." "$REMOTE_HOME/.pi/agent/skills/personal-workflow/"
-mkdir -p "$REMOTE_HOME/.pi/agent/skills/vps-foreign"
-printf 'keep foreign\n' > "$REMOTE_HOME/.pi/agent/skills/vps-foreign/KEEP"
+REAL_RSYNC="$(command -v rsync)"
+mkdir -p "$REPO" "$FAKE_BIN" "$LOCAL_HOME/.pi/agent" "$REMOTE_HOME/.pi/agent/skills/personal-workflow"
+cp -R "$ROOT/home" "$REPO/home"
+for script in deploy-vps.sh apply.sh sync-agent-content.sh lint-agent-content.sh; do cp "$ROOT/$script" "$REPO/"; done
+cp -R "$REPO/home/shared-skills/personal-workflow/." "$REMOTE_HOME/.pi/agent/skills/personal-workflow/"
+printf '%s\n' '{"theme":"fixture-source","deviceId":"source-id","packages":["npm:source"]}' > "$REPO/home/settings.json"
+printf '%s\n' '{"theme":"local-only","packages":["npm:local"]}' > "$LOCAL_HOME/.pi/agent/settings.json"
+printf '%s\n' '{"theme":"old","deviceId":"remote-id","packages":["npm:remote"]}' > "$REMOTE_HOME/.pi/agent/settings.json"
+printf 'remote credentials stay local\n' > "$REMOTE_HOME/.pi/agent/auth.json"
+printf 'local credentials must not transfer\n' > "$LOCAL_HOME/.pi/agent/auth.json"
+printf 'remote preview state\n' > "$REMOTE_HOME/.pi/agent/code-previews.json"
+printf 'pending package ledger\n' > "$REMOTE_HOME/.pi/agent/settings.json.pre-reconcile"
+mkdir -p "$REMOTE_HOME/.pi/agent/extensions" "$REMOTE_HOME/.pi/agent/themes" "$REMOTE_HOME/.pi/agent/skills/foreign"
+printf 'Herdr owns this\n' > "$REMOTE_HOME/.pi/agent/extensions/herdr-agent-state.ts"
+printf '%s\n' '{"name":"foreign"}' > "$REMOTE_HOME/.pi/agent/themes/foreign.json"
+printf 'foreign skill\n' > "$REMOTE_HOME/.pi/agent/skills/foreign/KEEP"
 
 cat > "$FAKE_BIN/ssh" <<'EOF'
 #!/usr/bin/env bash
-set -eo pipefail
-shift # host
+set -euo pipefail
+printf '%s\n' "$*" >> "$SSH_LOG"
+shift
 export HOME="$FAKE_REMOTE_HOME"
-if [ "${1:-}" = "bash" ] && [ "${2:-}" = "-s" ]; then
-  exec bash -s
-fi
 exec bash -c "$*"
 EOF
-
 cat > "$FAKE_BIN/rsync" <<'EOF'
 #!/usr/bin/env bash
-set -eo pipefail
+set -euo pipefail
 args=()
 for arg in "$@"; do
-  case "$arg" in
-    *:\~/*)
-      suffix="${arg#*:\~/}"
-      arg="$FAKE_REMOTE_HOME/$suffix"
-      mkdir -p "$(dirname "$arg")"
-      ;;
-  esac
+  case "$arg" in *:\~/*) arg="$FAKE_REMOTE_HOME/${arg#*:\~/}" ;; esac
   args+=("$arg")
 done
 exec "$REAL_RSYNC" "${args[@]}"
 EOF
-cp "$ROOT/tests/fake-pi.py" "$FAKE_BIN/pi"
-chmod +x "$FAKE_BIN/ssh" "$FAKE_BIN/rsync" "$FAKE_BIN/pi"
+for command in pi npm brew apt-get git curl sudo systemctl; do
+  printf '#!/bin/sh\necho forbidden >> "$FORBIDDEN_LOG"\nexit 99\n' > "$FAKE_BIN/$command"
+done
+chmod +x "$FAKE_BIN/"*
+export REAL_RSYNC FAKE_REMOTE_HOME="$REMOTE_HOME" SSH_LOG="$WORK/ssh.log" FORBIDDEN_LOG="$WORK/forbidden.log"
+run_deploy() { HOME="$LOCAL_HOME" PATH="$FAKE_BIN:$PATH" bash "$REPO/deploy-vps.sh" "$@"; }
 
-run_deploy() {
-  HOME="$LOCAL_HOME" PATH="$FAKE_BIN:$PATH" FAKE_REMOTE_HOME="$REMOTE_HOME" \
-    REAL_RSYNC="$REAL_RSYNC" FAKE_PI_HELPER="$ROOT/reconcile-pi-packages.py" \
-    FAKE_PI_LOG="$WORK/pi.log" FAKE_PI_FAIL_REMOVE="${FAKE_PI_FAIL_REMOVE:-}" \
-    PYTHONDONTWRITEBYTECODE=1 bash "$ROOT/deploy-vps.sh" fake-vps
-}
+# Missing remote ownership stops before any native config or skill writes.
+if run_deploy fake-vps > "$WORK/output" 2>&1; then fail 'missing manifest accepted'; fi
+contains "$WORK/output" 'ownership manifest missing'
+contains "$REMOTE_HOME/.pi/agent/settings.json" '"theme":"old"'
+[ ! -e "$REMOTE_HOME/.agents/skills/bro" ] || fail 'preflight copied skills'
 
-# Existing old-style skills without a manifest require explicit adoption and
-# stop before settings, auth, packages, or other live config is changed.
-if run_deploy > "$WORK/output" 2>&1; then
-  fail "deploy succeeded without a VPS ownership manifest"
-fi
-contains "$WORK/output" 'ownership manifest missing; explicit one-time adoption is required'
+run_deploy --prepare-agent-content fake-vps > "$WORK/output" 2>&1
 contains "$WORK/output" 'sync-agent-content.sh --adopt --yes'
-contains "$REMOTE_HOME/.pi/agent/settings.json" '"old":true'
-contains "$REMOTE_HOME/.pi/agent/auth.json" '"remoteAuth":true'
-[ ! -e "$REMOTE_HOME/.agents/skills/bro" ] || fail "missing-manifest preflight deployed shared skills"
-contains "$REMOTE_HOME/.pi/agent/skills/vps-foreign/KEEP" 'keep foreign'
-
-# The explicit approved migration creates this machine's manifest.
-HOME="$REMOTE_HOME" bash "$REMOTE_HOME/.cache/pi-dotfiles-agent-content/sync-agent-content.sh" \
-  --adopt --yes > "$WORK/adopt-output" 2>&1 || { cat "$WORK/adopt-output"; fail "approved VPS adoption"; }
-[ -f "$REMOTE_HOME/.local/state/pi-dotfiles/managed-paths" ] || fail "adoption did not create manifest"
-
-# After adoption, routine deploys preflight and then apply managed updates automatically.
-printf '\nstale remote copy\n' >> "$REMOTE_HOME/.agents/skills/tdd/SKILL.md"
-printf '%s\n' '{"packages":[],"new":true}' > "$LOCAL_HOME/.pi/agent/settings.json"
-printf '%s\n' '{"newAuth":true}' > "$LOCAL_HOME/.pi/agent/auth.json"
-run_deploy > "$WORK/output" 2>&1 || { cat "$WORK/output"; fail "post-adoption automatic deploy"; }
-contains "$REMOTE_HOME/.pi/agent/settings.json" '"new": true'
-contains "$REMOTE_HOME/.pi/agent/auth.json" '"newAuth":true'
-not_contains "$REMOTE_HOME/.agents/skills/tdd/SKILL.md" 'stale remote copy'
-contains "$REMOTE_HOME/.pi/agent/skills/vps-foreign/KEEP" 'keep foreign'
-
-# Non-empty reconciliation: an object removal failure must fail the whole deploy.
-# A subsequent deploy keeps cleanup history and installs a filtered exact pin.
-mkdir -p "$REMOTE_HOME/.pi/agent/npm/node_modules/retired" \
-  "$REMOTE_HOME/.pi/agent/npm/node_modules/foreign"
-printf '%s\n' '{"version":"1.0.0"}' > "$REMOTE_HOME/.pi/agent/npm/node_modules/retired/package.json"
-printf '%s\n' '{"version":"1.0.0"}' > "$REMOTE_HOME/.pi/agent/npm/node_modules/foreign/package.json"
-printf '%s\n' '{"packages":[{"source":"npm:retired","extensions":[]}]}' > "$REMOTE_HOME/.pi/agent/settings.json"
-printf '%s\n' '{"packages":[{"source":"npm:rotation@1.5.3","extensions":["+dist/index.js"]}],"new":true}' > "$LOCAL_HOME/.pi/agent/settings.json"
-if FAKE_PI_FAIL_REMOVE=npm:retired run_deploy > "$WORK/package-failure.out" 2>&1; then
-  fail "deploy swallowed package removal failure"
-fi
-contains "$WORK/package-failure.out" 'Package reconciliation failed'
-not_contains "$WORK/package-failure.out" 'done. vps synced'
-[ -f "$REMOTE_HOME/.pi/agent/settings.json.pre-reconcile" ] || fail "failed cleanup lost its ledger"
-run_deploy > "$WORK/package-retry.out" 2>&1 || { cat "$WORK/package-retry.out"; fail "package retry deploy"; }
-[ ! -e "$REMOTE_HOME/.pi/agent/settings.json.pre-reconcile" ] || fail "successful cleanup kept pending state"
-[ ! -e "$REMOTE_HOME/.pi/agent/npm/node_modules/retired" ] || fail "retry did not remove retired object package"
-[ -f "$REMOTE_HOME/.pi/agent/npm/node_modules/foreign/package.json" ] || fail "cleanup touched undeclared package"
-python3 - "$REMOTE_HOME" "$WORK/pi.log" <<'PY'
-import json, pathlib, sys
-home = pathlib.Path(sys.argv[1])
-settings = json.loads((home / '.pi/agent/settings.json').read_text())
-assert settings['packages'] == [{'source': 'npm:rotation@1.5.3', 'extensions': ['+dist/index.js']}]
-assert json.loads((home / '.pi/agent/npm/node_modules/rotation/package.json').read_text())['version'] == '1.5.3'
-calls = [json.loads(line)['argv'][:2] for line in pathlib.Path(sys.argv[2]).read_text().splitlines()]
-assert calls == [['remove', 'npm:retired'], ['remove', 'npm:retired'], ['install', 'npm:rotation@1.5.3']], calls
+HOME="$REMOTE_HOME" bash "$REMOTE_HOME/.cache/pi-dotfiles-agent-content/sync-agent-content.sh" --adopt --yes > "$WORK/adopt" 2>&1
+run_deploy fake-vps > "$WORK/output" 2>&1 || { cat "$WORK/output"; fail 'configuration deployment'; }
+python3 - "$REMOTE_HOME" "$REPO" <<'PY'
+import json
+from pathlib import Path
+import sys
+home, repo = map(Path, sys.argv[1:])
+agent = home / '.pi/agent'
+settings = json.loads((agent / 'settings.json').read_text())
+assert settings == {'theme':'fixture-source', 'deviceId':'remote-id', 'packages':['npm:remote']}, settings
+assert (agent / 'auth.json').read_text() == 'remote credentials stay local\n'
+assert (agent / 'code-previews.json').read_text() == 'remote preview state\n'
+assert (agent / 'settings.json.pre-reconcile').read_text() == 'pending package ledger\n'
+assert (agent / 'extensions/herdr-agent-state.ts').read_text() == 'Herdr owns this\n'
+assert (agent / 'themes/foreign.json').exists()
+assert (agent / 'skills/foreign/KEEP').read_text() == 'foreign skill\n'
+assert (home / '.agents/skills/personal-workflow/SKILL.md').exists()
+assert not (agent / 'skills/personal-workflow').exists()
+for name in ('terminal.json','terminal-tinted.json','LICENSE'):
+    assert (agent / 'themes' / name).read_bytes() == (repo / 'home/themes' / name).read_bytes()
+web = json.loads((agent / 'web-search.json').read_text())
+assert web['tinyfishApiKey'] == '!cat "$HOME/.pi/agent/tinyfish-api-key"'
 PY
+[ ! -e "$WORK/forbidden.log" ] || fail 'software/Git/service command executed'
 
-# A later unmanaged collision fails preflight before settings/auth are changed.
-grep -v '^\.agents/skills/bro$' "$REMOTE_HOME/.local/state/pi-dotfiles/managed-paths" \
-  > "$WORK/managed-paths"
-mv "$WORK/managed-paths" "$REMOTE_HOME/.local/state/pi-dotfiles/managed-paths"
-printf '%s\n' '{"packages":[],"blocked":true}' > "$LOCAL_HOME/.pi/agent/settings.json"
-printf '%s\n' '{"blockedAuth":true}' > "$LOCAL_HOME/.pi/agent/auth.json"
-if run_deploy > "$WORK/output" 2>&1; then
-  fail "deploy succeeded with an unmanaged collision"
-fi
+# Ownership collisions stop all config changes, and preflight never enables adoption.
+cp "$REMOTE_HOME/.pi/agent/settings.json" "$WORK/settings-before"
+grep -v '^\.agents/skills/bro$' "$REMOTE_HOME/.local/state/pi-dotfiles/managed-paths" > "$WORK/manifest"
+mv "$WORK/manifest" "$REMOTE_HOME/.local/state/pi-dotfiles/managed-paths"
+printf '%s\n' '{"theme":"blocked"}' > "$REPO/home/settings.json"
+if run_deploy fake-vps > "$WORK/output" 2>&1; then fail 'unmanaged collision accepted'; fi
 contains "$WORK/output" 'unmanaged collision for bro'
-contains "$WORK/output" 'no approved copy action'
-contains "$REMOTE_HOME/.pi/agent/settings.json" '"new": true'
-not_contains "$REMOTE_HOME/.pi/agent/settings.json" '"blocked": true'
-contains "$REMOTE_HOME/.pi/agent/auth.json" '"newAuth":true'
-not_contains "$REMOTE_HOME/.pi/agent/auth.json" '"blockedAuth":true'
+cmp "$WORK/settings-before" "$REMOTE_HOME/.pi/agent/settings.json" || fail 'collision changed settings'
 
-echo 'deploy-vps agent-content tests passed.'
+# Invalid source JSON and invalid CLI input fail before even staging over SSH.
+: > "$WORK/ssh.log"
+printf '{broken\n' > "$REPO/home/web-search.json"
+if run_deploy fake-vps > "$WORK/output" 2>&1; then fail 'invalid source JSON accepted'; fi
+[ ! -s "$WORK/ssh.log" ] || fail 'invalid source contacted host'
+if run_deploy --unknown > "$WORK/output" 2>&1; then fail 'unknown argument accepted'; fi
+[ ! -e "$WORK/forbidden.log" ] || fail 'forbidden side effect'
+echo 'configuration-only VPS deployment tests passed.'

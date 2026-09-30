@@ -101,6 +101,10 @@ If you cannot state the prediction, the hypothesis is a vibe: discard or sharpen
 
 **Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly ("we just deployed a change to #3"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it; proceed with your ranking if the user is AFK.
 
+### Repeated failed fixes: question the premise
+
+When two or more failed fixes share an assumption, write that assumption down and test it against the red-capable loop before trying another variant. Recheck which evidence actually supports it and what observation would refute it. If the premise fails, return to the ranked hypotheses instead of compensating for it with more patches.
+
 ## Phase 4: Instrument
 
 Each probe must map to a specific prediction from Phase 3. **Change one variable at a time.**
@@ -113,7 +117,7 @@ Tool preference:
 
 **Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.
 
-**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.
+**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second. A one-off regression stays in this diagnosis loop. For sustained improvement against a metric and target, read [PERFORMANCE.md](PERFORMANCE.md) and use its measured experiment procedure.
 
 ## Phase 5: Fix + regression test
 
@@ -123,13 +127,9 @@ A correct seam is one where the test exercises the **real bug pattern** as it oc
 
 **If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.
 
-If a correct seam exists:
+If a correct seam exists, turn the minimised repro into a regression test there and follow `../tdd/SKILL.md` for the shared red → green cadence and evidence requirements. Preserve its agreed-seam policy; do not substitute a shallower test just to get green.
 
-1. Turn the minimised repro into a failing test at that seam.
-2. Watch it fail.
-3. Apply the fix.
-4. Watch it pass.
-5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+If a permanent regression test is impractical, follow that reference's executable-check fallback, keeping the seam limitation explicit. Either way, re-run the Phase 1 feedback loop against the original (un-minimised) scenario after the fix. A passing minimised check alone is not proof that the user's original symptom is gone.
 
 ## Phase 6: Cleanup
 

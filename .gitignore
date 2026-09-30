@@ -5,15 +5,14 @@
 __pycache__/
 *.pyc
 
-# Historical/archival docs (local planning records — not canonical config).
-# docs/WORKFLOW.md and docs/plans/2026-08-23-workflow-hardening.md were retired on
-# 2026-09-11 — they described the July setup and had drifted; find them in git history.
+# Local planning records — not canonical config.
 docs/plans/*
 docs/solutions/
 HANDOFF.md
 
-# Scratch
+# Scratch and generated local reports
 .scratch/
+.lavish/
 
 # Test caches
 .pytest_cache/

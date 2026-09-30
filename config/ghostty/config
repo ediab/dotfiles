@@ -12,6 +12,11 @@ adjust-cell-height = 10%
 
 # --- Theme and Colors ---
 theme = "Catppuccin Mocha"
+# Swap Catppuccin's pink for Mauve on ANSI magenta (5/13). pi's `system` theme
+# derives its violet family (accent, inline code, syntax types, thinking-high)
+# from slot 5, so this makes pi's accent purple instead of pink.
+palette = 5=#cba6f7
+palette = 13=#cba6f7
 window-colorspace = display-p3
 minimum-contrast = 1.2
 

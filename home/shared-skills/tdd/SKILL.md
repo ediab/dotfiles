@@ -33,6 +33,18 @@ When the shape of that interface is itself in question (how deep the module is, 
 
 ## Rules of the loop
 
-- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
+- **Red before green.** Write and run the failing test first. Confirm it fails for the intended behavioral reason, not a syntax error, missing dependency, or unrelated setup failure. Then write only enough code to pass it. Don't anticipate future tests or add speculative features.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
 - **Refactoring is not part of the loop.** It belongs in the review stage, following the project's and host client's review rules, not the red → green implementation cycle.
+
+## When a permanent regression test is impractical
+
+For a bug fix, prefer a focused regression test at an agreed seam. If no honest, practical permanent test reaches the real bug, document the missing seam or prohibitive setup instead of adding a brittle test that mostly checks mocks, timing, or unrelated fixtures.
+
+Use the closest useful executable check: a targeted script, CLI command, browser drive, replay, or focused integration check. Assert the reported symptom, run it before changing production code when possible, then rerun after the fix. Record why a permanent test could not be added and what the substitute leaves unverified. If no meaningful check can run, report the blocker rather than claim the bug is fixed.
+
+This fallback is for impractical bug/regression tests. It does not turn explicitly requested feature TDD into post-hoc verification, change the agreed-seam policy, or permit changing assertions to fit a wrong implementation.
+
+## Evidence at completion
+
+Name the failing-before test or executable check and the behavioral failure it produced, then the passing-after invocation and result. Include relevant nearby checks and limitations. If failing-before evidence could not be demonstrated, say why and identify the substitute evidence; do not describe an unobserved red as if it happened.

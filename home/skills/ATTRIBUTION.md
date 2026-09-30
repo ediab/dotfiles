@@ -31,6 +31,24 @@ Each source's license is recorded below. Upstream `agents/openai.yaml` files are
 | `prototype/` | `skills/engineering/prototype/SKILL.md`, `LOGIC.md`, `UI.md` | Commit guidance now follows project contribution rules instead of depending on Pi-only `personal-workflow`. |
 | `code-review/` | `skills/engineering/code-review/SKILL.md` | `setup-matt-pocock-skills` tracker note softened to a generic ask (pi installs carry no tracker doc). Parallel two-sub-agent structure kept (pi supports parallel background agents); protocol wording ("Skill tool") not present upstream in this file. |
 
+## cursor/plugins (pstack)
+
+- Upstream: https://github.com/cursor/plugins
+- Pinned SHA: `fae2c6ed95821bd85f614a73e4842e13229fa5e5`
+- License: MIT, Copyright (c) 2026 Lauren Tan. Bundled as `LICENSE.pstack` in each affected shared skill.
+- New commands are user-invoked with locally maintained Codex policy metadata. Existing `tdd` and `diagnosing-bugs` retain their invocation policies. No Cursor model configuration or whole-plugin installation is imported.
+
+| Local skill | Upstream path (under `pstack/`) | Local adaptations |
+|---|---|---|
+| `blast-radius/` | `skills/blast-radius/SKILL.md` | Preserves evidence ladder, downstream investigation, and proof of safety assumptions; allows several assumptions, qualitative risk, and isolated checks. Removes required companion skills and automatic multi-model review. |
+| `create-verification-skill/` | `skills/create-verification-skill/SKILL.md`, `skills/create-verification-skill/references/feature-map-example/`; `skills/maintain-verification-skill/SKILL.md` | Portable project-local output, repo-native harnesses, explicit mutation/ownership boundaries, and honest mapped-versus-executed coverage. Maintenance is a referenced branch; changed means a local diff, not an automatic PR. Examples use an illustrative CLI, not an imaginary control tool. |
+| `why/` | `skills/why/SKILL.md`, `skills/why/references/epistemics.md` | Retains historical anchoring and calibrated confidence; narrows to available relevant sources, removes fixed MCP roster and mandatory delegated synthesis, and preserves material unknowns. |
+| `unslop/` | `skills/unslop/SKILL.md` | Explicit editing scope and natural prose; preserves technical facts and uncertainty. Drops always-on wording, rigid punctuation/style bans, and blanket jargon blacklist. |
+| `tdd/` | `skills/tdd/SKILL.md` | Selective additions to the existing Matt Pocock-derived skill: behavioral red verification, impractical-regression-check fallback, and before/after reporting. Retains feature TDD, agreed seams, and existing test-quality references. Does not import assertion blacklist. |
+| `diagnosing-bugs/` | `skills/poteto-mode/playbooks/hillclimb.md`, `skills/principle-attack-the-premise/SKILL.md` | Adds disclosed `PERFORMANCE.md` with stable repeated measurement and correctness gating, plus a general premise-check after failed fixes. Retains diagnosis and correct-seam checks; shares cadence with tdd. Omits iteration quota, actor-imbalance recipe, mandatory delegation, decision-log skill, automatic Git/PR actions. |
+
+The existing Matt Pocock entries above remain the provenance of the base skills. `ask-matt` gains local routing descriptions only.
+
 ## luchasarie/bro-skill
 
 - Upstream: https://github.com/luchasarie/bro-skill
@@ -41,7 +59,11 @@ Each source's license is recorded below. Upstream `agents/openai.yaml` files are
 |---|---|---|
 | `bro/` | `SKILL.md` | Verbatim upstream `SKILL.md` and `LICENSE`; imported revision recorded above. |
 
-## excel
+## excel (retired)
+
+The local skill has been removed. This section preserves its provenance; the skill and
+bundled licenses remain in Git history under `home/skills/excel/`. Paths below describe
+that historical layout, not current source or installed content.
 
 - Upstream sources (pinned):
   - https://github.com/openai/skills @ `7b548893` — `skills/.curated/spreadsheet/` (Apache-2.0; later removed upstream by commit `fdf90d6`). Bundled license: `excel/LICENSE.openai-skills.txt`.

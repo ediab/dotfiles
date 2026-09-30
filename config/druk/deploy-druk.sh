@@ -1,116 +1,87 @@
 #!/usr/bin/env bash
-# deploy-druk.sh — sync druk editor config from this repo to a machine.
-#
-# Sources (all in this dir):
-#   settings.partial.json   user-chosen settings, merged over the live config
-#   extensions.txt          market extension ids, installed when missing
-#   pi-opener.config.yaml   pi-opener config -> ~/.config/pi-opener/config.yaml
-#
-# druk's live config (~/.config/druk/config.json) is a full-file JSON that druk
-# itself rewrites (theme picks, window state), so the repo holds only a partial:
-# the merge adds our keys and leaves everything else (theme, keybindings, …)
-# untouched. Unknown/invalid keys fall back to druk defaults, never break startup.
-#
-#   deploy-druk.sh            local machine only
-#   DEPLOY_DRUK_HOST=vps deploy-druk.sh   local + VPS (same files both sides)
-#
-# NOTE: keep bash-3.2-safe (sync-vps.sh runs under launchd's /bin/bash).
+# Merge selected druk settings and copy pi-opener configuration, without installing
+# extensions. extensions.txt is an inventory, not an installation request.
+# deploy-druk.sh: local only; DEPLOY_DRUK_HOST=<host>: local + explicit remote copy.
+# Keep bash-3.2-safe.
 
 set -euo pipefail
-
+[ "$#" -eq 0 ] || { echo "Usage: DEPLOY_DRUK_HOST=<host> $0" >&2; exit 1; }
 SRC="$(cd "$(dirname "$0")" && pwd)"
 HOST="${DEPLOY_DRUK_HOST:-}"
+for f in settings.partial.json pi-opener.config.yaml; do
+    [ -f "$SRC/$f" ] || { echo "Not found: $SRC/$f" >&2; exit 1; }
+done
 
-echo "==> druk settings (merge partial over live config)"
-merge() {
-  python3 - "$SRC/settings.partial.json" <<'PY'
-import json, os, sys
-partial = json.load(open(sys.argv[1]))
-path = os.path.expanduser("~/.config/druk/config.json")
+# The same merge runs locally and remotely. Validate both objects before any writes:
+# only a missing live file is an empty configuration, never malformed/unreadable JSON.
+configure() {
+  "$@" <<'PY'
+import json
+import os
+from pathlib import Path
+import shutil
+import stat
+import sys
+import tempfile
+
+def reject_constant(value):
+    raise ValueError("Invalid JSON constant: " + value)
+
+partial_path, opener_source = map(Path, sys.argv[1:])
+partial = json.loads(partial_path.read_text(), parse_constant=reject_constant)
+path = Path("~/.config/druk/config.json").expanduser().resolve()
 try:
-    live = json.load(open(path))
-except (OSError, ValueError):
+    live = json.loads(path.read_text(), parse_constant=reject_constant)
+except FileNotFoundError:
     live = {}
-live.update(partial)
-os.makedirs(os.path.dirname(path), exist_ok=True)
-json.dump(live, open(path, "w"), indent=2)
-open(path, "a").write("\n")
-print("  merged %d keys -> %s" % (len(partial), path))
+if not isinstance(partial, dict) or not isinstance(live, dict):
+    raise ValueError("druk partial and live settings must both be JSON objects")
+opener = opener_source.read_bytes()
+merged = {**live, **partial}
+
+def replace(path, content):
+    if path.exists() and path.read_bytes() == content:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as output:
+            output.write(content)
+        if path.exists():
+            os.chmod(temporary, stat.S_IMODE(path.stat().st_mode))
+            backup_fd, backup = tempfile.mkstemp(prefix=path.name + ".backup.", dir=path.parent)
+            os.close(backup_fd)
+            shutil.copy2(path, backup)
+            print("  backed up %s -> %s" % (path, backup))
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    print("  wrote %s" % path)
+
+# Compare serialized values so false and 0 (or true and 1) stay distinct JSON types.
+# Preserve existing formatting when the selected settings already match.
+content = json.dumps(merged, indent=2, allow_nan=False) + "\n"
+if not path.exists() or content != json.dumps(live, indent=2, allow_nan=False) + "\n":
+    replace(path, content.encode())
+replace(Path("~/.config/pi-opener/config.yaml").expanduser().resolve(), opener)
+print("  merged %d selected settings -> %s" % (len(partial), path))
 PY
 }
-merge
+
+echo "==> local druk settings and pi-opener configuration"
+configure python3 - "$SRC/settings.partial.json" "$SRC/pi-opener.config.yaml"
 if [ -n "$HOST" ]; then
-  scp -q "$SRC/settings.partial.json" "$HOST:/tmp/druk-settings.partial.json"
-  ssh "$HOST" python3 - /tmp/druk-settings.partial.json <<'PY'
-import json, os, sys
-partial = json.load(open(sys.argv[1]))
-path = os.path.expanduser("~/.config/druk/config.json")
-try:
-    live = json.load(open(path))
-except (OSError, ValueError):
-    live = {}
-live.update(partial)
-os.makedirs(os.path.dirname(path), exist_ok=True)
-json.dump(live, open(path, "w"), indent=2)
-open(path, "a").write("\n")
-print("  merged %d keys -> %s" % (len(partial), path))
-PY
-  ssh "$HOST" 'rm -f /tmp/druk-settings.partial.json'
+    STAGE="$(ssh "$HOST" 'mktemp -d "$HOME/.dotfiles-druk.XXXXXX"')"
+    [ -n "$STAGE" ] || { echo "Could not create remote staging directory" >&2; exit 1; }
+    printf -v STAGE_ARG '%q' "$STAGE"
+    trap 'ssh "$HOST" "rm -rf -- $STAGE_ARG" >/dev/null 2>&1 || true' EXIT
+    scp -q "$SRC/settings.partial.json" "$HOST:$STAGE/settings.partial.json"
+    scp -q "$SRC/pi-opener.config.yaml" "$HOST:$STAGE/pi-opener.config.yaml"
+    printf -v PARTIAL_ARG '%q' "$STAGE/settings.partial.json"
+    printf -v OPENER_ARG '%q' "$STAGE/pi-opener.config.yaml"
+    echo "==> remote druk settings and pi-opener configuration ($HOST)"
+    configure ssh "$HOST" python3 - "$PARTIAL_ARG" "$OPENER_ARG"
 fi
 
-echo "==> druk extensions (install missing ids from the market)"
-install_missing() {
-  while IFS= read -r id; do
-    case "$id" in ""|\#*) continue ;; esac
-    if [ -d "$HOME/.config/druk/extensions/$id" ]; then
-      echo "  = $id (already installed)"
-    else
-      echo "  + $id (fetching manifest from market)"
-      mkdir -p "$HOME/.config/druk/extensions/$id"
-      if curl -fsSL "https://raw.githubusercontent.com/letstri/druk/main/extensions/$id/extension.json" \
-          -o "$HOME/.config/druk/extensions/$id/extension.json"; then
-        echo "    installed $id"
-      else
-        echo "    FAILED to fetch $id" >&2
-        rmdir "$HOME/.config/druk/extensions/$id" 2>/dev/null || true
-      fi
-    fi
-  done < "$SRC/extensions.txt"
-}
-install_missing
-if [ -n "$HOST" ]; then
-  scp -q "$SRC/extensions.txt" "$HOST:/tmp/druk-extensions.txt"
-  ssh "$HOST" bash -s <<'REMOTE'
-    set -euo pipefail
-    while IFS= read -r id; do
-      case "$id" in ""|\#*) continue ;; esac
-      if [ -d "$HOME/.config/druk/extensions/$id" ]; then
-        echo "  = $id (already installed)"
-      else
-        echo "  + $id (fetching manifest from market)"
-        mkdir -p "$HOME/.config/druk/extensions/$id"
-        if curl -fsSL "https://raw.githubusercontent.com/letstri/druk/main/extensions/$id/extension.json" \
-            -o "$HOME/.config/druk/extensions/$id/extension.json"; then
-          echo "    installed $id"
-        else
-          echo "    FAILED to fetch $id" >&2
-          rmdir "$HOME/.config/druk/extensions/$id" 2>/dev/null || true
-        fi
-      fi
-    done < /tmp/druk-extensions.txt
-    rm -f /tmp/druk-extensions.txt
-REMOTE
-fi
-
-echo "==> pi-opener config"
-mkdir -p "$HOME/.config/pi-opener"
-cp "$SRC/pi-opener.config.yaml" "$HOME/.config/pi-opener/config.yaml"
-echo "  copied -> $HOME/.config/pi-opener/config.yaml"
-if [ -n "$HOST" ]; then
-  ssh "$HOST" 'mkdir -p ~/.config/pi-opener'
-  scp -q "$SRC/pi-opener.config.yaml" "$HOST:~/.config/pi-opener/config.yaml"
-  echo "  copied -> $HOST:~/.config/pi-opener/config.yaml"
-fi
-
-echo ""
-echo "Done. druk picks up settings/extensions on next launch (press r in the extensions panel to refresh)."
+echo "Done. druk picks up settings on next launch. No extensions were installed."

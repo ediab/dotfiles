@@ -1,10 +1,9 @@
 # Imported configuration subtree instructions
 
-This directory is the transitional, history-preserving import of the former standalone
-configuration checkout. The one current checkout is `~/Dev/dotfiles`; do not create or edit a
-separate configs checkout. Ordinary local home files remain sourced from `config/` for
-Milestone 1 and are planned for chezmoi in Milestone 2. Edit sources here, not their live
-symlink targets.
+This directory is the history-preserving import of the former standalone configuration
+checkout. The one current checkout is `~/Dev/dotfiles`; do not create or edit a separate
+configs checkout. Ordinary local home files are sourced from `config/` through existing
+symlinks. Edit their repo sources and keep the links intact. No chezmoi migration is assumed.
 
 ## Ordinary home files
 
@@ -21,19 +20,22 @@ symlink targets.
 
 - `chat.disableAIFeatures: true` disables the built-in Chat / Copilot Chat UI.
 - `github.copilot.enable: false` disables Copilot completions.
-- `vscode/extensions.txt` is regenerated from `code --list-extensions` by `capture.sh` when available.
+- `vscode/extensions.txt` is a saved inventory; refresh it explicitly from `code --list-extensions` when requested.
 
-## Agent content and capture
+## Agent content and manual updates
 
 Pi/agent content is not owned by this subtree. Sources live in the repository-root `home/`,
-and `sync-agent-content.sh` is the sole owner of skills, Claude links, generated instructions,
-and its local ownership manifest/backups. Run `~/Dev/dotfiles/rebuild.sh --sync-only` to deploy
-agent content without package updates or copying `settings.json`.
+and `sync-agent-content.sh` owns managed skills, Claude links, generated instructions, and
+its local manifest/backups. Use `/skill:update-dotfiles` when explicitly invoked for the
+save/apply procedure; `local-env` supplies environment facts. Editing dotfiles does not
+implicitly authorize applying other configuration, managing packages, committing, pushing,
+or VPS deployment.
 
-`capture.sh` is the single capture job. It copies present live Pi `settings.json` and
-`open-tui.json` files, refreshes `vscode/extensions.txt` best-effort, and commits only tracked
-changes in its allowlist. It does not add untracked paths or unrelated staged paths. The
-capture job is `com.diab.dotfiles.capture`; bootstrap installs it from root-level templates.
+Read the root README before choosing a command. `apply.sh` requires explicit files/groups
+and previews by default; `--yes` applies only that scope. Settings preserve machine-local
+fields and package declarations unless separately authorized. There is no automatic capture,
+commit/push, or VPS synchronization. The old Mac jobs were persistently disabled and their
+installed definitions removed; do not recreate them.
 
 The following local agent state paths intentionally keep their legacy names so manifests,
 backups, and overlays remain discoverable after the repository rename:
@@ -53,17 +55,18 @@ These sources are copied by explicit scripts; the VPS does not read this checkou
 |---|---|---|
 | `herdr/config.vps.toml` | `herdr/deploy-vps.sh` | `~/.config/herdr/config.toml` |
 | `vps/.zshrc`, `.zshenv`, `.p10k.zsh`, `.tmux.conf` | `vps/deploy-vps.sh` | `$HOME` |
-| `vps/vps-cleanup.sh`, `vps/vps-update-images.sh` | `vps/deploy-vps.sh` | `~/bin/`, user timers |
-| `vps/systemd/*.{service,timer}` | `vps/deploy-vps.sh` | `~/.config/systemd/user/` |
-| `vps/apt/51-vps-auto-updates` | `vps/deploy-vps.sh` | `/etc/apt/apt.conf.d/` |
 | `vps/apps-AGENTS.md` | `vps/deploy-vps.sh` | `~/apps/AGENTS.md` |
 
-`vps/deploy-vps.sh` also installs weekly upkeep: cleanup at Sun 04:30 (Docker cache cap,
-protected build bases, caches, autoremove, journal cap; `~/logs/vps-cleanup.log`) and image
-refresh at Sun 05:30 (snapshot, health-check, rollback tagging; `~/logs/vps-update-images.log`).
-The `herdr-server.service` keeps the headless Herdr server available. The apt policy enables
-security/base/ESM updates and a 03:30 automatic reboot; the package's own
-`50unattended-upgrades` file is not managed here.
+`vps/deploy-vps.sh` copies only shell files and app-root instructions, keeps `.zshrc`
+private (0600), and can reload an already-running tmux server. It does not install,
+remove, start, or enable maintenance scripts, services, timers, apt policy, or lingering.
+
+Operational sources are retained for separately requested maintenance: `vps/systemd/`,
+`vps/apt/51-vps-auto-updates`, `vps-cleanup.sh`, and `vps-update-images.sh`. Saved timer
+specifications describe weekly cleanup at Sun 04:30 and image refresh at Sun 05:30.
+The saved Herdr service keeps the headless server available; the saved apt policy covers
+security/base/ESM updates and a 03:30 reboot. Existing remote service state is not changed
+by configuration deployment; do not infer live health from these source definitions.
 
 - `vps-cleanup.sh` runs Sunday at 04:30. It caps Docker build cache at 3 GB, preserves
   protected build bases, clears runner/npm/apt caches, runs autoremove, and applies a soft
@@ -76,32 +79,19 @@ security/base/ESM updates and a 03:30 automatic reboot; the package's own
 - Both weekly jobs are persistent user timers. Locally built images and the push-to-deploy
   path are not touched by them.
 
-The merged orchestrator is `~/Dev/dotfiles/config/bin/sync-vps.sh`. It runs these four steps
-in order and continues after failures:
+For an explicitly requested deployment, choose only the requested helper:
 
-1. `~/Dev/dotfiles/deploy-vps.sh` — agent content and Pi configuration;
-2. `config/vps/deploy-vps.sh` — shell files, upkeep scripts, systemd units, and apt policy;
-3. `config/herdr/deploy-vps.sh` — Herdr config and reload;
-4. `config/druk/deploy-druk.sh` — editor settings, extensions, and pi-opener.
+- `~/Dev/dotfiles/deploy-vps.sh` — repo-source agent/Pi configuration; no auth/runtime
+  mirroring, package commands, or package-declaration changes;
+- `config/vps/deploy-vps.sh` — shell files and app-root instructions, optional tmux reload;
+- `config/herdr/deploy-vps.sh` — Herdr config and reload;
+- `config/druk/deploy-druk.sh` — local editor preference merge and pi-opener config;
+  `DEPLOY_DRUK_HOST=vps` also merges remote settings. No extension downloads.
 
-It gates on `home/`, top-level `deploy-vps.sh` and `reconcile-pi-packages.py`,
-`config/vps/`, `config/herdr/config.vps.toml`, and `config/druk/` against `~/.cache/sync-vps.stamp`. An idle
-run makes no SSH connection; all steps run after a failure, and the stamp advances only after
-all succeed. Logs are `/tmp/com.diab.sync-vps.{out,err}`.
+There is no all-app orchestrator or change-triggered deployment.
 
-```sh
-~/Dev/dotfiles/config/bin/sync-vps.sh          # deploy if a source changed
-~/Dev/dotfiles/config/bin/sync-vps.sh --force  # bypass only the orchestrator timestamp gate
-```
-
-Do not install/load `com.diab.sync-vps` before remote agent-content adoption is approved and
-verified. Stage with `~/Dev/dotfiles/deploy-vps.sh --prepare-agent-content vps`, review the
-remote `--adopt` dry-run, stop for human approval before `--adopt --yes`, then verify the
-manifest and no-write preflight. Run `sync-vps.sh --force` once and verify all four steps and
-the success stamp before installing the VPS job with:
-
-```sh
-~/Dev/dotfiles/install-launchd.sh sync-vps
-```
-
-Bootstrap installs capture only.
+On an explicitly requested first agent-content deployment, stage with
+`~/Dev/dotfiles/deploy-vps.sh --prepare-agent-content vps`, review the remote `--adopt`
+dry run, and obtain approval before `--adopt --yes`. Verify the remote manifest and clean
+no-write preflight before normal deployment. Local adoption never grants remote adoption
+permission. Do not reinstall retired automatic capture or VPS-sync jobs.

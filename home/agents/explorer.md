@@ -1,8 +1,9 @@
 ---
-# Renames the builtin Explore profile; preserves the local model and extension scope.
+# Renames the builtin Explore profile; preserves its local search scope and extensions.
 # extensions: [pi-fff] keeps ffgrep/fffind; without it every loaded extension's tools surface
 # (MCP, web, todo, …) while `tools:` below advertises a read-only scope that isn't real.
 name: explorer
+model: openai/gpt-6-luna
 description: 'Fast read-only search agent for locating code. Use it to find files by pattern (eg. "src/components/**/*.tsx"), grep for symbols or keywords (eg. "API endpoints"), or answer "where is X defined / which files reference Y." Do NOT use it for code review, design-doc auditing, cross-file consistency checks, or open-ended analysis — it reads excerpts rather than whole files and will miss content past its read window. When calling, specify search breadth: "quick" for a single targeted lookup, "medium" for moderate exploration, or "very thorough" to search across multiple locations and naming conventions.'
 tools: [read, bash, grep, find, ls]
 extensions: [pi-fff]
