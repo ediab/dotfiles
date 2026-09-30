@@ -19,8 +19,6 @@ repository overview.
 - `capture.sh` is the one capture committer. It captures only the two live Pi JSON files and
   tracked changes under `config/`; untracked files and unrelated staged paths stay out of its
   commit. It refreshes the VS Code extension list best-effort.
-- Firefox data is actively written by Firefox, so use `firefox/sync.sh`; do not symlink the
-  profile files.
 - VPS changes stay explicit in this subtree's deploy scripts; they are not managed by
   chezmoi.
 
@@ -50,7 +48,6 @@ existing ownership and avoid a new adoption migration.
 | `herdr/plugins.txt` | Installed Herdr plugin list; refresh with `herdr plugin list` |
 | `herdr/config.vps.toml` | VPS Herdr config; deploy with `herdr/deploy-vps.sh` |
 | `vps/` | VPS shell files, upkeep scripts, user units, apt policy, and app-root instructions |
-| `firefox/` | Firefox profile backup sources and the exceptional sync script |
 | `bin/sync-vps.sh` | Change-gated four-step VPS orchestrator |
 | `docs/tmux.md`, `docs/herdr.md` | Operator guides |
 
@@ -108,30 +105,6 @@ brew bundle --file="$PWD/config/Brewfile"
 
 `bootstrap.sh` installs the capture job from the root `launchd/` templates. Do not copy or load
 the old launchd plist files by hand.
-
-Firefox is synced, not symlinked, because it actively writes profile files:
-
-```sh
-cd ~/Dev/dotfiles/config/firefox && ./sync.sh
-~/Dev/dotfiles/config/firefox/sync.sh --latest
-```
-
-To restore into a fresh Firefox profile, close Firefox and copy the versioned preferences,
-containers, handlers, search, and Chrome CSS/theme files from `config/firefox/`. The live
-profile remains the source for sensitive files, storage, and extension binaries.
-
-```sh
-PROFILE="$HOME/Library/Application Support/Firefox/Profiles/<profile>"
-cp config/firefox/prefs.js "$PROFILE/"
-cp config/firefox/extension-preferences.json "$PROFILE/"
-cp config/firefox/extension-settings.json "$PROFILE/"
-cp config/firefox/containers.json "$PROFILE/"
-cp config/firefox/handlers.json "$PROFILE/"
-cp config/firefox/search.json.mozlz4 "$PROFILE/"
-cp config/firefox/chrome/userChrome.css "$PROFILE/chrome/"
-cp config/firefox/chrome/userContent.css "$PROFILE/chrome/"
-cp -R config/firefox/chrome/theme/ "$PROFILE/chrome/theme/"
-```
 
 Tmux plugins can be installed with TPM:
 
