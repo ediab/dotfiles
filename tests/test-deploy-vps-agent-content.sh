@@ -49,11 +49,14 @@ for arg in "$@"; do
 done
 exec "$REAL_RSYNC" "${args[@]}"
 EOF
-chmod +x "$FAKE_BIN/ssh" "$FAKE_BIN/rsync"
+cp "$ROOT/tests/fake-pi.py" "$FAKE_BIN/pi"
+chmod +x "$FAKE_BIN/ssh" "$FAKE_BIN/rsync" "$FAKE_BIN/pi"
 
 run_deploy() {
   HOME="$LOCAL_HOME" PATH="$FAKE_BIN:$PATH" FAKE_REMOTE_HOME="$REMOTE_HOME" \
-    REAL_RSYNC="$REAL_RSYNC" bash "$ROOT/deploy-vps.sh" fake-vps
+    REAL_RSYNC="$REAL_RSYNC" FAKE_PI_HELPER="$ROOT/reconcile-pi-packages.py" \
+    FAKE_PI_LOG="$WORK/pi.log" FAKE_PI_FAIL_REMOVE="${FAKE_PI_FAIL_REMOVE:-}" \
+    PYTHONDONTWRITEBYTECODE=1 bash "$ROOT/deploy-vps.sh" fake-vps
 }
 
 # Existing old-style skills without a manifest require explicit adoption and
@@ -78,10 +81,38 @@ printf '\nstale remote copy\n' >> "$REMOTE_HOME/.agents/skills/tdd/SKILL.md"
 printf '%s\n' '{"packages":[],"new":true}' > "$LOCAL_HOME/.pi/agent/settings.json"
 printf '%s\n' '{"newAuth":true}' > "$LOCAL_HOME/.pi/agent/auth.json"
 run_deploy > "$WORK/output" 2>&1 || { cat "$WORK/output"; fail "post-adoption automatic deploy"; }
-contains "$REMOTE_HOME/.pi/agent/settings.json" '"new":true'
+contains "$REMOTE_HOME/.pi/agent/settings.json" '"new": true'
 contains "$REMOTE_HOME/.pi/agent/auth.json" '"newAuth":true'
 not_contains "$REMOTE_HOME/.agents/skills/tdd/SKILL.md" 'stale remote copy'
 contains "$REMOTE_HOME/.pi/agent/skills/vps-foreign/KEEP" 'keep foreign'
+
+# Non-empty reconciliation: an object removal failure must fail the whole deploy.
+# A subsequent deploy keeps cleanup history and installs a filtered exact pin.
+mkdir -p "$REMOTE_HOME/.pi/agent/npm/node_modules/retired" \
+  "$REMOTE_HOME/.pi/agent/npm/node_modules/foreign"
+printf '%s\n' '{"version":"1.0.0"}' > "$REMOTE_HOME/.pi/agent/npm/node_modules/retired/package.json"
+printf '%s\n' '{"version":"1.0.0"}' > "$REMOTE_HOME/.pi/agent/npm/node_modules/foreign/package.json"
+printf '%s\n' '{"packages":[{"source":"npm:retired","extensions":[]}]}' > "$REMOTE_HOME/.pi/agent/settings.json"
+printf '%s\n' '{"packages":[{"source":"npm:rotation@1.5.3","extensions":["+dist/index.js"]}],"new":true}' > "$LOCAL_HOME/.pi/agent/settings.json"
+if FAKE_PI_FAIL_REMOVE=npm:retired run_deploy > "$WORK/package-failure.out" 2>&1; then
+  fail "deploy swallowed package removal failure"
+fi
+contains "$WORK/package-failure.out" 'Package reconciliation failed'
+not_contains "$WORK/package-failure.out" 'done. vps synced'
+[ -f "$REMOTE_HOME/.pi/agent/settings.json.pre-reconcile" ] || fail "failed cleanup lost its ledger"
+run_deploy > "$WORK/package-retry.out" 2>&1 || { cat "$WORK/package-retry.out"; fail "package retry deploy"; }
+[ ! -e "$REMOTE_HOME/.pi/agent/settings.json.pre-reconcile" ] || fail "successful cleanup kept pending state"
+[ ! -e "$REMOTE_HOME/.pi/agent/npm/node_modules/retired" ] || fail "retry did not remove retired object package"
+[ -f "$REMOTE_HOME/.pi/agent/npm/node_modules/foreign/package.json" ] || fail "cleanup touched undeclared package"
+python3 - "$REMOTE_HOME" "$WORK/pi.log" <<'PY'
+import json, pathlib, sys
+home = pathlib.Path(sys.argv[1])
+settings = json.loads((home / '.pi/agent/settings.json').read_text())
+assert settings['packages'] == [{'source': 'npm:rotation@1.5.3', 'extensions': ['+dist/index.js']}]
+assert json.loads((home / '.pi/agent/npm/node_modules/rotation/package.json').read_text())['version'] == '1.5.3'
+calls = [json.loads(line)['argv'][:2] for line in pathlib.Path(sys.argv[2]).read_text().splitlines()]
+assert calls == [['remove', 'npm:retired'], ['remove', 'npm:retired'], ['install', 'npm:rotation@1.5.3']], calls
+PY
 
 # A later unmanaged collision fails preflight before settings/auth are changed.
 grep -v '^\.agents/skills/bro$' "$REMOTE_HOME/.local/state/pi-dotfiles/managed-paths" \
@@ -94,8 +125,8 @@ if run_deploy > "$WORK/output" 2>&1; then
 fi
 contains "$WORK/output" 'unmanaged collision for bro'
 contains "$WORK/output" 'no approved copy action'
-contains "$REMOTE_HOME/.pi/agent/settings.json" '"new":true'
-not_contains "$REMOTE_HOME/.pi/agent/settings.json" '"blocked":true'
+contains "$REMOTE_HOME/.pi/agent/settings.json" '"new": true'
+not_contains "$REMOTE_HOME/.pi/agent/settings.json" '"blocked": true'
 contains "$REMOTE_HOME/.pi/agent/auth.json" '"newAuth":true'
 not_contains "$REMOTE_HOME/.pi/agent/auth.json" '"blockedAuth":true'
 

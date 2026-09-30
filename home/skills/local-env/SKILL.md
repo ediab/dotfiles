@@ -43,7 +43,7 @@ To access this VPS use `ssh vps` (alias defined in `~/.ssh/config`).
 
 Do not load VPS synchronization before the agent-content ownership manifest has been adopted with explicit approval. Stage first with `~/Dev/dotfiles/deploy-vps.sh --prepare-agent-content vps`, review the remote `--adopt` dry run, and stop for human approval before `--adopt --yes`. Then verify the manifest and no-write preflight, run `sync-vps.sh --force` once, and confirm all four steps and the success stamp before installing. `bootstrap.sh` installs the capture job only; use `install-launchd.sh sync-vps` after those checks.
 
-The VPS orchestrator is `~/Dev/dotfiles/config/bin/sync-vps.sh`. It runs four steps in order (all steps continue after failure): agent content (`deploy-vps.sh`), VPS dotfiles (`config/vps/deploy-vps.sh`), Herdr (`config/herdr/deploy-vps.sh`), and druk (`config/druk/deploy-druk.sh`). It watches only `home/`, top-level `deploy-vps.sh`, `config/vps/`, `config/herdr/config.vps.toml`, and `config/druk/`. Unchanged inputs cause no SSH connection; the success stamp advances only if every step succeeds.
+The VPS orchestrator is `~/Dev/dotfiles/config/bin/sync-vps.sh`. It runs four steps in order (all steps continue after failure): agent content (`deploy-vps.sh`), VPS dotfiles (`config/vps/deploy-vps.sh`), Herdr (`config/herdr/deploy-vps.sh`), and druk (`config/druk/deploy-druk.sh`). It watches `home/`, top-level `deploy-vps.sh` and `reconcile-pi-packages.py`, `config/vps/`, `config/herdr/config.vps.toml`, and `config/druk/`. Unchanged inputs cause no SSH connection; the success stamp advances only if every step succeeds.
 
 ```sh
 ~/Dev/dotfiles/config/bin/sync-vps.sh          # deploy when a source changed

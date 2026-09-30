@@ -16,8 +16,8 @@ portable agent content for Pi, Codex, and Claude Code.
 - VPS system and app state continue to use explicit deploy scripts, not a generic dotfiles
   manager. Secrets do not belong in Git, even though this repository is private.
 
-Pi manages `~/.pi/agent/` itself — it rewrites `settings.json` on installs and stores package
-code in `extensions/` and `skills/` — so those sources are copied by bootstrap/rebuild rather
+Pi manages `~/.pi/agent/` itself — it rewrites `settings.json` on installs and stores managed
+packages under `npm/` and `git/` — so custom content is copied by bootstrap/rebuild rather
 than symlinked. Ordinary home files stay separate from agent-content ownership.
 
 ## What you get
@@ -27,8 +27,11 @@ The setup scripts manage:
 - **pi harness** — via npm (`@earendil-works/pi-coding-agent`), falling back to the official
   curl installer (`https://pi.dev/install.sh`) if npm fails.
 - **pi packages** — the canonical list is the `packages` array in `home/settings.json`.
-  `capture.sh` records live `settings.json` changes; `bootstrap.sh` installs every package in
-  the list. Package-installed skills come along automatically with their packages.
+  `capture.sh` records live `settings.json` changes. Bootstrap, full rebuild, and VPS deploy
+  use `reconcile-pi-packages.py` to handle string/object sources, preserve resource filters,
+  install missing or changed pinned packages, and remove previously configured surplus.
+  Failed cleanup remains recorded for the next attempt. Package-installed skills come along
+  automatically with their packages.
 - **Custom skills** — portable skills under `home/shared-skills/` are copied to
   `~/.agents/skills/` for Pi and Codex, with per-skill links into `~/.claude/skills/`
   when Claude Code is installed. Pi-only skills under `home/skills/` are copied to
@@ -46,7 +49,9 @@ The setup scripts manage:
   and `Plan` from reappearing. Planning runs in the main session via `to-spec`.
 - **Subagent config** — `home/subagents.json` deployed to `~/.pi/agent/subagents.json`
   (`backgroundByDefault`, `reportUsage`, `showCost`, `maxConcurrent: 4` — at most
-  4 active leaf agents per task; reviewers and follow-ups count).
+  4 active leaf agents per task; reviewers and follow-ups count). `showModel` labels running
+  agents, and `toolDescriptionMode: compact` reduces the Agent tool's description (not the
+  separate workflow description).
 - **Open-TUI config** — `home/open-tui.json` deployed to `~/.pi/agent/open-tui.json`
   (footer segments, telemetry toggles, thinking peek).
 - **Spec/ticket pipeline** — the user-invoked `to-spec`, `to-tickets`, and shared
@@ -56,13 +61,8 @@ The setup scripts manage:
   invocation only: one question at a time with a recommendation, ends at an
   agreed short brief, chat-only or saved to `docs/specs/`; never auto-starts
   implementation).
-- **Ponytail default** — `home/ponytail.json` deployed to `~/.config/ponytail/config.json`
-  (`defaultMode: off`, so ponytail is opt-in per session via `/ponytail lite`/`full`/`ultra`). This is the same file
-  pi's `/ponytail default` command writes. The package's broad main skill
-  (`ponytail`, "use on ANY coding task") is excluded from discovery in
-  `home/settings.json` so activation comes only from the default mode (no double-trigger); the extension, its `/ponytail` mode
-  commands, and the companion skills (`ponytail-review/-audit/-debt/-gain/-help`)
-  keep working.
+- **Side questions** — `home/pi-btw.json` configures `/btw`; bootstrap/rebuild and VPS
+  deploy copy it to `~/.pi/agent/pi-btw.json`.
 - **Web-search config** — `home/web-search.json` configures OpenAI and Exa as search
   providers, plus separate fetch routing. `rebuild.sh` copies it to
   `~/.pi/agent/web-search.json` (bootstrap does not). The TinyFish key is looked up from
@@ -95,17 +95,14 @@ cd ~/Dev/dotfiles
 ./bootstrap.sh
 ```
 
-Or run directly via curl (note: the bundled skills and extensions won't be present without
-a clone — `bootstrap.sh` will warn and skip them; clone for the full set):
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/ediab/dotfiles/main/bootstrap.sh | bash
-```
+Bootstrap requires a clone and Python 3.9+: canonical settings, the package helper, and
+agent-content sources must be present before setup starts. Running the script alone via curl is unsupported.
 
 `bootstrap.sh` does four things, in order:
 
 1. Installs the pi harness if it isn't already installed.
-2. Deploys `home/settings.json` and installs every package in its `packages` list.
+2. Records previous package declarations, applies `home/settings.json`, and reconciles
+   packages. Settings and package failures stop setup instead of reporting success.
 3. Runs `sync-agent-content.sh` for shared/Pi-only skills and generated instructions, then
    deploys `home/extensions/` and the remaining Pi configuration.
 4. Installs the templated `com.diab.dotfiles.capture` launchd job from a clone. It watches
@@ -120,10 +117,16 @@ Edit agent-content sources under `home/` and re-apply:
 ./rebuild.sh
 ```
 
-That's `pi update --all` plus the content helper (skills and generated instructions),
-`home/extensions/`, `home/agents/`, `home/subagents.json`, `home/web-search.json`, and
-`home/settings.json` into their managed destinations. Ordinary Mac config sources remain in
-`config/` and are edited through their live symlinks until Milestone 2.
+Full rebuild first applies repo settings and reconciles packages, then runs
+`pi update --all --no-approve` against the wanted global package list. It then deploys the
+content helper (skills and generated instructions), extensions, agents, and versioned Pi
+config. `--sync-only` skips settings replacement and all package commands. Ordinary Mac
+config sources remain in `config/` and are edited through their live symlinks until Milestone 2.
+
+The package helper records pending work in `~/.pi/agent/settings.json.pre-reconcile` before
+replacing settings. A failure leaves that ledger intact; rerunning bootstrap/rebuild/deploy
+merges it with the current declarations and retries. Only previously declared packages can
+be removed; unrelated installed directories are not swept.
 
 ### Code review
 
@@ -148,36 +151,20 @@ The same explicit-delegation rule applies to research evidence: the owner synthe
 
 ### Subagent models
 
-Primaries run cheap; implementation happens in the main session — subagents are for
-independent parallel work and fresh second opinions, not a default implementation hop.
-No profile sets `model:`; subagents inherit the dispatching session's model. There are no
-backup profiles and no automatic failover — a failed dispatch is reported as a blocker, not
+Implementation happens in the main session — subagents are for independent parallel work
+and fresh second opinions, not a default implementation hop. `home/agents/explorer.md`
+selects its search model explicitly; other profiles inherit the dispatching session's model.
+There are no backup profiles and no automatic failover — a failed dispatch is reported as a blocker, not
 silently retried on another model. Never pass a `model`/`effort` override unless the user
 explicitly names a model (in workflows, always pass an explicit existing `agentType` —
 workflows default to `general-purpose`, and orchestrators are forbidden in workflows).
 
 Also: the built-in `general-purpose` profile is overridden; `worker-astra`, `agent-orchestrator`, and `planner` are retired. Implementation, orchestration, and planning stay in the main session via `implement`, `/skill:orchestrate`, and `/skill:to-spec`.
 
-### Observational memory
+### Compaction
 
-`pi-observational-memory` runs memory workers (observer/reflector/dropper) that pre-build a
-session ledger so compaction becomes a fast, model-free projection. Config lives under the
-top-level `observational-memory` key in `home/settings.json`.
-
-Defaults are correct for this setup, so only one key is set:
-
-- `showWorkerNotifications: true` — observational-memory worker progress is visible.
-- Everything else defaults. `model` stays unset so workers follow the rotating session model
-  (commandcode custom APIs are supported); the deepseek-flash models' 1M context / 64K max
-  output mean `agentMaxTokens` never clamps badly and `compactAfterTokens: 81000` never
-  fires late.
-
-Coexists with `@lll9p/pi-better-compaction`: when OM has a non-empty projection it owns the
-compaction summary (it loads later, so its hook result wins); the empty-projection fallback
-delegates to the native summarizer, which better-compaction upgrades with a cheaper model.
-
-V3 ignores V2 settings and memory formats — no V2 keys exist here, nothing to migrate.
-Settings reference: https://github.com/elpapi42/pi-observational-memory/blob/master/docs/configuration.md
+Compaction uses Pi's built-in behavior. Observational-memory and better-compaction packages
+are not part of the current setup; the old observational-memory settings have been removed.
 
 ### Keeping the repo in sync
 
@@ -260,6 +247,9 @@ This repo is Elias's. If you clone it, review these before you run `bootstrap.sh
 - `rebuild.sh` — re-apply the config after any change. Supports `--sync-only` to deploy
   skills, generated instructions, extensions, and agent config without package updates or
   the `settings.json` copy.
+- `reconcile-pi-packages.py` — shared global-settings/package prepare and reconcile phases
+  for bootstrap, full rebuild, and VPS deploy. Pi's CLI owns installation/removal; the helper
+  preserves object filters and retry state.
 - `capture.sh` — replaces both old capture jobs. It copies existing live Pi settings files,
   refreshes `config/vscode/extensions.txt` best-effort, and stages tracked changes only under
   its allowlist. `com.diab.dotfiles.capture` is installed by `bootstrap.sh` from templates in

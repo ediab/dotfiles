@@ -1,4 +1,4 @@
 {
   "model": "deepseek/deepseek-flash",
-  "thinkingLevel": "max"
+  "thinkingLevel": "high"
 }

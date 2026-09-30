@@ -10,8 +10,10 @@ set -euo pipefail
 # Custom extensions bundled in this repo under home/extensions.
 # Everything under that directory is copied to pi's extensions directory; no script edit needed.
 
-# Resolve the repo root (works for clone+run and curl|bash via $0).
+# Bootstrap requires the clone's canonical settings and reconciliation helper.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+[ -f "$SCRIPT_DIR/home/settings.json" ] && [ -f "$SCRIPT_DIR/reconcile-pi-packages.py" ] \
+  || { echo "ERROR: clone dotfiles before running bootstrap.sh" >&2; exit 1; }
 PI_SKILLS_DIR="$HOME/.pi/agent/skills"   # note: 'agent' singular — the path pi scans
 
 echo "==> 1/4  pi harness"
@@ -28,26 +30,10 @@ fi
 
 echo "==> 2/4  packages (canonical list = home/settings.json, captured from live by capture.sh)"
 
-# Deploy canonical pi agent settings.json from this repo as the base; pi install
-# below appends each installed package into it. Live edits to settings.json are
-# captured back into the repo by capture.sh (launchd).
-cp "$SCRIPT_DIR/home/settings.json" "$HOME/.pi/agent/settings.json" \
-  && echo "    settings.json  deployed" \
-  || echo "    FAILED: home/settings.json"
-
-# Packages to install = string entries in settings.json's packages array (the same
-# list deploy-vps.sh reconciles against). No separate PACKAGES array to drift.
-PKGS="$(python3 - "$SCRIPT_DIR/home/settings.json" <<'PY'
-import json, sys
-print("\n".join(p for p in json.load(open(sys.argv[1]))["packages"] if isinstance(p, str)))
-PY
-)"
-if [ -z "$PKGS" ]; then
-  echo "    WARNING: no package list found in home/settings.json (clone the repo for the full set)"
-fi
-for pkg in $PKGS; do
-  pi install "$pkg" || echo "  FAILED: $pkg  (rerun: pi install $pkg)"
-done
+# Records previous declarations, creates the agent directory, and applies both
+# string/object sources without losing filters. Failures stop setup and remain retryable.
+python3 "$SCRIPT_DIR/reconcile-pi-packages.py" prepare "$SCRIPT_DIR/home/settings.json"
+python3 "$SCRIPT_DIR/reconcile-pi-packages.py" reconcile
 
 # apt/brew packages used by the harness/workflows (gh: GitHub CLI for repo tasks).
 APT_PACKAGES=(gh)
@@ -65,14 +51,15 @@ for pkg in "${APT_PACKAGES[@]}"; do
   fi
 done
 
-echo "==> 3/4  skills + generated instructions + extensions + agents + ponytail default"
+echo "==> 3/4  skills + generated instructions + extensions + agents"
 if [ -x "$SCRIPT_DIR/lint-agent-content.sh" ]; then
   "$SCRIPT_DIR/lint-agent-content.sh"
 fi
 if [ -x "$SCRIPT_DIR/sync-agent-content.sh" ]; then
   "$SCRIPT_DIR/sync-agent-content.sh" --yes
 else
-  echo "    WARNING: sync-agent-content.sh is unavailable under curl|bash; clone the repo for the full skill and instruction set"
+  echo "    ERROR: sync-agent-content.sh is missing or not executable" >&2
+  exit 1
 fi
 
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
@@ -93,29 +80,22 @@ done
 shopt -u nullglob
 
 # Subagent defaults (tintinweb pi-subagents global settings; pi never writes this file)
-cp "$SCRIPT_DIR/home/subagents.json" "$HOME/.pi/agent/subagents.json" \
-  && echo "    subagents.json  installed"
+cp "$SCRIPT_DIR/home/subagents.json" "$HOME/.pi/agent/subagents.json"
+echo "    subagents.json  installed"
 
 # Open-TUI config (footer segments, telemetry toggles, thinking peek).
 # Repo copy is the source of truth.
-cp "$SCRIPT_DIR/home/open-tui.json" "$HOME/.pi/agent/open-tui.json" \
-  && echo "    open-tui.json  installed"
+cp "$SCRIPT_DIR/home/open-tui.json" "$HOME/.pi/agent/open-tui.json"
+echo "    open-tui.json  installed"
 
 # pi-btw side-thread config (model, thinking level). Repo copy is the source
 # of truth. pi-btw only creates the live file after a Settings change, so a
 # fresh copy must exist for the versioned defaults to take effect.
-cp "$SCRIPT_DIR/home/pi-btw.json" "$HOME/.pi/agent/pi-btw.json" \
-  && echo "    pi-btw.json  installed"
-
-# Ponytail default mode (off = opt-in per session via /ponytail).
-# Repo copy is the source of truth; Pi's /ponytail default command also writes
-# ~/.config/ponytail/config.json on this machine.
-mkdir -p "$HOME/.config/ponytail"
-cp "$SCRIPT_DIR/home/ponytail.json" "$HOME/.config/ponytail/config.json" \
-  && echo "    ponytail.json  installed (defaultMode off)"
+cp "$SCRIPT_DIR/home/pi-btw.json" "$HOME/.pi/agent/pi-btw.json"
+echo "    pi-btw.json  installed"
 
 echo "==> 4/4  launchd capture agent"
-# Install the capture job from a clone; curl|bash has no installer or template.
+# Install capture when the clone's installer/template and launchd are available.
 # Install only capture here. VPS sync is loaded explicitly after its adoption gate.
 if command -v launchctl >/dev/null 2>&1 \
     && [ -x "$SCRIPT_DIR/install-launchd.sh" ] \

@@ -18,6 +18,7 @@ mkdir -p "$REPO/config/bin" "$REPO/config/vps" "$REPO/config/herdr" \
 cp "$ROOT/config/bin/sync-vps.sh" "$REPO/config/bin/sync-vps.sh"
 chmod +x "$REPO/config/bin/sync-vps.sh"
 : > "$REPO/home/settings.json"
+: > "$REPO/reconcile-pi-packages.py"
 : > "$REPO/config/vps/.input"
 : > "$REPO/config/herdr/config.vps.toml"
 : > "$REPO/config/druk/.input"
@@ -69,6 +70,14 @@ printf 'agent-content\nvps-dotfiles\nherdr\ndruk\n' > "$expected"
 run_sync --force > "$WORK/success.out" 2>&1 || { cat "$WORK/success.out"; fail "forced sync"; }
 cmp "$expected" "$STEP_LOG" || fail "forced sync steps were missing or out of order"
 contains "$WORK/success.out" 'deployed: dotfiles agent content, VPS dotfiles, Herdr, druk'
+success_stamp="$(date -r "$STAMP" +%s)"
+
+# A package-helper change alone is a deployed input, not an idle run.
+sleep 1
+printf '# helper changed\n' >> "$REPO/reconcile-pi-packages.py"
+: > "$STEP_LOG"
+run_sync > "$WORK/helper-change.out" 2>&1 || { cat "$WORK/helper-change.out"; fail "package helper change"; }
+cmp "$expected" "$STEP_LOG" || fail "package helper change did not trigger deployment"
 success_stamp="$(date -r "$STAMP" +%s)"
 
 sleep 1
