@@ -16,7 +16,7 @@
   "searchProvider": ["openai", "exa"],
   "allowBrowserCookies": false,
   "summaryModel": "deepseek/deepseek-flash",
-  "workflow": "auto-summary",
+  "workflow": "none",
   "curatorTimeoutSeconds": 20,
   "shortcuts": {
     "curate": "off",
