@@ -18,7 +18,7 @@
     "gitCommit": false,
     "runtime": false,
     "context": true,
-    "tokens": false,
+    "tokens": true,
     "cost": true,
     "extensionStatuses": true,
     "capitalizeProviderName": true

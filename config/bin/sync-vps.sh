@@ -36,6 +36,7 @@ export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 INPUTS=(
   "$DOTFILES_ROOT/home"
   "$DOTFILES_ROOT/deploy-vps.sh"
+  "$DOTFILES_ROOT/reconcile-pi-packages.py"
   "$CONFIG_ROOT/vps"
   "$CONFIG_ROOT/herdr/config.vps.toml"
   "$CONFIG_ROOT/druk"
@@ -43,8 +44,7 @@ INPUTS=(
 
 failed=""
 
-# The agent-content deploy reads home/ and live ~/.pi/agent files, so watch only
-# those repository inputs and guard the entry point separately.
+# Watch repository inputs, including the package helper; guard the entry point separately.
 AGENT_CONTENT_DEPLOY="$DOTFILES_ROOT/deploy-vps.sh"
 [ -x "$AGENT_CONTENT_DEPLOY" ] || { echo "missing: $AGENT_CONTENT_DEPLOY (dotfiles checkout?)" >&2; failed="agent-content(checkout)"; }
 

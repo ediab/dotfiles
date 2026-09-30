@@ -17,9 +17,6 @@ symlink targets.
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
 
-Firefox actively writes its profile, so use `firefox/sync.sh` instead of symlinking profile files.
-Sensitive files (cookies, logins, certificates), storage, and extension binaries are not synced.
-
 ## VS Code
 
 - `chat.disableAIFeatures: true` disables the built-in Chat / Copilot Chat UI.
@@ -87,8 +84,8 @@ in order and continues after failures:
 3. `config/herdr/deploy-vps.sh` — Herdr config and reload;
 4. `config/druk/deploy-druk.sh` — editor settings, extensions, and pi-opener.
 
-It gates on exactly `home/`, top-level `deploy-vps.sh`, `config/vps/`,
-`config/herdr/config.vps.toml`, and `config/druk/` against `~/.cache/sync-vps.stamp`. An idle
+It gates on `home/`, top-level `deploy-vps.sh` and `reconcile-pi-packages.py`,
+`config/vps/`, `config/herdr/config.vps.toml`, and `config/druk/` against `~/.cache/sync-vps.stamp`. An idle
 run makes no SSH connection; all steps run after a failure, and the stamp advances only after
 all succeed. Logs are `/tmp/com.diab.sync-vps.{out,err}`.
 
