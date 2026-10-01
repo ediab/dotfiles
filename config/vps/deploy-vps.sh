@@ -9,7 +9,7 @@ set -euo pipefail
 
 HOST="${VPS_HOST:-vps}"
 SRC="$(cd "$(dirname "$0")" && pwd)"
-FILES=(.zshrc .zshenv .p10k.zsh .tmux.conf apps-AGENTS.md)
+FILES=(.zshrc .zshenv .p10k.zsh apps-AGENTS.md)
 for f in "${FILES[@]}"; do
     [ -f "$SRC/$f" ] || { echo "Not found: $SRC/$f" >&2; exit 1; }
 done
@@ -27,7 +27,7 @@ ssh "$HOST" bash -s -- "$STAGE_ARG" <<'REMOTE'
 set -euo pipefail
 stage="$1"
 mkdir -p "$HOME/apps"
-for f in .zshrc .zshenv .p10k.zsh .tmux.conf apps-AGENTS.md; do
+for f in .zshrc .zshenv .p10k.zsh apps-AGENTS.md; do
     target="$HOME/$f"
     [ "$f" != apps-AGENTS.md ] || target="$HOME/apps/AGENTS.md"
     if [ -e "$target" ] && [ ! -f "$target" ]; then
@@ -48,8 +48,6 @@ for f in .zshrc .zshenv .p10k.zsh .tmux.conf apps-AGENTS.md; do
     mv -f "$stage/$f" "$target"
     echo "Copied $f -> $target"
 done
-# tmux caches configuration. Reload an existing server when available; do not start one.
-tmux source-file "$HOME/.tmux.conf" 2>/dev/null || true
 REMOTE
 
 echo "Deployed configuration. zsh changes apply to new shells on $HOST."
