@@ -59,6 +59,7 @@ if [ "$(uname)" = Darwin ]; then
   for f in .zshrc .zprofile .zshenv .tmux.conf; do link "config/$f" "$H/$f"; done
   for f in starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env rpiv-advisor/advisor.json; do link "config/$f" "$H/.config/$f"; done
   for f in settings keybindings; do link "config/vscode/$f.json" "$H/Library/Application Support/Code/User/$f.json"; done
+  link "config/vscode/argv.json" "$H/.vscode/argv.json"
 fi
 flush
 

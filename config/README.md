@@ -35,6 +35,8 @@ in this subtree into place.
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
 | `vscode/extensions.txt` | saved extension inventory; refresh explicitly with `code --list-extensions` |
+| `vscode/argv.json` | linked as `~/.vscode/argv.json` (macOS); contains the per-install `crash-reporter-id` — copy is byte-for-byte, repo is private, crash reporting is off anyway. VS Code rewrites through the symlink when toggling the crash-reporter UI, like it does for settings |
+| `vscode/README.md` | one-page inventory of this dir; see it for what's covered where |
 
 ## Other maintained content
 
