@@ -30,12 +30,6 @@
     "npm:@tintinweb/pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
     "git:github.com/earendil-works/pi-review",
-    {
-      "source": "npm:@lnilluv/pi-opencode-go-rotation@1.5.3",
-      "extensions": [
-        "+dist/index.js"
-      ]
-    },
     "npm:@narumitw/pi-btw",
     "npm:@saccolabs/pi-claude-cli",
     "npm:pi-extmgr",
