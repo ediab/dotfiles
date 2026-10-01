@@ -11,8 +11,10 @@ Lookup reference for this machine's environment. Not for editing application cod
 
 The private `ediab/dotfiles` repository is checked out at `~/Dev/dotfiles`. The checkout is the live copy: `link.sh` symlinks its files into `~/.pi`, `~/.claude`, `~/.codex`, `~/.agents` and `$HOME`, so editing the repo (or a tool saving a setting) changes what the apps see immediately. `link.sh` takes no flags and is safe to rerun; it prints `SKIP` and exits 1 if a destination differs from the repo. Do not experiment on the main checkout; use a separate worktree.
 
-- `agents/` — `AGENTS.md` (linked as Pi's `AGENTS.md`, Codex's `AGENTS.md` and Claude's `CLAUDE.md`) and `skills/` (linked as `~/.agents/skills`, plus one link per skill in `~/.claude/skills`). Create new personal skills in `~/.agents/skills/<name>`; Claude sees them after its next start.
-- `pi/`, `claude/`, `codex/` — each client's settings, plus Pi-only skills, agent profiles, extensions and themes.
+The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `./link.sh` is run after pulling. The VPS keeps its own settings files (rule 5 skips them) but shares skills, `AGENTS.md`, extensions and themes; run `./link.sh` by hand on the VPS after adding a skill — its Claude has no startup hook.
+
+- `agents/` — `AGENTS.md` (linked as Pi's `AGENTS.md`, Codex's `AGENTS.md` and Claude's `CLAUDE.md`) and `skills/` (linked as `~/.agents/skills`, plus one link per skill in `~/.claude/skills`). Create new personal skills in `~/.agents/skills/<name>`; Claude sees them after its next start. On the VPS, run `./link.sh` once after adding a skill.
+- `pi/`, `claude/`, `codex/` — each client's settings, plus Pi-only skills, agent profiles, extensions and themes. On the VPS these are skipped (its own settings differ), except files that happen to be identical.
 - `config/` — ordinary Mac, app and VPS configuration, linked into `$HOME` on macOS only.
 - Secrets live in `~/.env` (never in the repo; `.env.example` lists the names).
 
