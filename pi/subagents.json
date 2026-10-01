@@ -1,0 +1,10 @@
+{
+  "backgroundByDefault": false,
+  "agentMentions": "direct",
+  "fallbackSubagent": "none",
+  "maxConcurrent": 4,
+  "reportUsage": true,
+  "showCost": true,
+  "showModel": true,
+  "toolDescriptionMode": "compact"
+}

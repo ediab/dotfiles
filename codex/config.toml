@@ -1,0 +1,316 @@
+model = "gpt-6.1-sol"
+model_reasoning_effort = "low"
+plan_mode_reasoning_effort = "xhigh"
+notify = ["/Users/eliasdiab/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient", "turn-ended"]
+
+
+[projects."/Users/eliasdiab"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/fastmailai"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Library/Mobile Documents/iCloud~md~obsidian"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/twitterbot"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/greek_embassy_bot"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/rsshub-vps-deploy"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Downloads"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/miniflux"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/tfl"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/notes"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/stirling-pdf"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/matrix"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/Sibyl"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/xbot"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/ibkr"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/redact_pdf"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Documents/ETF Screener"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/etf-screener"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/spotify-mcp-server"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/spending"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/argus"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/irc_bot"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/ytmusic-mcp"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Documents/Codex/2026-08-01/realtime-voice-chat"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Documents/Codex/2026-09-12/computer-use-plugin-computer-use-openai"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Documents/Codex/2026-09-20/as"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Documents/Codex/2026-09-21/i"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Desktop/VRT model"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Desktop/Citadel - Mine/QCOM_official"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Desktop/QCOM"]
+trust_level = "trusted"
+
+
+[projects."/Users/eliasdiab/Dev/dotfiles"]
+trust_level = "trusted"
+
+
+[features]
+hooks = true
+multi_agent = true
+prevent_idle_sleep = true
+js_repl = false
+memories = true
+
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+http_headers_helper = "sed -n -E 's/^CONTEXT7_API_KEY=(.+)/{\"CONTEXT7_API_KEY\":\"\\1\"}/p' /Users/eliasdiab/.env"
+
+
+
+[mcp_servers.spotify]
+command = "/opt/homebrew/bin/node"
+args = ["/Users/eliasdiab/Dev/spotify-mcp-server/build/index.js"]
+
+
+[mcp_servers.node_repl]
+args = []
+command = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl"
+startup_timeout_sec = 120
+
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = "/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
+NODE_REPL_NODE_PATH = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
+NODE_REPL_TRUSTED_CODE_PATHS = "/Users/eliasdiab/.codex:/Applications/ChatGPT.app/Contents/Resources/cua_node/lib/node_modules"
+CODEX_HOME = "/Users/eliasdiab/.codex"
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab,mcpapps"
+BROWSER_USE_TINYSKY_ENABLED = "1"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = ""
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = ""
+NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = ""
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.928.20755"
+NODE_REPL_TRUSTED_SERVICES = '{"browser":"/Users/eliasdiab/.codex/plugins/cache/openai-bundled/browser/26.928.20755/scripts/browser-service.mjs","sky":"@oai/sky/service"}'
+SKY_CUA_SERVICE_PATH = "/Users/eliasdiab/.codex/computer-use/Codex Computer Use.app"
+CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
+
+
+[mcp_servers.computer-use]
+command = "./Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient"
+args = ["mcp"]
+cwd = "."
+enabled = false
+
+
+[mcp_servers.tinyfish]
+url = "https://agent.tinyfish.ai/mcp?source=tinyfish_cli&client=codex&connect_attempt_id=a125ffbf-4de9-42c5-b1a4-d7f0f062d20e"
+bearer_token_env_var = "TINYFISH_API_KEY"
+
+
+[tui]
+status_line = ["model-with-reasoning", "context-remaining", "current-dir", "git-branch", "pull-request-number", "branch-changes", "five-hour-limit"]
+status_line_use_colors = true
+screen_reader_detection_done = true
+
+[tui.model_availability_nux]
+"gpt-5.3-codex-spark" = 4
+"gpt-5.5" = 4
+"gpt-6.1-sol" = 1
+
+
+[notice.model_migrations]
+"gpt-5.2-codex" = "gpt-5.3-codex"
+"gpt-5.2" = "gpt-5.3-codex"
+"gpt-5.3-codex" = "gpt-5.5"
+"gpt-5.4" = "gpt-5.6-terra"
+
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-primary-runtime/presentations/26.513.11550/skills/presentations/SKILL.md"
+enabled = false
+
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/skills/.system/imagegen/SKILL.md"
+enabled = false
+
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/skills/hatch-pet/SKILL.md"
+enabled = false
+
+
+[marketplaces.openai-bundled]
+source_type = "local"
+source = "/Users/eliasdiab/.codex/.tmp/bundled-marketplaces/openai-bundled"
+
+
+[marketplaces.openai-primary-runtime]
+source_type = "local"
+source = "/Users/eliasdiab/.cache/codex-runtimes/codex-primary-runtime/plugins/openai-primary-runtime"
+
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+
+
+[plugins."unified-computer-use@openai-bundled"]
+enabled = true
+
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+
+[plugins."code-review@openai-bundled"]
+enabled = true
+
+
+[desktop]
+keepRemoteControlAwakeWhilePluggedIn = true
+followUpQueueMode = "queue"
+dock-icon-preference = "codex-system"
+conversationDetailMode = "STEPS_PROSE"
+realtimeVoiceScreenContextEnabled = true
+sansFontSize = 14
+codeFontSize = 13
+ambient-suggestions-enabled = false
+avatar-overlay-mascot-width-px = 80
+selected-avatar-id = "null-signal"
+
+
+[shell_environment_policy.set]
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "9230e2bd8b24b7ac7a0ba6774c64bf0d78ecdabbdd91d0ed627b02a587bae2df"
+
+
+[hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:0:0"]
+trusted_hash = "sha256:42ad5843ba79bdd68be42269ac7b513889a767e052dda6c6c28079a53af982ee"
+
+
+[hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:1:0"]
+trusted_hash = "sha256:93fbfa14717a31d18c62d1ba6141b6d7dd89551c24972ca793fadfd6f74baa7f"
+
+
+[hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:2:0"]
+trusted_hash = "sha256:2035963d8116b7f9c8418a165ee1d22cc62fa076e6536be410a8534452869541"
+
+
+[hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:3:0"]
+trusted_hash = "sha256:6738912a000505980f0730071cee7d02b4f50cc55c159d686c8332841b91fe8d"
+
+
+[memories]
+generate_memories = true
+use_memories = true

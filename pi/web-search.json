@@ -1,0 +1,25 @@
+{
+  "tinyfishApiKey": "!security find-generic-password -s tinyfish-api-key -w",
+  "webSearch": {
+    "enabled": true
+  },
+  "tools": {
+    "webSearch": { "enabled": true },
+    "sourceCheck": { "enabled": false },
+    "fetchContent": { "enabled": true },
+    "getSearchContent": { "enabled": true }
+  },
+  "fetchRouting": {
+    "providers": ["http", "jina", "tinyfish"],
+    "allowRemoteHostedProviders": true
+  },
+  "searchProvider": ["openai", "exa"],
+  "allowBrowserCookies": false,
+  "summaryModel": "deepseek/deepseek-flash",
+  "workflow": "none",
+  "curatorTimeoutSeconds": 20,
+  "shortcuts": {
+    "curate": "off",
+    "activity": "off"
+  }
+}
