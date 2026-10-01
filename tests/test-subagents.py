@@ -126,7 +126,7 @@ class SkillAndLinkTests(unittest.TestCase):
 
     def test_link_sh_retires_subagents_json(self):
         text = (ROOT / 'link.sh').read_text()
-        self.assertIn('for f in settings web-search open-tui pi-btw mcp; do', text)
+        self.assertIn('for f in settings web-search pi-btw mcp; do', text)
         self.assertIn('remove retired', text)
 
     def test_readme_names_the_runtime_config(self):

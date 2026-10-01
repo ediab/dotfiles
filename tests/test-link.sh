@@ -7,6 +7,8 @@ trap 'rm -rf "$WORK"' EXIT HUP INT TERM
 fail() { echo "FAIL: $*" >&2; exit 1; }
 REPO="$WORK/repo"
 DARWIN=0; [ "$(uname)" = Darwin ] && DARWIN=1
+CLAUDE_SETTINGS=settings.linux.json; CODEX_CONFIG=config.linux.toml
+if [ "$DARWIN" = 1 ]; then CLAUDE_SETTINGS=settings.json; CODEX_CONFIG=config.toml; fi
 
 mkrepo() {
   rm -rf "$REPO"; mkdir -p "$REPO"
@@ -18,10 +20,13 @@ mkrepo() {
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
   echo agent > "$REPO/pi/agents/worker.md"; echo ext > "$REPO/pi/extensions/env-loader.ts"; echo theme > "$REPO/pi/themes/t.json"
-  for f in settings web-search open-tui pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
+  for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
   echo '{}' > "$REPO/pi/extensions/subagent/config.json"
-  echo '{}' > "$REPO/claude/settings.json"; echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
-  echo model > "$REPO/codex/config.toml"; echo '{}' > "$REPO/codex/hooks.json"
+  echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
+  echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
+  echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
+  echo mac > "$REPO/codex/config.toml"; echo linux > "$REPO/codex/config.linux.toml"
+  echo '{}' > "$REPO/codex/hooks.json"
   for f in .zshrc .zprofile .zshenv .tmux.conf starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env rpiv-advisor/advisor.json vscode/settings.json vscode/keybindings.json; do
     echo "$f" > "$REPO/config/$f"
   done
@@ -35,16 +40,16 @@ expect_status() { # expect_status <code> <message>; uses $out and $rc from the l
 go() { rc=0; out="$(run 2>&1)" || rc=$?; }
 all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
-  for f in web-search open-tui pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
+  for f in web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
   [ -f "$H/.pi/agent/extensions/subagent/config.json" ] || fail 'subagent runtime config not reachable through the extensions link'
   for d in agents extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
   points "$H/.pi/agent/skills/code-review" pi/skills/code-review
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
   points "$H/.agents/skills" agents/skills
   points "$H/.claude/CLAUDE.md" agents/AGENTS.md; points "$H/.codex/AGENTS.md" agents/AGENTS.md
-  points "$H/.claude/settings.json" claude/settings.json
+  points "$H/.claude/settings.json" "claude/$CLAUDE_SETTINGS"
   points "$H/.claude/statusline-command.sh" claude/statusline-command.sh
-  points "$H/.codex/config.toml" codex/config.toml; points "$H/.codex/hooks.json" codex/hooks.json
+  points "$H/.codex/config.toml" "codex/$CODEX_CONFIG"; points "$H/.codex/hooks.json" codex/hooks.json
   for s in alpha beta; do points "$H/.claude/skills/$s" agents/skills/$s; done
   if [ "$DARWIN" = 1 ]; then
     for f in .zshrc .zprofile .zshenv .tmux.conf; do points "$H/$f" config/$f; done
@@ -118,6 +123,36 @@ ln -s /nowhere/elsewhere "$H/.pi/agent/subagents.json"
 go; expect_status 0 retiredforeign
 [ -L "$H/.pi/agent/subagents.json" ] || fail 'removed a foreign link'
 rm -f "$H/.pi/agent/subagents.json"
+
+echo "7c. retired Open TUI repo link is removed; real files and foreign links are preserved"
+ln -s "$REPO/pi/open-tui.json" "$H/.pi/agent/open-tui.json"
+go; expect_status 0 retiredopentui
+[ ! -L "$H/.pi/agent/open-tui.json" ] || fail 'retired Open TUI repo link kept'
+echo mine > "$H/.pi/agent/open-tui.json"
+go; expect_status 0 realopentui
+[ "$(cat "$H/.pi/agent/open-tui.json")" = mine ] || fail 'removed real Open TUI settings without approval'
+rm "$H/.pi/agent/open-tui.json"
+ln -s /nowhere/else "$H/.pi/agent/open-tui.json"
+go; expect_status 0 foreignopentui
+[ -L "$H/.pi/agent/open-tui.json" ] || fail 'removed foreign Open TUI link'
+rm "$H/.pi/agent/open-tui.json"
+
+echo "7d. both supported platforms select their tracked settings"
+mkdir -p "$WORK/bin"
+for platform in Darwin Linux; do
+  printf '#!/bin/sh\nprintf "%%s\\n" "%s"\n' "$platform" > "$WORK/bin/uname"
+  chmod +x "$WORK/bin/uname"
+  mkhome
+  HOME="$H" PATH="$WORK/bin:$PATH" bash "$REPO/link.sh" > "$WORK/platform.out"
+  if [ "$platform" = Darwin ]; then
+    points "$H/.claude/settings.json" claude/settings.json
+    points "$H/.codex/config.toml" codex/config.toml
+  else
+    points "$H/.claude/settings.json" claude/settings.linux.json
+    points "$H/.codex/config.toml" codex/config.linux.toml
+  fi
+done
+mkhome; go; expect_status 0 platformreset
 
 echo "8. skill added under ~/.agents/skills lands in the repo and gets a Claude link on the next run"
 mkdir "$H/.agents/skills/gamma"; echo gamma > "$H/.agents/skills/gamma/SKILL.md"

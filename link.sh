@@ -40,7 +40,14 @@ link() { # link <repo-relative source> <destination>
   else echo "SKIP $dst (differs from repo)"; skipped=1; fi
 }
 
-for f in settings web-search open-tui pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+platform="$(uname)"
+case "$platform" in
+  Darwin) claude_settings=settings.json; codex_config=config.toml ;;
+  Linux) claude_settings=settings.linux.json; codex_config=config.linux.toml ;;
+  *) echo "Unsupported platform: $platform" >&2; exit 1 ;;
+esac
+
+for f in settings web-search pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link pi/skills/code-review "$H/.pi/agent/skills/code-review"
@@ -48,14 +55,16 @@ link agents/AGENTS.md "$H/.pi/agent/AGENTS.md"
 link agents/skills "$H/.agents/skills"   # Pi and Codex read this
 if [ -d "$H/.claude" ]; then
   link agents/AGENTS.md "$H/.claude/CLAUDE.md"
-  for f in settings.json statusline-command.sh; do link "claude/$f" "$H/.claude/$f"; done
+  link "claude/$claude_settings" "$H/.claude/settings.json"
+  link claude/statusline-command.sh "$H/.claude/statusline-command.sh"
   for d in "$REPO"/agents/skills/*/; do d="$(basename "$d")"; link "agents/skills/$d" "$H/.claude/skills/$d"; done
 fi
 if [ -d "$H/.codex" ]; then
   link agents/AGENTS.md "$H/.codex/AGENTS.md"
-  for f in config.toml hooks.json; do link "codex/$f" "$H/.codex/$f"; done
+  link "codex/$codex_config" "$H/.codex/config.toml"
+  link codex/hooks.json "$H/.codex/hooks.json"
 fi
-if [ "$(uname)" = Darwin ]; then
+if [ "$platform" = Darwin ]; then
   for f in .zshrc .zprofile .zshenv .tmux.conf; do link "config/$f" "$H/$f"; done
   for f in starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env rpiv-advisor/advisor.json; do link "config/$f" "$H/.config/$f"; done
   for f in settings keybindings; do link "config/vscode/$f.json" "$H/Library/Application Support/Code/User/$f.json"; done
@@ -70,7 +79,7 @@ for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/*; do
 done
 
 # Retired links: pi-subagents keeps runtime config in extensions/subagent/config.json
-for p in "$H/.pi/agent/subagents.json"; do
+for p in "$H/.pi/agent/subagents.json" "$H/.pi/agent/open-tui.json"; do
   [ -L "$p" ] && [ ! -e "$p" ] || continue
   case "$(readlink "$p")" in "$REPO"/*) echo "remove retired $p"; rm -f "$p";; esac
 done

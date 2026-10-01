@@ -1,0 +1,27 @@
+# Linux agent settings. Mac-only MCP servers, marketplaces and desktop state
+# belong to config.toml; link.sh selects this file on Linux.
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+plan_mode_reasoning_effort = "xhigh"
+
+[projects."/home/diab"]
+trust_level = "trusted"
+
+[features]
+hooks = true
+multi_agent = true
+prevent_idle_sleep = true
+js_repl = false
+memories = true
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+http_headers_helper = "sed -n -E 's/^CONTEXT7_API_KEY=(.+)/{\"CONTEXT7_API_KEY\":\"\\1\"}/p' \"$HOME/.env\""
+
+[tui]
+status_line = ["model-with-reasoning", "context-remaining", "current-dir", "git-branch", "pull-request-number", "branch-changes", "five-hour-limit"]
+status_line_use_colors = true
+
+[memories]
+generate_memories = true
+use_memories = true

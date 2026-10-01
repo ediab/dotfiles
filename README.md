@@ -14,9 +14,10 @@ agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~
 pi/skills/code-review  -> ~/.pi/agent/skills/code-review (Pi-only)
 pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
 pi/extensions/subagent/config.json -> ~/.pi/agent/extensions/subagent/config.json (pi-subagents runtime config)
-pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, open-tui, pi-btw, mcp)
-claude/                -> ~/.claude/ (settings.json, statusline-command.sh)
-codex/                 -> ~/.codex/ (config.toml, hooks.json)
+pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
+claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
+codex/                 -> ~/.codex/ (platform config, shared hooks.json)
+scripts/agent-hook.sh   optional session integrations, guarded when not installed
 config/                other dotfiles (zsh, tmux, ghostty, starship, herdr, VS Code, VPS files)
 .env.example           names of the secrets ~/.env should hold (not linked)
 tests/                 test-link.sh, test-researcher.py, test-app-deploy.sh
@@ -36,7 +37,7 @@ For each `source -> destination`:
 Also: Claude entries are skipped if `~/.claude` is missing, Codex entries if `~/.codex` is
 missing, and `config/` links run only on macOS. Broken links into this repo in
 `~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills), as are
-retired links such as `~/.pi/agent/subagents.json` from the old Tintin pi-subagents. Links
+retired repo links such as `~/.pi/agent/subagents.json` and `~/.pi/agent/open-tui.json`. Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,
 so concurrent runs never see a half-made link.
 
@@ -59,9 +60,28 @@ link per skill; `link.sh` creates them. Create new personal skills in `~/.agents
   `.env` is gitignored. Apps' auth files (`auth.json`, `~/.claude.json`, ...) stay out too.
 - Tools rewrite their own settings (version stamps, trust entries), which shows up in
   `git status`. Commit when you like; nothing commits or pushes automatically.
-- VPS agent content now uses the same `link.sh` model (the repo is cloned at `~/Dev/dotfiles`
-  there; its own settings files are skipped). `config/vps`, `config/herdr` and `config/druk` keep
+- VPS agent content uses the same `link.sh` model (the repo is cloned at `~/Dev/dotfiles`
+  there; active settings link to tracked platform configs). `config/vps`, `config/herdr` and `config/druk` keep
   their own explicit deploy scripts (see `config/README.md`).
+
+## Platform settings
+
+Pi settings and agent content are shared. `link.sh` selects `claude/settings.json`
+and `codex/config.toml` on macOS, and `claude/settings.linux.json` and
+`codex/config.linux.toml` on Linux, linking them to the clients' usual filenames.
+The Mac files retain desktop integrations and local app paths; the Linux files
+exclude those integrations and preserve the VPS's `/home/diab` project trust.
+Keep shared behavior aligned when editing either platform variant.
+
+Session hooks use `scripts/agent-hook.sh`; optional helpers and Herdr-installed
+hooks are invoked only when present. Context7 credentials stay in each host's
+`~/.env`, not in tracked settings. Claude's user MCP registrations remain in
+its untracked `~/.claude.json`.
+
+A reconciled machine should rerun `link.sh` with exit 0 and no `SKIP` or `FAIL`.
+The linker still protects conflicting real files: for an approved reconciliation,
+back them up privately outside the repo, then replace them with the tracked links.
+This is a deliberate operation, never an automatic overwrite.
 
 ## New machine
 
@@ -80,6 +100,7 @@ bash tests/test-link.sh            # link.sh against a fake HOME (never the real
 bash tests/test-app-deploy.sh
 python3 tests/test-researcher.py   # researcher scope and its web-tool provider
 python3 tests/test-subagents.py    # pi-subagents migration contract (package, profiles, config)
+python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
 ```
 
 Credits for copied-in skills: [`agents/ATTRIBUTION.md`](agents/ATTRIBUTION.md).

@@ -1,5 +1,4 @@
 {
-  "tinyfishApiKey": "!security find-generic-password -s tinyfish-api-key -w",
   "webSearch": {
     "enabled": true
   },
@@ -10,7 +9,7 @@
     "getSearchContent": { "enabled": true }
   },
   "fetchRouting": {
-    "providers": ["http", "jina", "tinyfish"],
+    "providers": ["http", "jina"],
     "allowRemoteHostedProviders": true
   },
   "searchProvider": ["openai", "exa"],

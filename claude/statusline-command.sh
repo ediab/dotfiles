@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude Code statusline, modelled on pi-open-tui's footer.
+# Claude Code two-line statusline.
 #   line 1: cwd · git branch [status] · worktree/agent/vim        model · effort
 #   line 2: context bar · 5h/7d limits · cost · lines · duration · cache
 # Nerd Font glyphs by default; set CC_SL_NERD=0 for plain Unicode. Runs on bash 3.2 (macOS default).
@@ -68,7 +68,11 @@ if [ -n "$cwd" ] && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
   key=$(printf '%s' "$cwd" | cksum | cut -d' ' -f1)
   cache="${TMPDIR:-/tmp}/cc_sl_git_${key}"
   now=$(date +%s)
-  mtime=$(stat -f %m "$cache" 2>/dev/null || echo 0)
+  if [ "$(uname)" = Darwin ]; then
+    mtime=$(stat -f %m "$cache" 2>/dev/null || echo 0)
+  else
+    mtime=$(stat -c %Y "$cache" 2>/dev/null || echo 0)
+  fi
   if [ $((now - mtime)) -ge 5 ]; then
     GIT_OPTIONAL_LOCKS=0 git -C "$cwd" status --porcelain=v2 --branch --show-stash 2>/dev/null | awk '
       /^# branch.head/ { head=$3 }

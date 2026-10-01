@@ -182,11 +182,6 @@ cwd = "."
 enabled = false
 
 
-[mcp_servers.tinyfish]
-url = "https://agent.tinyfish.ai/mcp?source=tinyfish_cli&client=codex&connect_attempt_id=a125ffbf-4de9-42c5-b1a4-d7f0f062d20e"
-bearer_token_env_var = "TINYFISH_API_KEY"
-
-
 [tui]
 status_line = ["model-with-reasoning", "context-remaining", "current-dir", "git-branch", "pull-request-number", "branch-changes", "five-hour-limit"]
 status_line_use_colors = true

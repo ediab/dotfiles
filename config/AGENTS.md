@@ -75,5 +75,5 @@ For an explicitly requested deployment, choose only the requested helper:
 - `config/druk/deploy-druk.sh` — local editor preference merge and pi-opener config;
   `DEPLOY_DRUK_HOST=vps` also merges remote settings. No extension downloads.
 
-There is no all-app orchestrator or change-triggered deployment. Agent content is not deployed
-to the VPS yet; that migration is a separate, separately approved step.
+There is no all-app orchestrator or change-triggered deployment. Agent content is linked on
+the VPS from `~/Dev/dotfiles` by the root `link.sh`, which selects tracked Linux client settings. Updates still require an explicit deployment request.

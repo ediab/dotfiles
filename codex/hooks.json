@@ -4,7 +4,7 @@
       {
         "hooks": [
           {
-            "command": "gh-axi",
+            "command": "bash \"$HOME/Dev/dotfiles/scripts/agent-hook.sh\" gh-axi",
             "timeout": 10,
             "type": "command"
           }
@@ -14,7 +14,7 @@
       {
         "hooks": [
           {
-            "command": "lavish-axi",
+            "command": "bash \"$HOME/Dev/dotfiles/scripts/agent-hook.sh\" lavish-axi",
             "timeout": 10,
             "type": "command"
           }
@@ -24,7 +24,7 @@
       {
         "hooks": [
           {
-            "command": "chrome-devtools-axi",
+            "command": "bash \"$HOME/Dev/dotfiles/scripts/agent-hook.sh\" chrome-devtools-axi",
             "timeout": 10,
             "type": "command"
           }
@@ -34,7 +34,7 @@
       {
         "hooks": [
           {
-            "command": "bash '/Users/eliasdiab/.codex/herdr-agent-state.sh' session",
+            "command": "bash \"$HOME/Dev/dotfiles/scripts/agent-hook.sh\" codex session",
             "timeout": 10,
             "type": "command"
           }

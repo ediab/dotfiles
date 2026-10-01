@@ -111,18 +111,5 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "mcpServers": {
-    "youtube-music": {
-      "args": [
-        "/Users/eliasdiab/Dev/ytmusic-mcp/dist/cli.js"
-      ],
-      "command": "/opt/homebrew/bin/node",
-      "cwd": "/Users/eliasdiab/Dev/ytmusic-mcp",
-      "env": {
-        "ENABLE_OPTIONAL_TOOLS": "false",
-        "YTMUSIC_AUTH_JSON_PATH": "/Users/eliasdiab/Dev/ytmusic-mcp/ytmusic.json"
-      }
-    }
-  }
+  "skipAutoPermissionPrompt": true
 }

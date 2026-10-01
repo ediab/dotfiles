@@ -123,6 +123,6 @@ secrets live in the Keychain and `~/.env`, never in the repo.
 `~/Dev/configs` was reconciled into this repo and archived at
 `~/Archive/configs-2026-10-01` (clean tree, no unpushed commits; a README-ARCHIVE.md
 inside records the audit). Removal conditions (also in the archive README): 90+ days
-of dotfiles being the sole active checkout, the old TINYFISH key rotated or confirmed
+of dotfiles being the sole active checkout, retired API credentials rotated or confirmed
 dead, and a final skim finding nothing wanted. Restore by `mv` back to `~/Dev/configs`
 if an overlooked dependency ever appears.
