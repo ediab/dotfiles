@@ -27,7 +27,7 @@ mkrepo() {
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
   echo mac > "$REPO/codex/config.toml"; echo linux > "$REPO/codex/config.linux.toml"
   echo '{}' > "$REPO/codex/hooks.json"
-  for f in .zshrc .zprofile .zshenv .tmux.conf starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env rpiv-advisor/advisor.json vscode/settings.json vscode/keybindings.json; do
+  for f in .zshrc .zprofile .zshenv starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env rpiv-advisor/advisor.json vscode/settings.json vscode/keybindings.json; do
     echo "$f" > "$REPO/config/$f"
   done
 }
@@ -52,7 +52,7 @@ all_links() {
   points "$H/.codex/config.toml" "codex/$CODEX_CONFIG"; points "$H/.codex/hooks.json" codex/hooks.json
   for s in alpha beta; do points "$H/.claude/skills/$s" agents/skills/$s; done
   if [ "$DARWIN" = 1 ]; then
-    for f in .zshrc .zprofile .zshenv .tmux.conf; do points "$H/$f" config/$f; done
+    for f in .zshrc .zprofile .zshenv; do points "$H/$f" config/$f; done
     points "$H/.config/starship.toml" config/starship.toml
     points "$H/.config/topgrade.toml" config/topgrade.toml
     points "$H/.config/ghostty/config" config/ghostty/config

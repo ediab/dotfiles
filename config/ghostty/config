@@ -38,7 +38,7 @@ resize-overlay = never
 # Opacity is also disabled automatically in macOS native fullscreen.
 background-opacity = 0.85
 background-blur = macos-glass-regular
-# Makes tmux backgrounds respect background-opacity too (it's opaque by design otherwise).
+# Lets cell backgrounds respect background-opacity (needed by full-screen TUIs).
 background-opacity-cells = true
 
 # --- Split Appearance ---

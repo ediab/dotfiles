@@ -11,7 +11,7 @@ FAKE_BIN="$WORK/bin"
 export CALL_LOG="$WORK/calls.log" FORBIDDEN_LOG="$WORK/forbidden.log"
 mkdir -p "$REPO/config/vps" "$REPO/config/druk" "$FAKE_BIN"
 cp "$ROOT/config/vps/deploy-vps.sh" "$REPO/config/vps/"
-for f in .zshrc .zshenv .p10k.zsh .tmux.conf apps-AGENTS.md; do
+for f in .zshrc .zshenv .p10k.zsh apps-AGENTS.md; do
     cp "$ROOT/config/vps/$f" "$REPO/config/vps/$f"
 done
 cp "$ROOT/config/druk/deploy-druk.sh" "$ROOT/config/druk/pi-opener.config.yaml" "$REPO/config/druk/"
@@ -41,18 +41,12 @@ case "$destination" in
 esac
 cp "$source" "$destination"
 SH
-cat > "$FAKE_BIN/tmux" <<'SH'
-#!/usr/bin/env bash
-printf 'tmux %s\n' "$*" >> "$CALL_LOG"
-# No existing server is an allowed condition, not a reason to launch one.
-exit 1
-SH
 cat > "$FAKE_BIN/forbidden" <<'SH'
 #!/usr/bin/env bash
 printf '%s %s\n' "$(basename "$0")" "$*" >> "$FORBIDDEN_LOG"
 exit 90
 SH
-chmod +x "$FAKE_BIN/ssh" "$FAKE_BIN/scp" "$FAKE_BIN/tmux" "$FAKE_BIN/forbidden"
+chmod +x "$FAKE_BIN/ssh" "$FAKE_BIN/scp" "$FAKE_BIN/forbidden"
 for command in curl wget sudo systemctl loginctl apt apt-get npm npx brew pi git druk install service docker; do
     ln -s forbidden "$FAKE_BIN/$command"
 done
@@ -108,13 +102,13 @@ PY
 # Shell/app-root copy, backups, private zshrc mode, and maintenance untouched.
 new_case vps
 mkdir -p "$REMOTE_HOME/apps" "$REMOTE_HOME/bin" "$REMOTE_HOME/.config/systemd/user" "$REMOTE_HOME/apt"
-for f in .zshrc .zshenv .p10k.zsh .tmux.conf; do printf 'old %s\n' "$f" > "$REMOTE_HOME/$f"; done
+for f in .zshrc .zshenv .p10k.zsh; do printf 'old %s\n' "$f" > "$REMOTE_HOME/$f"; done
 printf 'old apps\n' > "$REMOTE_HOME/apps/AGENTS.md"
 for f in bin/vps-cleanup.sh bin/vps-update-images.sh .config/systemd/user/vps-cleanup.timer .config/systemd/user/herdr-server.service apt/51-vps-auto-updates; do
     printf 'existing operational asset\n' > "$REMOTE_HOME/$f"
 done
 run_vps > "$CASE/success.out" 2>&1 || { cat "$CASE/success.out"; fail 'VPS configuration deploy'; }
-for f in .zshrc .zshenv .p10k.zsh .tmux.conf; do
+for f in .zshrc .zshenv .p10k.zsh; do
     cmp "$REPO/config/vps/$f" "$REMOTE_HOME/$f" || fail "VPS $f copy"
 done
 cmp "$REPO/config/vps/apps-AGENTS.md" "$REMOTE_HOME/apps/AGENTS.md" || fail 'app-root copy'
@@ -123,7 +117,7 @@ from pathlib import Path
 import stat, sys
 home = Path(sys.argv[1])
 assert stat.S_IMODE((home / '.zshrc').stat().st_mode) == 0o600
-for name in ('.zshrc', '.zshenv', '.p10k.zsh', '.tmux.conf', 'apps/AGENTS.md'):
+for name in ('.zshrc', '.zshenv', '.p10k.zsh', 'apps/AGENTS.md'):
     path = home / name
     backups = list(path.parent.glob(path.name + '.backup.*'))
     assert len(backups) == 1
@@ -133,10 +127,10 @@ for name in ('bin/vps-cleanup.sh', 'bin/vps-update-images.sh', '.config/systemd/
     assert (home / name).read_text() == 'existing operational asset\n'
 PY
 [ ! -s "$FORBIDDEN_LOG" ] || fail 'VPS operational command ran'
-grep -Fq 'tmux source-file' "$CALL_LOG" || fail 'tmux reload not attempted'
+! grep -Fq 'tmux' "$CALL_LOG" || fail 'tmux invoked during deploy'
 assert_no_stage
 run_vps > "$CASE/repeat.out" 2>&1 || fail 'repeat VPS deploy'
-[ "$(find "$REMOTE_HOME" -name '*.backup.*' | wc -l | tr -d ' ')" = 5 ] || fail 'unchanged VPS copies created backups'
+[ "$(find "$REMOTE_HOME" -name '*.backup.*' | wc -l | tr -d ' ')" = 4 ] || fail 'unchanged VPS copies created backups'
 
 new_case vps-new
 run_vps > "$CASE/success.out" 2>&1 || fail 'VPS deploy into missing apps directory'

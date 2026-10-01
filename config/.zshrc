@@ -78,10 +78,8 @@ export VISUAL="$EDITOR"
 export ENABLE_TOOL_SEARCH=true
 export PI_ASK_USER_DISPLAY_MODE=inline
 
-# pi-subagents tmux integration
-export PI_SUBAGENT_MUX=tmux
+# pi-subagents
 export PI_SUBAGENT_ENABLE_SET_TAB_TITLE=1
-export PI_SUBAGENT_RENAME_TMUX_WINDOW=1
 export PI_SUBAGENT_SHELL_READY_DELAY_MS=1200
 
 # Homebrew (Apple Silicon)
@@ -190,12 +188,6 @@ alias agy="antigravity --dangerously-skip-permissions"
 alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 alias sibyl-web="cd ~/Dev/Sibyl && uv run sibyl-web"
 alias notes-publish='rsync -a --delete "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Elias'\''s Vault/Published/" ~/Dev/notes/content/ && cd ~/Dev/notes && npx quartz sync --no-pull'
-
-# --- tmux (sessions that survive disconnect/reboot) ---
-alias tl='tmux ls'                # what's running?
-alias tn='tmux new -s'            # tn work
-alias tt='tmux attach -t '        # tt work
-alias pio='PI_ORCHESTRATOR_MODE=1 tmux new -A -s orchestrator "pi"'  # pi orchestrator session
 
 # ==============================================
 # 6. FUNCTIONS

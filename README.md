@@ -18,7 +18,7 @@ pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
 codex/                 -> ~/.codex/ (platform config, shared hooks.json)
 scripts/agent-hook.sh   optional session integrations, guarded when not installed
-config/                other dotfiles (zsh, tmux, ghostty, starship, herdr, VS Code, VPS files)
+config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 .env.example           names of the secrets ~/.env should hold (not linked)
 tests/                 test-link.sh, test-researcher.py, test-app-deploy.sh
 ```

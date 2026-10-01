@@ -26,7 +26,7 @@ in this subtree into place.
 
 | Source in `config/` | Live target |
 |---|---|
-| `.zshrc`, `.zprofile`, `.zshenv`, `.tmux.conf` | matching files under `$HOME` |
+| `.zshrc`, `.zprofile`, `.zshenv` | matching files under `$HOME` |
 | `starship.toml` | `~/.config/starship.toml` |
 | `topgrade.toml` | `~/.config/topgrade.toml` |
 | `ghostty/config` | `~/.config/ghostty/config` |
@@ -46,14 +46,14 @@ in this subtree into place.
 | `herdr/plugins.txt` | Installed Herdr plugin list; refresh with `herdr plugin list` |
 | `herdr/config.vps.toml` | VPS Herdr config; deploy with `herdr/deploy-vps.sh` |
 | `vps/` | VPS shell files, upkeep scripts, user units, apt policy, and app-root instructions |
-| `docs/tmux.md`, `docs/herdr.md` | Operator guides |
+| `docs/herdr.md` | Operator guide |
 
 ## Explicit VPS/app configuration deployment
 
 Choose only the scope requested; there is no orchestrator or background job:
 
 ```sh
-./config/vps/deploy-vps.sh              # shell files + ~/apps/AGENTS.md, optional tmux reload
+./config/vps/deploy-vps.sh              # shell files + ~/apps/AGENTS.md
 ./config/herdr/deploy-vps.sh            # Herdr config + reload
 ./config/druk/deploy-druk.sh            # local settings/pi-opener only
 DEPLOY_DRUK_HOST=vps ./config/druk/deploy-druk.sh  # also merge remote settings
@@ -78,12 +78,4 @@ Software installation is separate. `Brewfile` is an inventory for a separately r
 Homebrew install (`brew bundle --file=config/Brewfile`). No machine installer or
 background-job installation is provided.
 
-For separately requested tmux plugin installation, TPM can be installed manually:
-
-```sh
-git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
-~/.tmux/plugins/tpm/bin/install_plugins
-```
-
-Tmux setup and configuration notes are in `config/docs/tmux.md`; Herdr notes are in
-`config/docs/herdr.md`.
+For separately requested setups, Herdr notes are in `config/docs/herdr.md`.

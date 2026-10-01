@@ -31,7 +31,6 @@ only = [
   "rustup",
   "shell",              # oh-my-zsh
   "skills",
-  "tmux",               # tpm plugin updates
   "tldr",               # tldr pages database
   "uv",
   "vscode",             # VS Code extensions

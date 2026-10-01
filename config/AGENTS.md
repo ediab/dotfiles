@@ -9,7 +9,7 @@ by the root `link.sh`. Edit their repo sources and keep the links intact. No che
 
 | Source in this subtree | Live location |
 |---|---|
-| `.zshrc`, `.zprofile`, `.zshenv`, `.tmux.conf` | matching files under `$HOME` |
+| `.zshrc`, `.zprofile`, `.zshenv` | matching files under `$HOME` |
 | `starship.toml` | `~/.config/starship.toml` |
 | `topgrade.toml` | `~/.config/topgrade.toml` |
 | `ghostty/config` | `~/.config/ghostty/config` |
@@ -43,11 +43,11 @@ These sources are copied by explicit scripts; the VPS does not read this checkou
 | Source | Deploy script | VPS target |
 |---|---|---|
 | `herdr/config.vps.toml` | `herdr/deploy-vps.sh` | `~/.config/herdr/config.toml` |
-| `vps/.zshrc`, `.zshenv`, `.p10k.zsh`, `.tmux.conf` | `vps/deploy-vps.sh` | `$HOME` |
+| `vps/.zshrc`, `.zshenv`, `.p10k.zsh` | `vps/deploy-vps.sh` | `$HOME` |
 | `vps/apps-AGENTS.md` | `vps/deploy-vps.sh` | `~/apps/AGENTS.md` |
 
-`vps/deploy-vps.sh` copies only shell files and app-root instructions, keeps `.zshrc`
-private (0600), and can reload an already-running tmux server. It does not install,
+`vps/deploy-vps.sh` copies only shell files and app-root instructions and keeps `.zshrc`
+private (0600). It does not install,
 remove, start, or enable maintenance scripts, services, timers, apt policy, or lingering.
 
 Operational sources are retained for separately requested maintenance: `vps/systemd/`,
@@ -70,7 +70,7 @@ by configuration deployment; do not infer live health from these source definiti
 
 For an explicitly requested deployment, choose only the requested helper:
 
-- `config/vps/deploy-vps.sh` — shell files and app-root instructions, optional tmux reload;
+- `config/vps/deploy-vps.sh` — shell files and app-root instructions;
 - `config/herdr/deploy-vps.sh` — Herdr config and reload;
 - `config/druk/deploy-druk.sh` — local editor preference merge and pi-opener config;
   `DEPLOY_DRUK_HOST=vps` also merges remote settings. No extension downloads.

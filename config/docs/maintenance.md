@@ -9,7 +9,7 @@ Live as of 2026-10-01.
 |---|---|---|
 | 6 allowlisted brew formulae | `brew autoupdate` launch agent | weekly, unattended (AC only) |
 | Other brew formulae/casks | manual `brew upgrade <pkg>` | on demand |
-| npm, bun, uv, rustup, tmux/oh-my-zsh/tldr/vscode, agent CLIs | `topgrade` (manual, allowlisted) | weekly/fortnightly |
+| npm, bun, uv, rustup, oh-my-zsh/tldr/vscode, agent CLIs | `topgrade` (manual, allowlisted) | weekly/fortnightly |
 | macOS updates | Software Update: automatic downloads + Security Responses on | review weekly; major upgrades manually |
 | App Store apps | existing `mas-autoupdate` launch agent (`mas upgrade` daily) | automatic |
 | Other GUI apps | the app's own updater; optionally install `brew install --cask latest` | on demand |
@@ -70,7 +70,7 @@ dependency-correct inventory, not a version-locked snapshot.
 
 `topgrade` (config symlinked from `config/topgrade.toml`) updates everything **except**
 Brew, macOS, App Store, Office, gems and git repos. The `only` allowlist in the config
-selects: bun + bun packages, node/npm globals, uv, rustup, tmux plugins (tpm),
+selects: bun + bun packages, node/npm globals, uv, rustup,
 oh-my-zsh, tldr pages, VS Code extensions, and the agent CLIs (pi, claude + its
 plugins, antigravity, gcloud, gh extensions, skills).
 

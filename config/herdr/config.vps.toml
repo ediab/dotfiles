@@ -46,7 +46,7 @@ tab_bar_right_separator = " · "
 
 # --- pane presentation ------------------------------------------------------
 # pane_borders stays at its default ("auto"): borders between split panes only.
-pane_outer_borders = false      # no frame around the pane area — tmux-style open edges
+pane_outer_borders = false      # no frame around the pane area — open edges
 pane_gaps = false               # panes share one divider instead of gapped frames
 pane_scrollbars = true
 show_agent_labels_on_pane_borders = true

@@ -19,7 +19,7 @@ The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `.
 - Secrets live in `~/.env` (never in the repo; `.env.example` lists the names).
 
 Ordinary home config sources linked from `config/`:
-- `.zshrc`, `.zprofile`, `.zshenv`, `.tmux.conf` → matching files in `$HOME`;
+- `.zshrc`, `.zprofile`, `.zshenv` → matching files in `$HOME`;
 - `starship.toml`, `ghostty/config`, `herdr/config.toml`, `rpiv-advisor/advisor.json` → matching paths under `~/.config/`;
 - `vscode/settings.json` and `vscode/keybindings.json` → Code's User directory.
 
