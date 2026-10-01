@@ -11,7 +11,7 @@
 #   * Docker build cache, capped with --max-used-space (the older --keep-storage is now
 #     an alias for reserved-space, which is a FLOOR, not a cap — using it silently failed
 #     to bound anything). Never wiped: the app stacks rebuild locally on every push
-#     (mp3podcasts, redact_pdf, cratch/ai-cookbook, onyx, greek_embassy_bot), so a cold
+#     (mp3podcasts, redact_pdf, cratch, onyx, greek_embassy_bot), so a cold
 #     cache makes every deploy slow.
 #   * Images no container uses (running or stopped), except the protected build bases
 #     below: greek_embassy_bot is built FROM the Playwright image and re-pulling it costs

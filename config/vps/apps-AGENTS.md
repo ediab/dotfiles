@@ -14,7 +14,7 @@ This file is versioned in the dotfiles repo at `config/vps/apps-AGENTS.md` and d
 ## Automated deploys (push to main)
 
 - Each git repo has a `Deploy to VPS` GitHub workflow: on push to main it SSHs in as `deployer` and runs `/home/diab/bin/vps-deploy.sh <service>` (absolute path, pinned action, 30m timeout, per-service concurrency).
-- The helper serializes on a flock, requires a clean tree on the default branch, fetches (read-only token over https) plus fast-forward-only merge, then restarts per the map: compose rebuild (ai-cookbook, mp3podcasts, onyx, redact_pdf, greek_embassy_bot), compose pull (note-sx), npm build plus service restart (tfl), fousekis-api restart (fousekis), venv smoke check (morning-brief), quartz build (notes), nothing (personal_website).
+- The helper serializes on a flock, requires a clean tree on the default branch, fetches (read-only token over https) plus fast-forward-only merge, then restarts per the map: compose rebuild (cratch, mp3podcasts, onyx, redact_pdf, greek_embassy_bot), compose pull (note-sx), npm build plus service restart (tfl), fousekis-api restart (fousekis), venv smoke check (morning-brief), quartz build (notes), nothing (personal_website).
 - Restarts run under a shutdown inhibit (`/usr/local/sbin/vps-deploy-inhibit`) so the nightly OS reboot waits for deploys.
 - SSH is confined: the deploy key lives only in deployer's `authorized_keys` behind the forced-command gate (`/usr/local/sbin/vps-deploy-ssh-gate`); deployer sudo is limited to the inhibit wrapper plus `systemctl restart` for tfl and fousekis-api. Per-repo secrets are `VPS_HOST` / `VPS_USER` / `VPS_SSH_KEY`.
 

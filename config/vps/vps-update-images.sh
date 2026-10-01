@@ -11,7 +11,7 @@
 #   note-sx      ghcr.io/note-sx/server:latest   (its push-to-deploy step is the same pull)
 #   karakeep-app ghcr.io/karakeep-app/karakeep:release
 # Everything else on the box is a local build deployed from git by the push-to-deploy
-# workflow (mp3podcasts, redact_pdf, cratch/ai-cookbook, onyx, greek_embassy_bot) and is
+# workflow (mp3podcasts, redact_pdf, cratch, onyx, greek_embassy_bot) and is
 # deliberately not touched here. ~/apps/termix (guacd) has no compose file checked out, so
 # it cannot be managed this way at all.
 #
