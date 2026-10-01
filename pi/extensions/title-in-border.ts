@@ -27,8 +27,10 @@ import {
 	visibleWidth,
 } from "@earendil-works/pi-tui";
 
-/** Host key on the shared UI object: Pi's original setter/getter + inner factory. */
+/** Host key on one bound UI object: Pi's original setter/getter + inner factory. */
 const UI_STATE = Symbol.for("pi.title-in-border.ui-state");
+/** Factory key that lets a new UI binding remove a wrapper left by the prior binding. */
+const WRAPPED_FACTORY = Symbol.for("pi.title-in-border.wrapped-factory");
 
 interface UIState {
 	/** setEditorComponent/getEditorComponent exactly as the host provided them. */
@@ -51,57 +53,54 @@ function sanitizeName(raw: string): string {
 /** Rebuild a plain top-border rule line as `── title ───`, or null to keep it. */
 function decorateBorder(
 	line: string,
-	width: number,
 	name: string,
 	borderColor: (text: string) => string,
 ): string | null {
-	const lineWidth = visibleWidth(stripTerminalSequences(line));
-	// Powerline chrome/fast paths render `" " + "─".repeat(width - 2)` (width - 1 cells); the
-	// default editor renders a full-width rule. Accept both exact shapes only.
-	const leading =
-		lineWidth === width ? 0 : lineWidth === width - 1 ? 1 : undefined;
-	if (leading === undefined) {
+	const match = /^( *)(─+)$/.exec(stripTerminalSequences(line));
+	if (!match) {
 		return null;
 	}
-	const border = borderColor("─");
-	// The rule run behind the decoration: pair `──`, space, label, space, and the rest are rules.
-	// Cell budget: [indent][──][ ][label][ ][rules…≥1] must total lineWidth.
-	const ruleRun = lineWidth - leading;
-	let rest = ruleRun - 2 - 1 - 1; // minus pair and both separator spaces; ≥1 trailing rule stays
-	if (rest < 1) {
+	const [, indent, rules] = match;
+	// Cell budget within the rule run: [──][ ][label][ ][rules…≥1].
+	let rest = visibleWidth(rules) - 2 - 1 - 1;
+	const maxLabel = rest - 1;
+	if (maxLabel < 4) {
 		return null;
 	}
 	let label = name;
-	const labelWidth = visibleWidth(label);
-	const maxLabel = rest - 1;
-	if (maxLabel < 4) {
-		// Fewer than four cells for the name: keep the original line (plan's narrow fallback).
-		return null;
-	}
-	if (labelWidth > maxLabel) {
+	if (visibleWidth(label) > maxLabel) {
 		label = truncateToWidth(label, maxLabel, "…");
 	}
 	rest -= visibleWidth(label);
 	if (rest < 1) {
 		return null;
 	}
-	return (
-		line.slice(0, leading) +
-		border.repeat(2) +
-		borderColor(` ${label} `) +
-		border.repeat(rest)
-	);
+	return indent + borderColor(`── ${label} ${"─".repeat(rest)}`);
 }
 
 function isPlainRule(line: string): boolean {
 	return /^ *─+$/.test(stripTerminalSequences(line));
 }
 
+function unwrapFactory(factory: EditorFactory): EditorFactory {
+	let inner = factory;
+	const seen = new Set<EditorFactory>();
+	while (!seen.has(inner)) {
+		seen.add(inner);
+		const wrapped = (
+			inner as EditorFactory & { [WRAPPED_FACTORY]?: EditorFactory }
+		)[WRAPPED_FACTORY];
+		if (!wrapped) break;
+		inner = wrapped;
+	}
+	return inner;
+}
+
 function wrapFactory(
 	inner: EditorFactory,
 	getName: () => string | undefined,
 ): EditorFactory {
-	return (tui, theme, keybindings) => {
+	const wrapped: EditorFactory = (tui, theme, keybindings) => {
 		const editor: EditorComponent = inner(tui, theme, keybindings);
 		const originalRender = editor.render.bind(editor);
 		editor.render = (width: number): string[] => {
@@ -124,7 +123,7 @@ function wrapFactory(
 			if (typeof borderColor !== "function") {
 				return lines;
 			}
-			const decorated = decorateBorder(first, width, name, (text) =>
+			const decorated = decorateBorder(first, name, (text) =>
 				borderColor.call(editor, text),
 			);
 			if (decorated === null) return lines;
@@ -132,6 +131,8 @@ function wrapFactory(
 		};
 		return editor;
 	};
+	Object.defineProperty(wrapped, WRAPPED_FACTORY, { value: inner });
+	return wrapped;
 }
 
 function installPatch(
@@ -150,26 +151,23 @@ function installPatch(
 		return;
 	}
 
-	// Reuse host originals across reloads, then drop stale state from old closures.
+	// Pi shares one mutable object within a binding but creates a new object when
+	// extensions are rebound. Reuse same-object host methods and unwrap a factory
+	// carried over through Pi's stable editor registration on a fresh binding.
 	const priorState = ui[UI_STATE] as UIState | undefined;
 	const state: UIState = priorState ?? {
 		originalSet,
 		originalGet,
 		inner: undefined,
 	};
-
-	// Each wrapper closes over its own reader, so a reloaded instance never consults
-	// a stale closure from the previous one.
+	const currentInner = priorState?.inner ?? state.originalGet();
 	const reader = () => pi.getSessionName();
-
-	state.inner = undefined;
 	ui[UI_STATE] = state;
 
-	const remember = (factory: EditorFactory | undefined): void => {
-		state.inner = factory;
-		if (factory !== undefined) {
-			state.originalSet(wrapFactory(factory, reader));
-		}
+	const remember = (factory: EditorFactory): void => {
+		const inner = unwrapFactory(factory);
+		state.inner = inner;
+		state.originalSet(wrapFactory(inner, reader));
 	};
 
 	ui.setEditorComponent = (factory: EditorFactory | undefined): void => {
@@ -183,9 +181,10 @@ function installPatch(
 
 	ui.getEditorComponent = (): EditorFactory | undefined => state.inner;
 
-	// Re-apply the inner factory we know about (or, on the very first install, whatever the
-	// host currently has registered) so the wrapped factory is in place regardless of load order.
-	remember(priorState ? priorState.inner : state.originalGet());
+	// Re-apply immediately so repeated starts and either extension load order work.
+	if (currentInner !== undefined) {
+		remember(currentInner);
+	}
 }
 
 export default function titleInBorder(pi: ExtensionAPI): void {

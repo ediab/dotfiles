@@ -1,6 +1,6 @@
 {
   "enabled": true,
   "model": "openai/gpt-6-luna",
-  "maxTokens": 40,
-  "maxLength": 48
+  "maxTokens": 30,
+  "maxLength": 60
 }

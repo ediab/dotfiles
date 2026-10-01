@@ -15,7 +15,7 @@
  */
 
 import { createRequire } from "node:module";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -123,20 +123,25 @@ function makeFakeEditor(extra = {}) {
   };
 }
 
-function makeUI() {
+function makeUI(host = {}) {
+  host.setCalls ??= [];
   const listeners = new Map();
   const ui = {
     setEditorComponent(factory) {
-      ui.__hostSetCalls.push(factory);
-      ui.__editorFactory = factory;
+      host.setCalls.push(factory);
+      host.editorFactory = factory;
     },
     getEditorComponent() {
-      return ui.__editorFactory;
+      return host.editorFactory;
     },
-    __hostSetCalls: [],
-    __editorFactory: undefined,
+    get __hostSetCalls() {
+      return host.setCalls;
+    },
+    get __editorFactory() {
+      return host.editorFactory;
+    },
   };
-  return { ui, listeners };
+  return { ui, listeners, host };
 }
 
 /** Minimal ExtensionAPI shape; only session_start + getSessionName are used. */
@@ -199,6 +204,31 @@ test("module loads and default export is a function", async () => {
   assert.equal(typeof factory, "function");
 });
 
+test("configuration keeps only the requested powerline change", () => {
+  const settings = JSON.parse(
+    readFileSync(join(REPO_ROOT, "pi", "settings.json"), "utf8"),
+  );
+  const title = JSON.parse(
+    readFileSync(join(REPO_ROOT, "pi", "pi-title.jsonc"), "utf8"),
+  );
+  assert.equal(settings.powerline.placement, "below");
+  assert.deepEqual(settings.powerline.layout.left, [
+    "model",
+    "thinking",
+    "shell_mode",
+    "path",
+    "git",
+    "queue",
+    "context_pct",
+    "cache_read",
+    "cost",
+  ]);
+  assert.equal(settings.powerline.layout.left.includes("session"), false);
+  assert.equal("cost" in settings.powerline, false);
+  assert.equal(title.maxTokens, 30);
+  assert.equal(title.maxLength, 60);
+});
+
 test("decorates a plain border with the session title, preserving width and other lines", async () => {
   const factory = await freshExtension();
   let name = "Fix login flow";
@@ -225,9 +255,8 @@ test("decorates a plain border with the session title, preserving width and othe
   );
   // visible width preserved (sentinels count as visible text; assert on the stripped line)
   assert.equal(visibleWidth(stripSentinels(lines[0])), 59);
-  // sentinel color applied to each border chunk
-  assert.match(lines[0], /^ «─»«─»« Fix login flow »/);
-  assert.match(lines[0], /«─»+$/);
+  // The complete border content after the indent uses one border-color span.
+  assert.equal(lines[0], ` «── Fix login flow ${"─".repeat(40)}»`);
 
   // Full-width rule (default editor shape, no leading indent):
   let defaultName = "Plain editor";
@@ -364,7 +393,7 @@ test("border color callback changes are picked up per render", async () => {
   // Read borderColor at render time: mutate it and re-render.
   editor.borderColor = (text) => `[${text}]`;
   const lines = editor.render(60);
-  assert.match(lines[0], /^ \[─\]/);
+  assert.match(lines[0], /^ \[── Colorful ─+\]$/);
 });
 
 test("narrow widths fall back safely to the original border", async () => {
@@ -441,6 +470,26 @@ test("unicode titles: CJK, emoji, combining marks; no injected control sequences
   }
 });
 
+test("preserves the matched leading indent and visible width", async () => {
+  const factory = await freshExtension();
+  const { ui } = makeUI();
+  const piBundle = makePi(() => "Four", { ui });
+  factory(piBundle.pi);
+  await piBundle.emitSessionStart();
+  const original = "  " + "─".repeat(15);
+  ui.setEditorComponent(() =>
+    makeFakeEditor({
+      render() {
+        return [original, "body"];
+      },
+    }),
+  );
+  const line = ui.__editorFactory(NO_COLOR, {}, {}).render(80)[0];
+  assert.equal(stripSentinels(line).slice(0, 2), "  ");
+  assert.equal(visibleWidth(stripSentinels(line)), visibleWidth(original));
+  assert.equal(stripSentinels(line), "  ── Four " + "─".repeat(7));
+});
+
 test("registration order: powerline first, extension second still decorates", async () => {
   const factory = await freshExtension();
   let name = "Order B";
@@ -457,24 +506,27 @@ test("registration order: powerline first, extension second still decorates", as
   assert.match(stripTerminalSequences(editor.render(60)[0]), /Order B/);
 });
 
-test("repeated session_start does not double-wrap", async () => {
+test("repeated session_start immediately reapplies without double-wrapping", async () => {
   const factory = await freshExtension();
   let name = "Repeated";
   const { ui } = makeUI();
   const piBundle = makePi(() => name, { ui });
   factory(piBundle.pi);
   await piBundle.emitSessionStart();
-  await piBundle.emitSessionStart();
-  await piBundle.emitSessionStart();
   const powerlineFactory = makePowerlineFactory({
     previousFactory: ui.getEditorComponent(),
   });
   ui.setEditorComponent(powerlineFactory);
+  const callsBefore = ui.__hostSetCalls.length;
+
+  await piBundle.emitSessionStart();
+  await piBundle.emitSessionStart();
+
+  assert.equal(ui.__hostSetCalls.length, callsBefore + 2);
+  assert.equal(ui.getEditorComponent(), powerlineFactory);
   const editor = ui.__editorFactory(NO_COLOR, {}, {});
-  // Exactly one title, and getEditorComponent returns the inner (unwrapped) factory.
   const stripped = stripSentinels(editor.render(80)[0]);
   assert.equal(stripped.split("Repeated").length - 1, 1);
-  assert.equal(ui.getEditorComponent(), powerlineFactory);
 });
 
 test("later factory replacement swaps the inner factory without chaining", async () => {
@@ -532,6 +584,52 @@ test("powerline off/on cycles keep working without double decoration", async () 
   assert.equal(stripped.split("Toggle").length - 1, 1);
 });
 
+test("reload with a new UI binding unwraps the prior wrapper", async () => {
+  const factory1 = await freshExtension();
+  let staleReaderThrows = false;
+  const host = {};
+  const { ui: ui1 } = makeUI(host);
+  const piBundle1 = makePi(() => {
+    if (staleReaderThrows) throw new Error("stale reader");
+    return "Before reload";
+  }, { ui: ui1 });
+  factory1(piBundle1.pi);
+  await piBundle1.emitSessionStart();
+  const powerlineFactory = makePowerlineFactory({
+    previousFactory: ui1.getEditorComponent(),
+  });
+  ui1.setEditorComponent(powerlineFactory);
+  assert.match(
+    stripSentinels(ui1.__editorFactory(NO_COLOR, {}, {}).render(60)[0]),
+    /Before reload/,
+  );
+
+  staleReaderThrows = true;
+  const { ui: ui2 } = makeUI(host);
+  const factory2 = await freshExtension();
+  const piBundle2 = makePi(() => "After reload", { ui: ui2 });
+  factory2(piBundle2.pi);
+  await piBundle2.emitSessionStart("reload");
+
+  assert.equal(ui2.getEditorComponent(), powerlineFactory);
+  const stripped = stripSentinels(
+    ui2.__editorFactory(NO_COLOR, {}, {}).render(60)[0],
+  );
+  assert.equal(stripped.split("After reload").length - 1, 1);
+  assert.doesNotMatch(stripped, /Before reload/);
+
+  // Title extension first, then Powerline re-registering on the new binding.
+  const replacementPowerline = makePowerlineFactory({
+    previousFactory: ui2.getEditorComponent(),
+  });
+  ui2.setEditorComponent(replacementPowerline);
+  assert.equal(ui2.getEditorComponent(), replacementPowerline);
+  const replaced = stripSentinels(
+    ui2.__editorFactory(NO_COLOR, {}, {}).render(60)[0],
+  );
+  assert.equal(replaced.split("After reload").length - 1, 1);
+});
+
 test("a reloaded extension instance uses its own session-name reader", async () => {
   const factory = await freshExtension();
   let name = "Before reload";
@@ -576,15 +674,13 @@ test("obsolete session-name reader that throws is not consulted after reload", a
   ui.setEditorComponent(makePowerlineFactory(track));
   let editor = ui.__editorFactory(NO_COLOR, {}, {});
 
-  // Reload with a working reader; the stale throwing reader must be dropped.
-  // Powerline re-registers its factory during session_start, as in real pi.
+  // Reload with a working reader. Reapplication must happen during session_start,
+  // before Powerline has another chance to register its factory.
   const factory2 = await freshExtension();
   const piBundle2 = makePi(() => "Fresh", { ui });
   factory2(piBundle2.pi);
   await piBundle2.emitSessionStart("reload");
-  ui.setEditorComponent(makePowerlineFactory(track));
   editor = ui.__editorFactory(NO_COLOR, {}, {});
-  // No throw, new title rendered.
   assert.match(stripSentinels(editor.render(60)[0]), /Fresh/);
 });
 
