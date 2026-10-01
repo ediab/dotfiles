@@ -23,6 +23,14 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 * Spawn subagents only for independent investigation, specialist work, or parallel work.
 * The main agent owns synthesis and verification of subagent results.
 
+## Jev — Pi only
+
+In Pi, when codemode exposes `models.classify()`, use Jev for non-obvious bounded judgments: choosing among eligible agents/models, filtering candidate search results, or classifying ambiguous failures. Skip it when deterministic code or an obvious decision suffices.
+
+Discover available Jev models with `await models.getAvailableOfType("classifier")`; prefer an available free Jev variant unless another is explicitly requested. Use `await models.classify(model, { state, questions })`. Questions support `choice`, `bool`, and `score`. Batch independent questions over the same state and send only the relevant, non-sensitive context.
+
+Check `stopReason === "stop"` and answer types before using results. Treat probabilities as advisory; resolve uncertain or failed classifications in the main context. Preserve authoritative sources and uncertain candidates when filtering. Existing approval, delegation, and validation rules remain authoritative.
+
 ## Changes
 
 * Preserve unrelated user changes; do not overwrite or revert them.
