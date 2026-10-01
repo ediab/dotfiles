@@ -11,8 +11,10 @@ by the root `link.sh`. Edit their repo sources and keep the links intact. No che
 |---|---|
 | `.zshrc`, `.zprofile`, `.zshenv`, `.tmux.conf` | matching files under `$HOME` |
 | `starship.toml` | `~/.config/starship.toml` |
+| `topgrade.toml` | `~/.config/topgrade.toml` |
 | `ghostty/config` | `~/.config/ghostty/config` |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` |
+| `herdr-auto-title/config.env` | `~/.config/herdr-auto-title/config.env` |
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
 

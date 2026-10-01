@@ -28,8 +28,10 @@ in this subtree into place.
 |---|---|
 | `.zshrc`, `.zprofile`, `.zshenv`, `.tmux.conf` | matching files under `$HOME` |
 | `starship.toml` | `~/.config/starship.toml` |
+| `topgrade.toml` | `~/.config/topgrade.toml` |
 | `ghostty/config` | `~/.config/ghostty/config` |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` |
+| `herdr-auto-title/config.env` | `~/.config/herdr-auto-title/config.env` |
 | `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
 | `vscode/extensions.txt` | saved extension inventory; refresh explicitly with `code --list-extensions` |

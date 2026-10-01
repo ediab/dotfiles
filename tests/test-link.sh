@@ -13,7 +13,7 @@ mkrepo() {
   cp "$ROOT/link.sh" "$REPO/"
   mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{agents,extensions,themes,skills/code-review} \
     "$REPO"/pi/extensions/subagent \
-    "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,rpiv-advisor,vscode}
+    "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,herdr-auto-title,rpiv-advisor,vscode}
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
@@ -22,7 +22,7 @@ mkrepo() {
   echo '{}' > "$REPO/pi/extensions/subagent/config.json"
   echo '{}' > "$REPO/claude/settings.json"; echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
   echo model > "$REPO/codex/config.toml"; echo '{}' > "$REPO/codex/hooks.json"
-  for f in .zshrc .zprofile .zshenv .tmux.conf starship.toml ghostty/config herdr/config.toml rpiv-advisor/advisor.json vscode/settings.json vscode/keybindings.json; do
+  for f in .zshrc .zprofile .zshenv .tmux.conf starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env rpiv-advisor/advisor.json vscode/settings.json vscode/keybindings.json; do
     echo "$f" > "$REPO/config/$f"
   done
 }
@@ -49,7 +49,9 @@ all_links() {
   if [ "$DARWIN" = 1 ]; then
     for f in .zshrc .zprofile .zshenv .tmux.conf; do points "$H/$f" config/$f; done
     points "$H/.config/starship.toml" config/starship.toml
+    points "$H/.config/topgrade.toml" config/topgrade.toml
     points "$H/.config/ghostty/config" config/ghostty/config
+    points "$H/.config/herdr-auto-title/config.env" config/herdr-auto-title/config.env
     points "$H/.config/rpiv-advisor/advisor.json" config/rpiv-advisor/advisor.json
     points "$H/Library/Application Support/Code/User/keybindings.json" config/vscode/keybindings.json
   fi

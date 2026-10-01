@@ -1,0 +1,39 @@
+# Topgrade — the manual, non-Brew maintenance command.
+#
+# Source of ~/.config/topgrade.toml (linked by link.sh). Run manually:
+#   topgrade --dry-run   # preview exactly what will run
+#   topgrade             # run the selected steps (routine in config/docs/maintenance.md)
+#
+# Policy (config/docs/maintenance.md):
+#   - Homebrew formulae and casks are upgraded only by the allowlisted
+#     `brew autoupdate` job — never by Topgrade.
+#   - macOS system updates and Microsoft Office use their own updaters.
+#   - App Store apps update via the existing mas-autoupdate launch agent.
+#   - No automatic Git pulls and no remote hosts: Topgrade never touches
+#     repositories or SSH machines.
+#
+# `only` is the explicit allowlist of selected steps. Everything else —
+# including Brew, macOS, App Store, Office, gems and git repos — is skipped
+# whether or not it is installed. Re-check this list after installing a new
+# package manager (its step will stay off until added here).
+
+[misc]
+only = [
+  "antigravity_cli",
+  "bun",
+  "bun_packages",
+  "claude_code",
+  "claude_code_plugins",
+  "gcloud",
+  "github_cli_extensions",
+  "node",               # global npm packages ("Node Package Manager")
+  "pi",
+  "rustup",
+  "shell",              # oh-my-zsh
+  "skills",
+  "tmux",               # tpm plugin updates
+  "tldr",               # tldr pages database
+  "uv",
+  "vscode",             # VS Code extensions
+]
+remote_topgrades = []   # never update remote machines over SSH
