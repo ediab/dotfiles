@@ -12,12 +12,14 @@ mkrepo() {
   rm -rf "$REPO"; mkdir -p "$REPO"
   cp "$ROOT/link.sh" "$REPO/"
   mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{agents,extensions,themes,skills/code-review} \
+    "$REPO"/pi/extensions/subagent \
     "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,rpiv-advisor,vscode}
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
   echo agent > "$REPO/pi/agents/worker.md"; echo ext > "$REPO/pi/extensions/env-loader.ts"; echo theme > "$REPO/pi/themes/t.json"
-  for f in settings web-search subagents open-tui pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json on purpose
+  for f in settings web-search open-tui pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
+  echo '{}' > "$REPO/pi/extensions/subagent/config.json"
   echo '{}' > "$REPO/claude/settings.json"; echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
   echo model > "$REPO/codex/config.toml"; echo '{}' > "$REPO/codex/hooks.json"
   for f in .zshrc .zprofile .zshenv .tmux.conf starship.toml ghostty/config herdr/config.toml rpiv-advisor/advisor.json vscode/settings.json vscode/keybindings.json; do
@@ -33,7 +35,8 @@ expect_status() { # expect_status <code> <message>; uses $out and $rc from the l
 go() { rc=0; out="$(run 2>&1)" || rc=$?; }
 all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
-  for f in web-search subagents open-tui pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
+  for f in web-search open-tui pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
+  [ -f "$H/.pi/agent/extensions/subagent/config.json" ] || fail 'subagent runtime config not reachable through the extensions link'
   for d in agents extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
   points "$H/.pi/agent/skills/code-review" pi/skills/code-review
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
@@ -55,6 +58,7 @@ all_links() {
 echo "1. nothing there: create parents and link; missing repo source is not an error"
 mkrepo; mkhome; go; expect_status 0 fresh; all_links
 [ ! -e "$H/.pi/agent/mcp.json" ] || fail 'mcp.json should not exist'
+[ ! -e "$H/.pi/agent/subagents.json" ] || fail 'retired subagents.json should not be linked'
 [ "$DARWIN" = 1 ] || [ ! -e "$H/.zshrc" ] || fail 'config links must be macOS-only'
 
 echo "2. already correct: leave alone, print nothing, write nothing"
@@ -104,6 +108,15 @@ go; expect_status 0 cleanup
 [ -L "$H/.claude/skills/foreign-broken" ] && [ -f "$H/.claude/skills/synced/f" ] || fail 'removed something not ours'
 points "$H/.claude/skills/alpha" agents/skills/alpha
 
+echo "7b. retired link: a dangling link into the repo goes, a foreign one stays"
+ln -s "$REPO/pi/subagents.json" "$H/.pi/agent/subagents.json"
+go; expect_status 0 retired
+[ ! -e "$H/.pi/agent/subagents.json" ] && [ ! -L "$H/.pi/agent/subagents.json" ] || fail 'retired repo link kept'
+ln -s /nowhere/elsewhere "$H/.pi/agent/subagents.json"
+go; expect_status 0 retiredforeign
+[ -L "$H/.pi/agent/subagents.json" ] || fail 'removed a foreign link'
+rm -f "$H/.pi/agent/subagents.json"
+
 echo "8. skill added under ~/.agents/skills lands in the repo and gets a Claude link on the next run"
 mkdir "$H/.agents/skills/gamma"; echo gamma > "$H/.agents/skills/gamma/SKILL.md"
 [ -f "$REPO/agents/skills/gamma/SKILL.md" ] || fail 'new skill not in repo'
@@ -125,7 +138,7 @@ for i in $(seq 1 "${ROUNDS:-5}"); do
   mkhome; mkdir -p "$H/.pi/agent" "$H/.claude/skills"
   cp -R "$REPO/pi/themes" "$H/.pi/agent/themes"           # identical folder
   ln -s /nowhere "$H/.pi/agent/settings.json"              # other symlink
-  cp "$REPO/pi/subagents.json" "$H/.pi/agent/subagents.json" # identical file
+  cp "$REPO/pi/pi-btw.json" "$H/.pi/agent/pi-btw.json"       # identical file
   ( run > "$WORK/a.out" 2>&1; echo $? > "$WORK/a.rc" ) &
   ( run > "$WORK/b.out" 2>&1; echo $? > "$WORK/b.rc" ) &
   wait

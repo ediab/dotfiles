@@ -40,7 +40,7 @@ link() { # link <repo-relative source> <destination>
   else echo "SKIP $dst (differs from repo)"; skipped=1; fi
 }
 
-for f in settings web-search subagents open-tui pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+for f in settings web-search open-tui pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link pi/skills/code-review "$H/.pi/agent/skills/code-review"
@@ -66,5 +66,11 @@ flush
 for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/*; do
   [ -L "$p" ] && [ ! -e "$p" ] || continue
   case "$(readlink "$p")" in "$REPO"/*) echo "remove broken $p"; rm -f "$p";; esac
+done
+
+# Retired links: pi-subagents keeps runtime config in extensions/subagent/config.json
+for p in "$H/.pi/agent/subagents.json"; do
+  [ -L "$p" ] && [ ! -e "$p" ] || continue
+  case "$(readlink "$p")" in "$REPO"/*) echo "remove retired $p"; rm -f "$p";; esac
 done
 exit "$skipped"

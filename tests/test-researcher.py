@@ -1,50 +1,65 @@
 #!/usr/bin/env python3
-"""Check restricted researcher configuration against the installed extension matcher."""
+"""Check the researcher profile's restricted tool scope and its web-tool provider."""
 import os
 from pathlib import Path
-import shutil
-import subprocess
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+PROFILE = ROOT / 'pi/agents/researcher.md'
+EXPECTED_EXCLUDES = ['bash', 'edit', 'write']
+
+
+def frontmatter(path):
+    """Return the leading --- block as a field mapping (inline lists only)."""
+    block = path.read_text().partition('---\n')[2].partition('\n---')[0]
+    fields = {}
+    for line in block.splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        key, _, value = line.partition(':')
+        fields[key.strip()] = value.strip()
+    return fields
+
+
+def listed(value):
+    if not value.startswith('['):
+        return [value]
+    return [item.strip().strip('"\'') for item in value[1:-1].split(',') if item.strip()]
 
 
 class ResearcherTests(unittest.TestCase):
-    def test_restricted_tools(self):
-        text = (ROOT / 'pi/agents/researcher.md').read_text()
-        tools = next(line for line in text.splitlines() if line.startswith('tools:'))
-        self.assertEqual(tools, 'tools: [read, "ext:pi-web-access/web_search", "ext:pi-web-access/fetch_content", "ext:pi-web-access/get_search_content", "ext:pi-web-access/source_check"]')
-        self.assertIn('skills: false', text)
-        self.assertIn('disabled, unavailable, or fails', text)
+    def setUp(self):
+        self.fields = frontmatter(PROFILE)
 
-    def test_entry_matches_extension_selectors(self):
-        installed = Path.home() / '.pi/agent/npm/node_modules'
-        runner = installed / '@tintinweb/pi-subagents/dist/agent-runner.js'
-        if not runner.exists() or not shutil.which('node'):
-            self.skipTest('Installed pi-subagents and Node are required for the matcher check')
-        # Isolate the actual pure matcher. Importing the whole runner outside Pi would
-        # require Pi's host-supplied peer dependency resolver and create a false failure.
-        script = r'''
-import assert from 'node:assert/strict';
-import {readFileSync, existsSync} from 'node:fs';
-const profile = readFileSync(process.env.PROFILE, 'utf8');
-const field = profile.split('\n').find(line => line.startsWith('extensions:'));
-const entries = JSON.parse(field.slice('extensions:'.length));
-assert.equal(entries.length, 1);
-const entry = entries[0].replace(/^~\//, process.env.HOME + '/');
-assert(existsSync(entry), 'Research extension source entry is missing');
-const source = readFileSync(process.env.RUNNER, 'utf8');
-const start = source.indexOf('export function extensionCanonicalName(');
-const end = source.indexOf('export function parseExtensionsSpec(', start);
-assert(start >= 0 && end > start, 'Installed matcher changed; recheck its contract');
-const prefix = 'import {readFileSync} from "node:fs"; import {basename,dirname,resolve} from "node:path";\n';
-const module = await import('data:text/javascript;base64,' + Buffer.from(prefix + source.slice(start, end)).toString('base64'));
-assert(module.extensionCanonicalNames(entry).includes('pi-web-access'), 'Web extension cannot match the profile tool selectors');
-'''
-        result = subprocess.run(['node', '--input-type=module'], input=script, text=True,
-                                capture_output=True, env=dict(os.environ,
-                                PROFILE=str(ROOT / 'pi/agents/researcher.md'), RUNNER=str(runner)))
-        self.assertEqual(result.returncode, 0, result.stderr)
+    def test_restricted_tools(self):
+        # pi-subagents 0.74.0 cannot honour a `tools` allowlist on Pi 0.99.2, so the
+        # researcher's scope is a denylist over the child's default tools.
+        self.assertNotIn('tools:', PROFILE.read_text())
+        self.assertEqual(listed(self.fields['excludeTools']), EXPECTED_EXCLUDES)
+
+    def test_web_tools_come_from_ambient_providers(self):
+        # Foreground children cannot load providers, so the researcher runs as a
+        # background child, where pi-web-access registers the web tools.
+        self.assertEqual(self.fields['async'], 'true')
+        self.assertNotIn('extensions', self.fields)
+
+    def test_no_tintin_extension_selectors(self):
+        self.assertIsNone(re.search(r'"ext:', PROFILE.read_text()))
+
+    def test_source_check_stays_disabled(self):
+        # web-search.json disables source_check; the profile must not require it.
+        self.assertNotIn('source_check', PROFILE.read_text().partition('---\n')[2].partition('\n---')[0])
+        self.assertIn('inspect the original source directly', PROFILE.read_text())
+
+    def test_web_provider_is_installed(self):
+        provider = Path(os.path.expanduser('~/.pi/agent/npm/node_modules/pi-web-access/dist/index.js'))
+        if not provider.exists():
+            self.skipTest(f'Installed pi-web-access is required for this check (missing {provider})')
+        self.assertTrue(provider.is_file())
+
+    def test_web_enable_is_documented(self):
+        self.assertIn('web_enable', PROFILE.read_text())
 
 
 if __name__ == '__main__':

@@ -1,10 +1,14 @@
 ---
 name: reviewer
 description: Fresh-context code review of a diff or changeset — correctness, security, architecture, performance. Report-only, never fixes. Use when the user explicitly requests a review subagent; ordinary review requests, and substantial changes on their own, stay in the current session.
-color: cyan
-tools: [read, bash, grep, find, ls]
-skills: false
-extensions: false
+advertise: true
+extensions: []
+excludeTools: [edit, write]
+systemPromptMode: append
+inheritProjectContext: true
+inheritGlobalContext: true
+inheritSkills: false
+defaultContext: fresh
 ---
 
 Read `~/.pi/agent/AGENTS.md` and any project `AGENTS.md` before starting.

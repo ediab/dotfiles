@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings. In pi, launch both `reviewer` profiles with two `Agent` calls in one message (foreground, so both results come back together); they count as two leaf agents toward the owner's delegation cap.
+Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings. In pi, launch both `reviewer` children inside one foreground workflow script (`runs.all`), so both results come back together; they count as two leaf agents toward the owner's delegation cap.
 
 Spec-compass find: this skill's two subagents are the one pre-authorized review delegation — running this skill is enough to spawn them, no extra "use a reviewer subagent" request needed (per personal-workflow).
 
@@ -59,19 +59,29 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 
 ### 4. Spawn both sub-agents in parallel
 
-**Standards sub-agent** runs as a `reviewer` subagent with `inherit_context: false`. Its prompt should include:
+Launch both as children of one foreground workflow, so they run concurrently and return together. Write the script as a ```js workflow block in the reply, then call `subagent({ workflow: true, async: false })` in the same reply:
+
+```js workflow
+const [standards, spec] = await runs.all([
+  { key: "standards", label: "Review standards compliance", agent: "reviewer", context: "fresh", task: "<standards brief>" },
+  { key: "spec", label: "Review spec conformance", agent: "reviewer", context: "fresh", task: "<spec brief>" }
+]);
+return "## Standards\n\n" + standards.output + "\n\n## Spec\n\n" + spec.output;
+```
+
+**Standards child brief** — its `task` should include:
 
 - The full diff command and commit list.
-- The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the sub-agent has no other access to it).
+- The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full (the child has no other access to it).
 - The brief: "Report, per file/hunk where relevant, (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls: documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
 
-**Spec sub-agent** is also a `reviewer` subagent with `inherit_context: false`. Its prompt should include:
+**Spec child brief** — its `task` should include:
 
 - The diff command and commit list.
 - The path or fetched contents of the spec.
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
 
-If the spec is missing, skip the Spec sub-agent and note this in the final report.
+If the spec is missing, drop the Spec child from `runs.all` (and the second section from the returned text) and note this in the final report.
 
 ### 5. Aggregate
 

@@ -1,0 +1,11 @@
+{
+  "asyncByDefault": false,
+  "globalConcurrencyLimit": 4,
+  "parallel": {
+    "concurrency": 4
+  },
+  "maxActiveAsyncRunsPerSession": 4,
+  "maxSubagentDepth": 2,
+  "toolDescriptionMode": "compact",
+  "artifactDir": "session"
+}

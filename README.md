@@ -13,7 +13,8 @@ agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
 pi/skills/code-review  -> ~/.pi/agent/skills/code-review (Pi-only)
 pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
-pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, subagents, open-tui, pi-btw, mcp)
+pi/extensions/subagent/config.json -> ~/.pi/agent/extensions/subagent/config.json (pi-subagents runtime config)
+pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, open-tui, pi-btw, mcp)
 claude/                -> ~/.claude/ (settings.json, statusline-command.sh)
 codex/                 -> ~/.codex/ (config.toml, hooks.json)
 config/                other dotfiles (zsh, tmux, ghostty, starship, herdr, VS Code, VPS files)
@@ -34,7 +35,8 @@ For each `source -> destination`:
 
 Also: Claude entries are skipped if `~/.claude` is missing, Codex entries if `~/.codex` is
 missing, and `config/` links run only on macOS. Broken links into this repo in
-`~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills). Links
+`~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills), as are
+retired links such as `~/.pi/agent/subagents.json` from the old Tintin pi-subagents. Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,
 so concurrent runs never see a half-made link.
 
@@ -76,7 +78,8 @@ link per skill; `link.sh` creates them. Create new personal skills in `~/.agents
 ```sh
 bash tests/test-link.sh            # link.sh against a fake HOME (never the real one)
 bash tests/test-app-deploy.sh
-python3 tests/test-researcher.py
+python3 tests/test-researcher.py   # researcher scope and its web-tool provider
+python3 tests/test-subagents.py    # pi-subagents migration contract (package, profiles, config)
 ```
 
 Credits for copied-in skills: [`agents/ATTRIBUTION.md`](agents/ATTRIBUTION.md).

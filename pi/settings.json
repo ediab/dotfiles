@@ -27,24 +27,35 @@
     "npm:pi-web-access",
     "npm:@ff-labs/pi-fff",
     "npm:pi-code-previews",
-    "npm:@tintinweb/pi-subagents",
     "npm:@juicesharp/rpiv-ask-user-question",
     "git:github.com/earendil-works/pi-review",
     "npm:@narumitw/pi-btw",
     "npm:@saccolabs/pi-claude-cli",
     "npm:pi-extmgr",
     "npm:pi-powerline-footer",
-    "npm:pi-title"
+    "npm:pi-title",
+    {
+      "source": "npm:pi-subagents@0.74.0",
+      "skills": [
+        "skills/pi-subagents/**"
+      ],
+      "prompts": []
+    }
   ],
+  "subagents": {
+    "disableBuiltins": true,
+    "watchdog": {
+      "enabled": false,
+      "children": {
+        "enabled": false
+      }
+    }
+  },
   "powerline": {
     "preset": "default",
     "placement": "below",
     "cache_read": {
       "format": "both"
-    },
-    "cost": {
-      "subscriptionDisplay": "reported-cost",
-      "currency": "GBP"
     }
   }
 }

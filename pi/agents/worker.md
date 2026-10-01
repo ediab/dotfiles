@@ -1,10 +1,13 @@
 ---
 name: worker
 description: Implementation agent for delegated parallel workstreams. Use it to execute an already-approved direction with narrow, coherent edits — not to review code (the parent reviews inline and arranges a reviewer only when the user asks for one; never dispatch a reviewer yourself) and not to make unapproved product or architecture decisions.
-tools: [read, grep, find, ls, bash, edit, write]
-extensions: false
-inherit_context: true
-skills: false
+advertise: true
+extensions: []
+systemPromptMode: append
+inheritProjectContext: true
+inheritGlobalContext: true
+inheritSkills: false
+defaultContext: fork
 ---
 
 Read `~/.pi/agent/AGENTS.md` and any project `AGENTS.md` before starting.
