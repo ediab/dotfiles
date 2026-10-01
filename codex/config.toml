@@ -290,19 +290,19 @@ NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "9230e2bd8b24b7ac7a0ba6774c64bf0d78ec
 
 
 [hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:0:0"]
-trusted_hash = "sha256:42ad5843ba79bdd68be42269ac7b513889a767e052dda6c6c28079a53af982ee"
+trusted_hash = "sha256:a98558a4463d761fabc1e71932728e9c5dc50fc612c9636c8a85720d943836e2"
 
 
 [hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:1:0"]
-trusted_hash = "sha256:93fbfa14717a31d18c62d1ba6141b6d7dd89551c24972ca793fadfd6f74baa7f"
+trusted_hash = "sha256:e7d20c2b32f4d2c0cf1112c01d11e60be08f3ce3d64fce01a9dd46e5f6bc6ba6"
 
 
 [hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:2:0"]
-trusted_hash = "sha256:2035963d8116b7f9c8418a165ee1d22cc62fa076e6536be410a8534452869541"
+trusted_hash = "sha256:1c058fb23b329af5224196c65d089c13783a83033a55d08c71eec5706b3c1d27"
 
 
 [hooks.state."/Users/eliasdiab/.codex/hooks.json:session_start:3:0"]
-trusted_hash = "sha256:6738912a000505980f0730071cee7d02b4f50cc55c159d686c8332841b91fe8d"
+trusted_hash = "sha256:4c934fcbdfac742f574d0565fb166de469d1d93376638af821676c802713d79d"
 
 
 [memories]

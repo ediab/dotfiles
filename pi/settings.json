@@ -22,7 +22,7 @@
   },
   "showCacheMissNotices": true,
   "deviceId": "4867752c-ac6b-43a5-85b4-aeada0361eaf",
-  "lastChangelogVersion": "0.99.2",
+  "lastChangelogVersion": "1.0.0",
   "packages": [
     "npm:pi-web-access",
     "npm:@ff-labs/pi-fff",
@@ -36,7 +36,9 @@
     "npm:pi-title",
     {
       "source": "npm:pi-subagents@0.74.0",
-      "skills": ["skills/pi-subagents/**"],
+      "skills": [
+        "skills/pi-subagents/**"
+      ],
       "prompts": []
     }
   ],
@@ -44,7 +46,9 @@
     "disableBuiltins": true,
     "watchdog": {
       "enabled": false,
-      "children": { "enabled": false }
+      "children": {
+        "enabled": false
+      }
     }
   },
   "powerline": {
