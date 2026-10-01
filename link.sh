@@ -41,6 +41,7 @@ link() { # link <repo-relative source> <destination>
 }
 
 for f in settings web-search subagents open-tui pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link pi/skills/code-review "$H/.pi/agent/skills/code-review"
 link agents/AGENTS.md "$H/.pi/agent/AGENTS.md"

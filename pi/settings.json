@@ -33,7 +33,8 @@
     "npm:@narumitw/pi-btw",
     "npm:@saccolabs/pi-claude-cli",
     "npm:pi-extmgr",
-    "npm:pi-powerline-footer"
+    "npm:pi-powerline-footer",
+    "npm:pi-title"
   ],
   "powerline": {
     "preset": "default",
