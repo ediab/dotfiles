@@ -89,10 +89,6 @@ export PI_SUBAGENT_SHELL_READY_DELAY_MS=1200
 
 # Ruby
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
-[[ -f /opt/homebrew/opt/chruby/share/chruby/chruby.sh ]] && \
-  source /opt/homebrew/opt/chruby/share/chruby/chruby.sh
-[[ -f /opt/homebrew/opt/chruby/share/chruby/auto.sh ]] && \
-  source /opt/homebrew/opt/chruby/share/chruby/auto.sh
 
 # Bun
 export BUN_INSTALL="$HOME/.bun"
@@ -115,27 +111,7 @@ export PATH="$HOME/.antigravity-ide/antigravity-ide/bin:$PATH"
 # 4. PYTHON
 # ==============================================
 
-# Pyenv — init order matters, shims must land early in PATH.
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-if command -v pyenv >/dev/null 2>&1; then
-  eval "$(pyenv init --path)"
-  # CHANGED: lazy-load `pyenv init -` and `pyenv virtualenv-init -`.
-  # The --path init (above) is cheap and sets up shims; the full init
-  # (completions + pyenv shell) is deferred until first `pyenv` call.
-  pyenv() {
-    unfunction pyenv virtualenv 2>/dev/null
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
-    pyenv "$@"
-  }
-  virtualenv() {
-    unfunction pyenv virtualenv 2>/dev/null
-    eval "$(pyenv init -)"
-    eval "$(pyenv virtualenv-init -)"
-    virtualenv "$@"
-  }
-fi
+# Python runs via uv; pyenv removed (was only 3.10.13 + orphaned passport_bot env).
 
 
 # ==============================================
