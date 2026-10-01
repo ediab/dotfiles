@@ -38,9 +38,6 @@ interface UIState {
 	inner: EditorFactory | undefined;
 }
 
-/** Every name reader used by a live patch, so reloads drop stale closures. */
-const readers = new Set<() => string | undefined>();
-
 /** Strip ANSI/OSC/other terminal sequences, control chars, collapse whitespace, trim. */
 function sanitizeName(raw: string): string {
 	return (
@@ -161,13 +158,9 @@ function installPatch(
 		inner: undefined,
 	};
 
-	const staleNameReader = state.inner;
+	// Each wrapper closes over its own reader, so a reloaded instance never consults
+	// a stale closure from the previous one.
 	const reader = () => pi.getSessionName();
-	if (staleNameReader) {
-		readers.delete(staleNameReader as unknown as () => string | undefined);
-	}
-	readers.clear(); // drop readers from prior patched instances of this extension
-	readers.add(reader);
 
 	state.inner = undefined;
 	ui[UI_STATE] = state;
