@@ -5,27 +5,22 @@ The single repository is `ediab/dotfiles`, checked out at `~/Dev/dotfiles`; do n
 second configs checkout. This directory holds ordinary Mac settings and app/VPS configuration.
 No chezmoi migration is assumed.
 
-See the [top-level README](../README.md) for the manual save/apply workflow, agent-content
-ownership, scoped configuration commands, and separately requested deployment.
+See the [top-level README](../README.md) for the layout and `link.sh`, which links everything
+in this subtree into place.
 
 ## Ownership boundaries
 
-- Ordinary home files are symlinked from this subtree. Edit their repo sources; keep the
-  existing links intact. These edits are already live.
-- Agent content lives in the top-level `home/` directory. `sync-agent-content.sh` alone owns
-  shared/Pi-only skills, Claude links, generated instructions, and the local manifest/backups.
-- Save application-written preferences explicitly. Review, commit, and push changes yourself.
-  Use the explicitly invoked `update-dotfiles` skill for save/apply guidance once deployed.
+- Ordinary home files are symlinked from this subtree by `../link.sh` (macOS only). Edit their
+  repo sources; the edits are already live.
+- Agent content (skills, instructions, Pi/Claude/Codex settings) is not owned by this subtree.
+  It lives in `../agents/`, `../pi/`, `../claude/` and `../codex/` and is linked by the same
+  `link.sh`.
+- Review, commit, and push changes yourself. There is no automatic capture/commit/push or VPS
+  synchronization. The two old jobs were persistently disabled and their installed plists
+  removed on this Mac.
 - VPS deployment is separate and requires an explicit request. Maintained deployment helpers
   copy/merge configuration and perform only their documented optional reloads. Software,
   services, timers, and system policy are separate operations.
-- There is no automatic capture/commit/push or VPS synchronization. The two old jobs were
-  persistently disabled and their installed plists removed on this Mac.
-
-Machine-local agent state intentionally keeps its legacy names across the repository rename:
-`~/.local/state/pi-dotfiles/` (manifest/backups), `~/.config/pi-dotfiles/local/` (instruction
-overlays), and `~/.cache/pi-dotfiles-agent-content/` (VPS staging). These paths preserve
-existing ownership and avoid a new adoption migration.
 
 ## Ordinary home files
 
@@ -51,54 +46,33 @@ existing ownership and avoid a new adoption migration.
 
 ## Explicit VPS/app configuration deployment
 
-Choose only the scope requested; there is no four-step orchestrator or background job:
+Choose only the scope requested; there is no orchestrator or background job:
 
 ```sh
-./deploy-vps.sh vps                     # repo-source agent configuration (from repo root)
 ./config/vps/deploy-vps.sh              # shell files + ~/apps/AGENTS.md, optional tmux reload
 ./config/herdr/deploy-vps.sh            # Herdr config + reload
 ./config/druk/deploy-druk.sh            # local settings/pi-opener only
 DEPLOY_DRUK_HOST=vps ./config/druk/deploy-druk.sh  # also merge remote settings
 ```
 
-Agent deployment preserves remote auth, runtime state, package declarations, and machine
-settings. Its manifest requires separate explicit remote adoption and a clean preflight;
-see the root README for staging/adoption guidance. The VPS helper does not install weekly
+The VPS helper does not install weekly
 upkeep, services, or apt policy; those operational assets remain here but require separate
 installation/maintenance. Druk deployment does not download extensions; `extensions.txt`
 remains an inventory.
 
-## Setup and app-specific sync
+## Setup
 
-Clone the unified repository:
+Clone the unified repository and run the linker; it creates the home-file links above (skipping
+any destination whose contents differ from the repo, and exiting 1):
 
 ```sh
 git clone git@github.com:ediab/dotfiles.git ~/Dev/dotfiles
+~/Dev/dotfiles/link.sh
 ```
 
-Current local links point into `~/Dev/dotfiles/config/`. On a new Mac, create the parent
-folders first, then link the managed sources:
-
-```sh
-cd ~/Dev/dotfiles
-ln -s "$PWD/config/.zshrc" ~/.zshrc
-ln -s "$PWD/config/.zprofile" ~/.zprofile
-ln -s "$PWD/config/.zshenv" ~/.zshenv
-ln -s "$PWD/config/.tmux.conf" ~/.tmux.conf
-mkdir -p ~/.config/ghostty ~/.config/herdr ~/.config/rpiv-advisor
-ln -s "$PWD/config/starship.toml" ~/.config/starship.toml
-ln -s "$PWD/config/ghostty/config" ~/.config/ghostty/config
-ln -s "$PWD/config/herdr/config.toml" ~/.config/herdr/config.toml
-ln -s "$PWD/config/rpiv-advisor/advisor.json" ~/.config/rpiv-advisor/advisor.json
-mkdir -p "$HOME/Library/Application Support/Code/User"
-ln -s "$PWD/config/vscode/settings.json" "$HOME/Library/Application Support/Code/User/settings.json"
-ln -s "$PWD/config/vscode/keybindings.json" "$HOME/Library/Application Support/Code/User/keybindings.json"
-```
-
-Inspect existing destinations first; preserve or back them up rather than replacing files
-or links blindly. Software installation is separate from applying these links. `Brewfile`
-is an inventory for a separately requested Homebrew install, not a dotfiles apply step.
-No machine installer or background-job installation is provided.
+Software installation is separate. `Brewfile` is an inventory for a separately requested
+Homebrew install (`brew bundle --file=config/Brewfile`). No machine installer or
+background-job installation is provided.
 
 For separately requested tmux plugin installation, TPM can be installed manually:
 

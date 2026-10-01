@@ -25,7 +25,7 @@ This file is versioned in the dotfiles repo at `config/vps/apps-AGENTS.md` and d
 - Kernels left over from reboots are reaped by `Remove-Unused-Kernel-Packages` during unattended runs; the weekly cleanup only runs `autoremove`.
 - A reboot is cut short of an in-flight deploy by the `vps-deploy-inhibit` shutdown inhibit.
 
-## Weekly upkeep (com.diab.sync-vps deploys these; timers are user units)
+## Weekly upkeep (installed separately; timers are user units)
 
 - `~/bin/vps-cleanup.sh` — Sunday 04:30: caps the Docker build cache at 3 GB (`--max-used-space`; the older `--keep-storage` is a *floor*, not a cap), removes images no container uses except the protected build bases (the Playwright image greek_embassy_bot builds from), clears runner/npm/apt caches and runs `apt-get autoremove`. It takes the same `~/.cache/vps-deploy.lock` as `vps-deploy.sh` so pruning cannot race a build, is `--dry-run`-able, is idempotent, and exits non-zero if a step failed. The journal cap is soft — active journal files are exempt. Log: `~/logs/vps-cleanup.log`.
 - `~/bin/vps-update-images.sh` — Sunday 05:30: stops each third-party-image project (note-sx, karakeep-app), snapshots its data into `~/backups/<app>/` (3 generations), verifies the archive with `tar -tzf` and refuses to pull if it is unusable, then pulls, recreates, health-checks, and re-tags the recorded image IDs if the project ends up unhealthy. Takes the same lock as `vps-deploy.sh`. Log: `~/logs/vps-update-images.log`.

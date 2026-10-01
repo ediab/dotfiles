@@ -2,8 +2,8 @@
 
 This directory is the history-preserving import of the former standalone configuration
 checkout. The one current checkout is `~/Dev/dotfiles`; do not create or edit a separate
-configs checkout. Ordinary local home files are sourced from `config/` through existing
-symlinks. Edit their repo sources and keep the links intact. No chezmoi migration is assumed.
+configs checkout. Ordinary local home files are sourced from `config/` through symlinks made
+by the root `link.sh`. Edit their repo sources and keep the links intact. No chezmoi migration is assumed.
 
 ## Ordinary home files
 
@@ -22,27 +22,14 @@ symlinks. Edit their repo sources and keep the links intact. No chezmoi migratio
 - `github.copilot.enable: false` disables Copilot completions.
 - `vscode/extensions.txt` is a saved inventory; refresh it explicitly from `code --list-extensions` when requested.
 
-## Agent content and manual updates
+## Agent content
 
-Pi/agent content is not owned by this subtree. Sources live in the repository-root `home/`,
-and `sync-agent-content.sh` owns managed skills, Claude links, generated instructions, and
-its local manifest/backups. Use `/skill:update-dotfiles` when explicitly invoked for the
-save/apply procedure; `local-env` supplies environment facts. Editing dotfiles does not
-implicitly authorize applying other configuration, managing packages, committing, pushing,
-or VPS deployment.
-
-Read the root README before choosing a command. `apply.sh` requires explicit files/groups
-and previews by default; `--yes` applies only that scope. Settings preserve machine-local
-fields and package declarations unless separately authorized. There is no automatic capture,
-commit/push, or VPS synchronization. The old Mac jobs were persistently disabled and their
-installed definitions removed; do not recreate them.
-
-The following local agent state paths intentionally keep their legacy names so manifests,
-backups, and overlays remain discoverable after the repository rename:
-
-- `~/.local/state/pi-dotfiles/` — manifest and backups;
-- `~/.config/pi-dotfiles/local/` — machine-local instruction overlays;
-- `~/.cache/pi-dotfiles-agent-content/` — staged VPS agent content.
+Agent content is not owned by this subtree. Skills, instructions and Pi/Claude/Codex settings
+live in the repository-root `agents/`, `pi/`, `claude/` and `codex/`, and the root `link.sh`
+links them into place. Read the root README before changing links. Editing dotfiles does not
+implicitly authorize committing, pushing, managing packages, or VPS deployment. There is no
+automatic capture, commit/push, or VPS synchronization. The old Mac jobs were persistently
+disabled and their installed definitions removed; do not recreate them.
 
 ## VPS access and deployment
 
@@ -81,17 +68,10 @@ by configuration deployment; do not infer live health from these source definiti
 
 For an explicitly requested deployment, choose only the requested helper:
 
-- `~/Dev/dotfiles/deploy-vps.sh` — repo-source agent/Pi configuration; no auth/runtime
-  mirroring, package commands, or package-declaration changes;
 - `config/vps/deploy-vps.sh` — shell files and app-root instructions, optional tmux reload;
 - `config/herdr/deploy-vps.sh` — Herdr config and reload;
 - `config/druk/deploy-druk.sh` — local editor preference merge and pi-opener config;
   `DEPLOY_DRUK_HOST=vps` also merges remote settings. No extension downloads.
 
-There is no all-app orchestrator or change-triggered deployment.
-
-On an explicitly requested first agent-content deployment, stage with
-`~/Dev/dotfiles/deploy-vps.sh --prepare-agent-content vps`, review the remote `--adopt`
-dry run, and obtain approval before `--adopt --yes`. Verify the remote manifest and clean
-no-write preflight before normal deployment. Local adoption never grants remote adoption
-permission. Do not reinstall retired automatic capture or VPS-sync jobs.
+There is no all-app orchestrator or change-triggered deployment. Agent content is not deployed
+to the VPS yet; that migration is a separate, separately approved step.

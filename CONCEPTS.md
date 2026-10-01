@@ -1,5 +1,0 @@
-# Concepts
-
-Shared domain vocabulary for this project — entities, named processes, and status concepts with project-specific meaning. Direct edits are fine. Glossary only, not a spec or catch-all.
-
-- **shared-skill shadow** — the `skills` entries `!**/.agents/skills/use-tinyfish` and `!**/.agents/skills/simplify` in `home/settings.json`. External installers write their bundled skills to *every* harness dir they have recorded, including the canonical `~/.agents/skills/` that serves codex/cursor/opencode — and pi scans that dir too, so the same skill existed twice and pi printed a `[Skill conflict]` warning (`~/.pi/agent/skills` wins, `~/.agents/skills` skipped). TinyFish's CLI (`writeWebSkill`) did this for `use-tinyfish`; an `agentskills.io` installer did it for `simplify` (from `howells/skills`, see `.skill-lock.json`). The `!` globs disable pi's view of the shared copies while leaving pi's own copies (and other harnesses') intact; they are pi-side state, so they survive installer rewrites. Paths must be absolute or glob-rooted (`**/…`) — pi does not expand `~` in these override patterns.

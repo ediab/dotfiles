@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ResearcherTests(unittest.TestCase):
     def test_restricted_tools(self):
-        text = (ROOT / 'home/agents/researcher.md').read_text()
+        text = (ROOT / 'pi/agents/researcher.md').read_text()
         tools = next(line for line in text.splitlines() if line.startswith('tools:'))
         self.assertEqual(tools, 'tools: [read, "ext:pi-web-access/web_search", "ext:pi-web-access/fetch_content", "ext:pi-web-access/get_search_content", "ext:pi-web-access/source_check"]')
         self.assertIn('skills: false', text)
@@ -43,7 +43,7 @@ assert(module.extensionCanonicalNames(entry).includes('pi-web-access'), 'Web ext
 '''
         result = subprocess.run(['node', '--input-type=module'], input=script, text=True,
                                 capture_output=True, env=dict(os.environ,
-                                PROFILE=str(ROOT / 'home/agents/researcher.md'), RUNNER=str(runner)))
+                                PROFILE=str(ROOT / 'pi/agents/researcher.md'), RUNNER=str(runner)))
         self.assertEqual(result.returncode, 0, result.stderr)
 
 
