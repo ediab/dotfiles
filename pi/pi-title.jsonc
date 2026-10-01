@@ -2,5 +2,5 @@
   "enabled": true,
   "model": "openai/gpt-6-luna",
   "maxTokens": 30,
-  "maxLength": 60
+  "maxLength": 40
 }

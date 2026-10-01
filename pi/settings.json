@@ -36,9 +36,7 @@
     "npm:pi-title",
     {
       "source": "npm:pi-subagents@0.74.0",
-      "skills": [
-        "skills/pi-subagents/**"
-      ],
+      "skills": ["skills/pi-subagents/**"],
       "prompts": []
     }
   ],
@@ -46,16 +44,31 @@
     "disableBuiltins": true,
     "watchdog": {
       "enabled": false,
-      "children": {
-        "enabled": false
-      }
+      "children": { "enabled": false }
     }
   },
   "powerline": {
     "preset": "default",
     "placement": "below",
+    "layout": {
+      "left": [
+        "model",
+        "thinking",
+        "shell_mode",
+        "path",
+        "git",
+        "queue",
+        "context_pct",
+        "cache_read",
+        "cost"
+      ]
+    },
     "cache_read": {
       "format": "both"
+    },
+    "cost": {
+      "subscriptionDisplay": "reported-cost",
+      "currency": "GBP"
     }
   }
 }
