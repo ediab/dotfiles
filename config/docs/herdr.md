@@ -84,4 +84,21 @@ Press **`ctrl+b`** (prefix) first, then the key. All bindings below are active i
 
 Shell helpers (inside a Herdr pane): `hsplit [right|down] [cmd]`, `htab [label]`, `hagent NAME [KIND]`, `hworktree BRANCH [BASE]`, `hreload`. Slow commands (>10s) show in the sidebar and toast on finish.
 
-> Installed plugins: `annotate`, `tab-smart-rename`, `ohmyzsh.shell` — tracked in `herdr/plugins.txt` (regenerate with `herdr plugin list`).
+## Auto Title (kryptamine/herdr-auto-title)
+
+Names every tab and pane after the work in it, so a pi session's tab carries that session's own
+title instead of a number. A tab or pane you rename by hand (`prefix+shift+t`, `prefix+shift+p`)
+is left alone from then on; clearing the name hands it back.
+
+Settings live in `~/.config/herdr-auto-title/config.env`, linked from `config/herdr-auto-title/`,
+and are read once at startup. This machine's file turns off the position number, the agent name
+and branches, so a tab reads its session title and nothing else.
+
+```sh
+herdr plugin install kryptamine/herdr-auto-title      # new machine; builds from source (Go 1.24+)
+herdr plugin action invoke herdr.auto-title.restart   # after upgrading or editing config.env
+```
+
+> Installed plugins: `herdr.auto-title` — tracked in `herdr/plugins.txt`, which still lists
+> `annotate`, `tab-smart-rename` and `ohmyzsh.shell` from an earlier inventory; `herdr plugin list`
+> no longer reports those three.

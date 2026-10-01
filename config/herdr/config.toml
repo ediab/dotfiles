@@ -50,7 +50,7 @@ pane_gaps = false               # panes share one divider instead of gapped fram
 pane_scrollbars = true
 show_agent_labels_on_pane_borders = true
 confirm_close = true
-prompt_new_tab_name = false     # tab-smart-rename names tabs; no prompt on prefix+c
+prompt_new_tab_name = false     # no prompt for a tab name on prefix+c
 
 # ===================================================== notifications
 [ui.sound]
@@ -66,60 +66,7 @@ position = "bottom-center"
 
 # ======================================================= keybindings
 [keys]
-# prefix+shift+r is both the built-in reload-config default and the ohmyzsh plugin
-# binding below, so reload-config moves off it and both stay reachable.
 reload_config = "prefix+shift+c"
-
-# Smart Rename plugin bindings
-[[keys.command]]
-key = "prefix+t"
-type = "plugin_action"
-command = "tab-smart-rename.rename-now"
-description = "smart rename current tab"
-
-[[keys.command]]
-key = "prefix+alt+t"
-type = "plugin_action"
-command = "tab-smart-rename.rename-all"
-description = "force smart rename all tabs"
-
-# Annotate (plannotator/herdr-annotate)
-[[keys.command]]
-key = "prefix+a"
-type = "plugin_action"
-command = "annotate.capture"
-description = "annotate text"
-
-[[keys.command]]
-key = "prefix+shift+a"
-type = "plugin_action"
-command = "annotate.copy-context"
-description = "copy annotations as context"
-
-[[keys.command]]
-key = "prefix+m"
-type = "plugin_action"
-command = "annotate.manage"
-description = "manage annotations"
-
-[[keys.command]]
-key = "prefix+d"
-type = "plugin_action"
-command = "annotate.open"
-description = "review documents in this folder"
-
-[[keys.command]]
-key = "prefix+shift+o"
-type = "plugin_action"
-command = "annotate.last"
-description = "review the agent's last reply"
-
-# Oh My Zsh (robbyrussell/herdr-ohmyzsh)
-[[keys.command]]
-key = "prefix+shift+r"
-type = "plugin_action"
-command = "ohmyzsh.shell.reload-all"
-description = "reload Oh My Zsh in idle panes"
 
 [experimental]
 # Allow launching herdr (e.g. herdr --remote vps) from inside a herdr-managed pane.
