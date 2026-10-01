@@ -29,7 +29,11 @@ link() { # link <repo-relative source> <destination>
   elif cmp -s "$src" "$dst" 2>/dev/null || { [ -d "$src" ] && diff -rq "$src" "$dst" >/dev/null 2>&1; }; then
     echo "link $dst (was identical)"
     if [ -d "$dst" ]; then  # a folder can't be renamed over: move it aside, link, drop it (mv loses a race: the other run links it)
-      mv "$dst" "$dst.old.$$" 2>/dev/null && swap "$src" "$dst" && flush && rm -rf "$dst.old.$$"
+      local old="$dst.old.$$"
+      if mv "$dst" "$old" 2>/dev/null; then
+        swap "$src" "$dst"; flush
+        rm -rf "$old"   # was verified identical to src; the repo holds the content, so drop it even if the link failed
+      fi
     else swap "$src" "$dst"; fi
   elif [ -L "$dst" ] || [ ! -e "$dst" ]; then
     link "$1" "$dst"   # a concurrent run changed it while we compared

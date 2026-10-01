@@ -33,8 +33,6 @@ To access this VPS use `ssh vps` (alias defined in `~/.ssh/config`).
 - IdentityFile: `~/.ssh/id_rsa_nroot`
 - ControlMaster multiplexing enabled; LocalForward 18789, 18792, 19999.
 
-VPS agent content is not yet on the `link.sh` model; until it is migrated, do not deploy agent content to the VPS.
-
 VPS/app configuration helpers are independent: `config/vps/deploy-vps.sh` (shell files/instructions), `config/herdr/deploy-vps.sh` (Herdr config/reload), and `config/druk/deploy-druk.sh` (local settings; `DEPLOY_DRUK_HOST=vps` also selects remote settings). Choose only the explicitly requested scope; package/service maintenance is separate.
 
 ## Dual-edit workflow (local `~/Dev` + VPS `~/apps`)

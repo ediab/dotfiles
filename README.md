@@ -57,7 +57,8 @@ link per skill; `link.sh` creates them. Create new personal skills in `~/.agents
   `.env` is gitignored. Apps' auth files (`auth.json`, `~/.claude.json`, ...) stay out too.
 - Tools rewrite their own settings (version stamps, trust entries), which shows up in
   `git status`. Commit when you like; nothing commits or pushes automatically.
-- No VPS agent-content deployment yet; `config/vps`, `config/herdr` and `config/druk` have
+- VPS agent content now uses the same `link.sh` model (the repo is cloned at `~/Dev/dotfiles`
+  there; its own settings files are skipped). `config/vps`, `config/herdr` and `config/druk` keep
   their own explicit deploy scripts (see `config/README.md`).
 
 ## New machine
