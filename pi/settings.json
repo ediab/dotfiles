@@ -69,6 +69,10 @@
     },
     "cache_read": {
       "format": "both"
+    },
+    "cost": {
+      "subscriptionDisplay": "reported-cost",
+      "currency": "GBP"
     }
   }
 }
