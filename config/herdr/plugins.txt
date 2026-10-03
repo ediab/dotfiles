@@ -1,7 +1,0 @@
-3 plugins installed:
-- annotate (Annotate) enabled [github:plannotator/herdr-annotate@bccf884b874f5f39ccbef1bb6ac67625c5fb5d54]
-  config: /Users/eliasdiab/.config/herdr/plugins/config/annotate
-- ohmyzsh.shell (Oh My Zsh) enabled [github:robbyrussell/herdr-ohmyzsh@bbc072ada531e6306276900a866a4b44a9b92e74]
-  config: /Users/eliasdiab/.config/herdr/plugins/config/ohmyzsh.shell
-- tab-smart-rename (Smart Rename) enabled [github:iurysza/herdr-tab-smart-rename@a7bf8e4105732629678fcc2a3203376c07cacc95]
-  config: /Users/eliasdiab/.config/herdr/plugins/config/tab-smart-rename

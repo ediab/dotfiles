@@ -95,7 +95,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 # Local bins, antigravity (dupes collapse via typeset -U above)
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
 export PATH="$HOME/.antigravity-ide/antigravity-ide/bin:$PATH"
 
 # REMOVED: export DISPLAY=":0"

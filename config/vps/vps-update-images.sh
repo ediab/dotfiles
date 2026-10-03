@@ -12,8 +12,7 @@
 #   karakeep-app ghcr.io/karakeep-app/karakeep:release
 # Everything else on the box is a local build deployed from git by the push-to-deploy
 # workflow (mp3podcasts, redact_pdf, cratch, onyx, greek_embassy_bot) and is
-# deliberately not touched here. ~/apps/termix (guacd) has no compose file checked out, so
-# it cannot be managed this way at all.
+# deliberately not touched here.
 #
 # Safety, in order:
 #   1. the whole run takes the SAME flock as ~/bin/vps-deploy.sh, so an image refresh can

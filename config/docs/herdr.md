@@ -57,33 +57,6 @@ Press **`ctrl+b`** (prefix) first, then the key. All bindings below are active i
 | `prefix+b` | Toggle sidebar |
 | `prefix+shift+p` | Rename pane |
 
-## Annotate (plannotator/herdr-annotate)
-
-| Keys | Action |
-|------|--------|
-| Select text, then `prefix+a` | Annotate the selection (`ctrl+s` saves) |
-| `prefix+shift+a` | Copy all annotations as Markdown |
-| `prefix+m` | Manage: `y` copy · `c` copy all · `Shift+C` copy+archive · `d d` delete |
-| `prefix+o` | Focus notification target |
-| `prefix+d` | Review documents in the focused pane's folder |
-| `prefix+shift+o` | Review the agent's last reply, send feedback (`e`) |
-| Ctrl-click a `file://….md` link | Open that file in the annotator |
-
-## Smart Rename (iurysza/herdr-tab-smart-rename)
-
-| Keys | Action |
-|------|--------|
-| `prefix+t` | Smart-rename current tab |
-| `prefix+alt+t` | Smart-rename all tabs |
-
-## Oh My Zsh (robbyrussell/herdr-ohmyzsh)
-
-| Keys | Action |
-|------|--------|
-| `prefix+shift+r` | Reload Oh My Zsh in every idle pane (`hreload`) |
-
-Shell helpers (inside a Herdr pane): `hsplit [right|down] [cmd]`, `htab [label]`, `hagent NAME [KIND]`, `hworktree BRANCH [BASE]`, `hreload`. Slow commands (>10s) show in the sidebar and toast on finish.
-
 ## Auto Title (kryptamine/herdr-auto-title)
 
 Names every tab and pane after the work in it, so a pi session's tab carries that session's own
@@ -98,7 +71,3 @@ and branches, so a tab reads its session title and nothing else.
 herdr plugin install kryptamine/herdr-auto-title      # new machine; builds from source (Go 1.24+)
 herdr plugin action invoke herdr.auto-title.restart   # after upgrading or editing config.env
 ```
-
-> Installed plugins: `herdr.auto-title` — tracked in `herdr/plugins.txt`, which still lists
-> `annotate`, `tab-smart-rename` and `ohmyzsh.shell` from an earlier inventory; `herdr plugin list`
-> no longer reports those three.

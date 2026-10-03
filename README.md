@@ -1,6 +1,6 @@
 # dotfiles
 
-Private repo holding the latest Pi, Claude and Codex settings, the skills they use, and
+Public repo holding the latest Pi, Claude and Codex settings, the skills they use, and
 ordinary Mac config. **The checkout is the live copy:** `link.sh` symlinks every file or
 folder below into place, so a setting saved by an app or a skill you edit is already in the
 repo. There is no copy step, state, backups or dry run.

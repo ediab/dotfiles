@@ -32,10 +32,9 @@ in this subtree into place.
 | `ghostty/config` | `~/.config/ghostty/config` |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` |
 | `herdr-auto-title/config.env` | `~/.config/herdr-auto-title/config.env` |
-| `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
 | `vscode/extensions.txt` | saved extension inventory; refresh explicitly with `code --list-extensions` |
-| `vscode/argv.json` | linked as `~/.vscode/argv.json` (macOS); contains the per-install `crash-reporter-id` — copy is byte-for-byte, repo is private, crash reporting is off anyway. VS Code rewrites through the symlink when toggling the crash-reporter UI, like it does for settings |
+| `vscode/argv.json` | linked as `~/.vscode/argv.json` (macOS); contains the per-install `crash-reporter-id` (an identifier, not a credential); crash reporting is disabled. VS Code rewrites through the symlink when toggling the crash-reporter UI, like it does for settings |
 | `vscode/README.md` | one-page inventory of this dir; see it for what's covered where |
 
 ## Other maintained content
@@ -43,7 +42,6 @@ in this subtree into place.
 | Path | Owner / use |
 |---|---|
 | `Brewfile` | Homebrew formulas, casks, and taps; install with `brew bundle --file=...` |
-| `herdr/plugins.txt` | Installed Herdr plugin list; refresh with `herdr plugin list` |
 | `herdr/config.vps.toml` | VPS Herdr config; deploy with `herdr/deploy-vps.sh` |
 | `vps/` | VPS shell files, upkeep scripts, user units, apt policy, and app-root instructions |
 | `docs/herdr.md` | Operator guide |

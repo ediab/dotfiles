@@ -15,7 +15,6 @@ by the root `link.sh`. Edit their repo sources and keep the links intact. No che
 | `ghostty/config` | `~/.config/ghostty/config` |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` |
 | `herdr-auto-title/config.env` | `~/.config/herdr-auto-title/config.env` |
-| `rpiv-advisor/advisor.json` | `~/.config/rpiv-advisor/advisor.json` |
 | `vscode/settings.json`, `vscode/keybindings.json` | Code's User directory |
 
 ## VS Code

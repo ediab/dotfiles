@@ -6,7 +6,7 @@ These are deploy checkouts; GitHub is the source of truth.
 - Commit and push VPS edits; never leave uncommitted drift.
 - Use `github-personal` remotes; plain `github.com` is limited here.
 - Do not accept rsync/scp overwrites of tracked code; only secrets and data.
-- Runtime/third-party dirs (`fousekis-api`, goatcounter, karakeep/guacamole) have no git workflow.
+- Third-party image bundles such as `karakeep-app` have no git workflow. The live Fousekis API code is in `fousekis/api/`; its old transcription environment, GoatCounter and Termix were retired.
 
 This file is versioned in the dotfiles repo at `config/vps/apps-AGENTS.md` and deployed by
 `config/vps/deploy-vps.sh` — edit it there, not on the VPS.

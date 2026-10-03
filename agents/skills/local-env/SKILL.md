@@ -9,7 +9,7 @@ Lookup reference for this machine's environment. Not for editing application cod
 
 ## Dotfiles and agent content
 
-The private `ediab/dotfiles` repository is checked out at `~/Dev/dotfiles`. The checkout is the live copy: `link.sh` symlinks its files into `~/.pi`, `~/.claude`, `~/.codex`, `~/.agents` and `$HOME`, so editing the repo (or a tool saving a setting) changes what the apps see immediately. `link.sh` takes no flags and is safe to rerun; it prints `SKIP` and exits 1 if a destination differs from the repo. Do not experiment on the main checkout; use a separate worktree.
+The public `ediab/dotfiles` repository is checked out at `~/Dev/dotfiles`. The checkout is the live copy: `link.sh` symlinks its files into `~/.pi`, `~/.claude`, `~/.codex`, `~/.agents` and `$HOME`, so editing the repo (or a tool saving a setting) changes what the apps see immediately. `link.sh` takes no flags and is safe to rerun; it prints `SKIP` and exits 1 if a destination differs from the repo. Do not experiment on the main checkout; use a separate worktree.
 
 The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `./link.sh` is run after pulling. The VPS links tracked Linux settings and shares Pi settings, skills, `AGENTS.md`, extensions and themes; run `./link.sh` after pulling so new links are ready before starting an agent.
 
@@ -20,7 +20,7 @@ The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `.
 
 Ordinary home config sources linked from `config/`:
 - `.zshrc`, `.zprofile`, `.zshenv` → matching files in `$HOME`;
-- `starship.toml`, `ghostty/config`, `herdr/config.toml`, `rpiv-advisor/advisor.json` → matching paths under `~/.config/`;
+- `starship.toml`, `ghostty/config`, `herdr/config.toml` → matching paths under `~/.config/`;
 - `vscode/settings.json` and `vscode/keybindings.json` → Code's User directory.
 
 Committing, pushing and VPS deployment still need an explicit request.
@@ -35,12 +35,23 @@ To access this VPS use `ssh vps` (alias defined in `~/.ssh/config`).
 
 VPS/app configuration helpers are independent: `config/vps/deploy-vps.sh` (shell files/instructions), `config/herdr/deploy-vps.sh` (Herdr config/reload), and `config/druk/deploy-druk.sh` (local settings; `DEPLOY_DRUK_HOST=vps` also selects remote settings). Choose only the explicitly requested scope; package/service maintenance is separate.
 
+## VPS folder layout
+
+Consult `~/README.md` on the VPS for the current service/data inventory and `~/ops/` for change and recovery records.
+
+- `~/apps/` holds deployed checkouts and runtime/third-party service bundles. `~/Dev/` holds development/configuration repositories; use uppercase `Dev` for new checkouts.
+- `~/Dev/dotfiles` is the active configuration source. The obsolete VPS `~/dev/pi-dotfiles` checkout and empty lowercase `~/dev` directory were removed; use the dotfiles linking workflow above for agent configuration.
+- `~/Dev/xbot` is a live-path exception: systemd and cron depend on it. Keep it in place until a separately approved migration.
+- Production mp3podcasts lives in `~/apps/mp3podcasts`. The legacy VPS `~/Dev/mp3podcasts` workspace and its recovery archive were permanently removed with approval.
+- `~/backups/<app>/` holds application recovery backups; `~/backups/changes/` holds one-off change snapshots. `~/archive/retired-projects/` and `~/archive/historical/` hold inactive material. Retention decisions require checking recovery value, not just age.
+- Keep `~/bin/`, `~/logs/`, `~/actions-runner/`, and `~/actions-runner-work/` at their existing paths: service and maintenance configuration depends on them. Leave app-local data, secrets, and Docker-managed volumes in place.
+
 ## Dual-edit workflow (local `~/Dev` + VPS `~/apps`)
 
-GitHub is the source of truth for every project that exists in both places. The VPS holds git clones under `~/apps`, never bare rsync copies.
+GitHub is the source of truth for every project that exists in both places. Deployed VPS clones normally live under `~/apps` (xbot is the exception above), never bare rsync copies.
 - Edit wherever suits (local or `ssh vps` terminal), then commit and push from there; pull on the other side before editing.
 - Never rsync/scp tracked code files to `~/apps`. rsync is only for secrets (`.env`, `.env.vps`), databases, and uploads (`db/`, `userfiles/`, `state/`, episode data).
 - Deploy = push to the default branch, then on the VPS `git fetch` plus `git merge --ff-only` (or `git pull --ff-only`) from a clean tree, then the service's restart step. Never `--force` shared history; unmerged VPS work lives on a `vps-*` branch until reviewed.
 - On the VPS, git remotes must use the `github-personal` SSH alias (the full-access key). Plain `git@github.com` authenticates as a limited deploy key that only reaches a couple of repos (morning-brief, tfl); `https` remotes with embedded tokens are forbidden.
 - Service restart steps: mp3podcasts and redact_pdf via `docker compose up -d --build` in their `~/apps` dir; note-sx via `docker compose pull && docker compose up -d` (image-based) plus the nginx section of its `deploy.sh`; onyx via `docker compose up -d --build` (`scripts/sync_to_vps.sh` is legacy rsync — do not use for code); fousekis API via `sudo systemctl restart fousekis-api` (plain node, no build).
-- Not code deploys, no git needed: `~/apps/fousekis-api` (runtime `.venv` plus empty `audio/`/`drafts/`; code lives in the fousekis repo), goatcounter (binary plus sqlite), karakeep/guacamole (third-party images). Runtime/third-party dirs generally have no git workflow.
+- Third-party image bundles such as karakeep generally have no git workflow. GoatCounter and the old `~/apps/fousekis-api` transcription environment were removed; the live Fousekis API remains in `~/apps/fousekis/api/`.
