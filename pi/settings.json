@@ -35,7 +35,7 @@
     "npm:pi-powerline-footer",
     "npm:pi-title",
     {
-      "source": "npm:pi-subagents@0.74.0",
+      "source": "npm:pi-subagents",
       "skills": [
         "skills/pi-subagents/**",
         "+skills/council-mode/SKILL.md"
