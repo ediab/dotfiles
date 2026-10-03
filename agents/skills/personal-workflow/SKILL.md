@@ -5,7 +5,7 @@ description: Personal coding workflow and gates — plan approval, review delega
 
 # Personal workflow
 
-The gates and rules for completing coding work. The default path is to turn approved intent into a spec, split it into blocker-aware tickets, implement one ticket at a time, then review the result. The ticket graph is the primary way to manage parallel work; use ad-hoc delegation only for independent tasks that do not fit it. Before delegating, read the selected agent's configured tools and scope.
+The agent owns execution and verification; the user controls intent, material trade-offs, and risk. The workflow gates below distinguish direct implementation from work that needs an approved plan. Planning skills are user-invoked, not mandatory stages.
 
 ## Working Principles
 
@@ -44,25 +44,33 @@ The gates and rules for completing coding work. The default path is to turn appr
 * After modifying code, run the most relevant available tests, type checks, linters, or validation commands.
 * Prefer targeted checks during iteration; run broader project checks when appropriate before finishing.
 * Fix errors introduced by your changes. Do not hide failures by weakening tests, types, or validation.
-* Report validation that could not be run.
+* Validate proportionately; stronger evidence for money, private data, authentication, and live-service behaviour. A passing test suite does not prove a live service works.
+* Report what was checked and what remains unverified, including validation that could not be run.
 * Add tests only when failure signals real breakage; skip assertions on styling, colors, or internal structure.
 
-## Review delegation
+## Workflow gates
 
-* Review in the current context by default. Dispatch an independent code-audit agent only when the user explicitly requests delegated review.
-* Asking for a review, giving generic permission to delegate, or invoking an orchestration flow does not authorize delegation. A dedicated review workflow may define its own checks; invoking it authorizes only those checks.
-
-## Personal workflow
-
-* Plain English for the user. Technical detail belongs in agent instructions or on request.
-* Planning skills (`brainstorm`, `to-spec`, `to-tickets`) are user-invoked and own their behavior. Running one is never approval to implement; planning stays in the main context. Offer `implement` as the next step.
 * Small, clear, low-risk changes: implement directly. Material uncertainty or substantial/risky changes: inspect first, resolve high-level decisions with the user, present a short spec or plan for approval before implementing.
+* Planning skills (`brainstorm`, `to-spec`, `to-tickets`) are user-invoked and own their behavior. Running one is never approval to implement. Offer `implement` as the next step.
 * Non-trivial specs carry 2–3 agent-proposed, checkable success examples; the user confirms or edits them. They become acceptance criteria for implementation and review. Clear small fixes skip this; the request itself is the criterion.
 * After approval, execute the whole approved sequence without "shall I continue?" prompts. Routine technical decisions within approved constraints belong to the agent. Workers escalate material deviations to their owner; the owner asks the user only about changed product intent, material trade-offs, or unapproved risk.
-* Substantial changes (a new user-facing flow, behaviour spanning components, a nontrivial refactor, auth/privacy/financial-calculation/data-deletion/deployment changes — impact, not size) get an owner review before you call them done, not a delegated agent: re-read the exact changeset against the agreed intent and acceptance examples, and state what was checked and what remains unverified. For hard-to-reverse changes (deletion, auth, money, live deploy), offer an independent code-audit agent; the user decides whether to take it. That agent reports only; the owner assigns corrections and rechecks affected behaviour.
-* Validate proportionately; stronger evidence for money, private data, authentication, and live-service behaviour. Compare the result to the agreed goal and exclusions before claiming completion; state what was checked and what remains unverified. A passing test suite does not prove a live service works.
-* Delegation: the main agent owns the goal and result. Prefer one well-briefed helper over several loosely directed ones; parallelize genuinely independent work. Respect the current client's configured agent limit; if none is available, use no more than four active agents. Use background execution only when there is useful work to do while it runs; otherwise keep the task in the foreground. Brief every dispatch self-contained (goal, paths, scope, constraints, done-criteria). Use a fresh independent audit agent for each second opinion; do not reuse one that has already seen the work. Do not silently retry a failed delegation through a different agent.
-* Task ownership is end-to-end, never an assembly line: the agent that investigates a change implements, tests, and corrects it. Do not delegate sequential stages of one task (explore → plan → code → fix chains) — every summary handed between agents is context the next agent will never have. Spawn subagents only for meaningfully independent parallel work or a fresh second opinion on a finished artifact, and when a subagent's findings matter, verify them against the underlying files or sources rather than acting on the summary. Give every agent a self-contained task. Use a fresh context for self-contained ticket work; carry context forward only when correctness depends on prior discussion. Planning stays in the main context and is never delegated.
+
+## Review
+
+* Compare the result to the agreed goal and exclusions before claiming completion.
+* Substantial changes (a new user-facing flow, behaviour spanning components, a nontrivial refactor, auth/privacy/financial-calculation/data-deletion/deployment changes — impact, not size) get an owner review before you call them done: re-read the exact changeset against the agreed intent and acceptance examples. An audit does not replace this review.
+* Review in the current context by default. Dispatch an independent code-audit agent only when the user explicitly requests delegated review. Asking for a review, giving generic permission to delegate, or invoking an orchestration flow does not authorize delegation. A dedicated review workflow may define its own checks; invoking it authorizes only those checks.
+* For hard-to-reverse changes (deletion, auth, money, live deploy), offer an independent code-audit agent; the user decides whether to take it. That agent reports only; the owner assigns corrections and rechecks affected behaviour.
+
+## Delegation
+
+* The main agent owns the goal and result. Planning stays in the main context and is never delegated.
+* Task ownership is end-to-end: the agent that investigates a change implements, tests, and corrects it. Delegate meaningfully independent work or a fresh second opinion on a finished artifact, not sequential explore → plan → code → fix stages of one task.
+* When work is ticketed, use blocking edges to identify what can start. Each worker owns one ticket at a time; independent unblocked tickets may run in parallel. Prefer the ticket graph for parallel implementation; use ad-hoc delegation for independent tasks that do not fit it.
+* Before delegating, read the selected agent's configured tools and scope. Brief every dispatch self-contained (goal, paths, scope, constraints, done-criteria). Use a fresh context for self-contained ticket work; carry context forward only when correctness depends on prior discussion.
+* Prefer one well-briefed helper over several loosely directed ones. Respect the current client's configured agent limit; if none is available, use no more than four active agents. Use background execution only when there is useful work to do while it runs; otherwise keep the task in the foreground.
+* Use a fresh independent audit agent for each second opinion; do not reuse one that has already seen the work. Do not silently retry a failed delegation through a different agent.
+* Verify material subagent findings against the underlying files or sources rather than acting on the summary.
 
 ## Git
 
@@ -73,6 +81,6 @@ The gates and rules for completing coding work. The default path is to turn appr
 
 ## Communication
 
-* Be concise and technical.
+* Be concise, practical, and plain-English. Include technical detail when needed to explain a decision, constraint, or result, or when requested.
 * State important assumptions, material trade-offs, and unresolved risks.
 * When finished, summarize what changed and any relevant validation performed.

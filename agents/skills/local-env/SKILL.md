@@ -1,15 +1,17 @@
 ---
 name: local-env
-description: Environment reference — VPS access and `ssh vps`, service deploys and restarts, the `~/Dev/dotfiles` repository, dotfile symlinks, and the dual-edit GitHub workflow. Use when touching the VPS, deploying a service, symlinks, dotfiles, or shell/terminal/editor config. Not for editing application code.
+description: Environment reference for dotfiles and symlinks, shell/terminal/editor configuration, VPS access, local/VPS code synchronization, and service deployment. Read when working in a VPS checkout or synchronizing code between machines. Not needed for ordinary local application implementation.
 ---
 
 # Local environment
 
-Lookup reference for this machine's environment. Not for editing application code — project code follows the project's own `AGENTS.md`.
+Environment and cross-machine operating rules. Application implementation follows the project's instructions; VPS access, synchronization, and deployment also follow this skill.
 
 ## Dotfiles and agent content
 
-The public `ediab/dotfiles` repository is checked out at `~/Dev/dotfiles`. The checkout is the live copy: `link.sh` symlinks its files into `~/.pi`, `~/.claude`, `~/.codex`, `~/.agents` and `$HOME`, so editing the repo (or a tool saving a setting) changes what the apps see immediately. `link.sh` takes no flags and is safe to rerun; it prints `SKIP` and exits 1 if a destination differs from the repo. Do not experiment on the main checkout; use a separate worktree.
+The public `ediab/dotfiles` repository is checked out at `~/Dev/dotfiles`. The checkout is the live copy: `link.sh` symlinks its files into `~/.pi`, `~/.claude`, `~/.codex`, `~/.agents` and `$HOME`, so editing the repo (or a tool saving a setting) changes what the apps see immediately. `link.sh` takes no flags and is safe to rerun. It replaces symlinks pointing elsewhere, converts identical real files/directories into links, and preserves conflicting real files/directories with `SKIP` and exit status 1.
+
+Use a separate worktree for experiments, but do not run its `link.sh` against your real home: it would repoint live links to that worktree.
 
 The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `./link.sh` is run after pulling. The VPS links tracked Linux settings and shares Pi settings, skills, `AGENTS.md`, extensions and themes; run `./link.sh` after pulling so new links are ready before starting an agent.
 
@@ -37,12 +39,11 @@ VPS/app configuration helpers are independent: `config/vps/deploy-vps.sh` (shell
 
 ## VPS folder layout
 
-Consult `~/README.md` on the VPS for the current service/data inventory and `~/ops/` for change and recovery records.
+Consult `~/README.md` on the VPS for the current service/data inventory and `~/ops/` for change and recovery records. Before deploying, restarting, moving, or retiring a VPS service, read [VPS-REFERENCE.md](VPS-REFERENCE.md) and verify its relevant claims against the live VPS inventory and service configuration.
 
 - `~/apps/` holds deployed checkouts and runtime/third-party service bundles. `~/Dev/` holds development/configuration repositories; use uppercase `Dev` for new checkouts.
-- `~/Dev/dotfiles` is the active configuration source. The obsolete VPS `~/dev/pi-dotfiles` checkout and empty lowercase `~/dev` directory were removed; use the dotfiles linking workflow above for agent configuration.
+- `~/Dev/dotfiles` is the active configuration source; use the dotfiles linking workflow above for agent configuration.
 - `~/Dev/xbot` is a live-path exception: systemd and cron depend on it. Keep it in place until a separately approved migration.
-- Production mp3podcasts lives in `~/apps/mp3podcasts`. The legacy VPS `~/Dev/mp3podcasts` workspace and its recovery archive were permanently removed with approval.
 - `~/backups/<app>/` holds application recovery backups; `~/backups/changes/` holds one-off change snapshots. `~/archive/retired-projects/` and `~/archive/historical/` hold inactive material. Retention decisions require checking recovery value, not just age.
 - Keep `~/bin/`, `~/logs/`, `~/actions-runner/`, and `~/actions-runner-work/` at their existing paths: service and maintenance configuration depends on them. Leave app-local data, secrets, and Docker-managed volumes in place.
 
@@ -53,5 +54,4 @@ GitHub is the source of truth for every project that exists in both places. Depl
 - Never rsync/scp tracked code files to `~/apps`. rsync is only for secrets (`.env`, `.env.vps`), databases, and uploads (`db/`, `userfiles/`, `state/`, episode data).
 - Deploy = push to the default branch, then on the VPS `git fetch` plus `git merge --ff-only` (or `git pull --ff-only`) from a clean tree, then the service's restart step. Never `--force` shared history; unmerged VPS work lives on a `vps-*` branch until reviewed.
 - On the VPS, git remotes must use the `github-personal` SSH alias (the full-access key). Plain `git@github.com` authenticates as a limited deploy key that only reaches a couple of repos (morning-brief, tfl); `https` remotes with embedded tokens are forbidden.
-- Service restart steps: mp3podcasts and redact_pdf via `docker compose up -d --build` in their `~/apps` dir; note-sx via `docker compose pull && docker compose up -d` (image-based) plus the nginx section of its `deploy.sh`; onyx via `docker compose up -d --build` (`scripts/sync_to_vps.sh` is legacy rsync — do not use for code); fousekis API via `sudo systemctl restart fousekis-api` (plain node, no build).
-- Third-party image bundles such as karakeep generally have no git workflow. GoatCounter and the old `~/apps/fousekis-api` transcription environment were removed; the live Fousekis API remains in `~/apps/fousekis/api/`.
+- Third-party image bundles generally have no git workflow; consult the service reference for the appropriate update and restart steps.

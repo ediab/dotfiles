@@ -37,10 +37,19 @@
     {
       "source": "npm:pi-subagents@0.74.0",
       "skills": [
-        "skills/pi-subagents/**"
+        "skills/pi-subagents/**",
+        "+skills/council-mode/SKILL.md"
       ],
-      "prompts": []
-    }
+      "prompts": [
+        "+prompts/council.md",
+        "+prompts/gather-context-and-clarify.md",
+        "+prompts/parallel-cleanup.md",
+        "+prompts/parallel-research.md",
+        "+prompts/parallel-review.md",
+        "+prompts/review-loop.md"
+      ]
+    },
+    "npm:pi-contextimate"
   ],
   "subagents": {
     "disableBuiltins": true,
