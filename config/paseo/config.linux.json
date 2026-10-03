@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "daemon": {
+    "listen": "100.69.24.29:6767",
+    "mcp": {
+      "enabled": true,
+      "injectIntoAgents": true
+    },
+    "cors": {
+      "allowedOrigins": [
+        "https://app.paseo.sh"
+      ]
+    },
+    "relay": {
+      "enabled": false
+    }
+  },
+  "app": {
+    "baseUrl": "https://app.paseo.sh"
+  },
+  "agents": {
+    "providers": {
+      "copilot": {
+        "enabled": false
+      },
+      "opencode": {
+        "enabled": false
+      },
+      "claude": {
+        "enabled": true
+      }
+    }
+  }
+}

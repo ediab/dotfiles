@@ -42,12 +42,13 @@ link() { # link <repo-relative source> <destination>
 
 platform="$(uname)"
 case "$platform" in
-  Darwin) claude_settings=settings.json; codex_config=config.toml ;;
-  Linux) claude_settings=settings.linux.json; codex_config=config.linux.toml ;;
+  Darwin) claude_settings=settings.json; codex_config=config.toml; paseo_config=config.json ;;
+  Linux) claude_settings=settings.linux.json; codex_config=config.linux.toml; paseo_config=config.linux.json ;;
   *) echo "Unsupported platform: $platform" >&2; exit 1 ;;
 esac
 
 for f in settings web-search pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+link "config/paseo/$paseo_config" "$H/.paseo/config.json"
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link pi/skills/code-review "$H/.pi/agent/skills/code-review"

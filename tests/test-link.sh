@@ -7,15 +7,15 @@ trap 'rm -rf "$WORK"' EXIT HUP INT TERM
 fail() { echo "FAIL: $*" >&2; exit 1; }
 REPO="$WORK/repo"
 DARWIN=0; [ "$(uname)" = Darwin ] && DARWIN=1
-CLAUDE_SETTINGS=settings.linux.json; CODEX_CONFIG=config.linux.toml
-if [ "$DARWIN" = 1 ]; then CLAUDE_SETTINGS=settings.json; CODEX_CONFIG=config.toml; fi
+CLAUDE_SETTINGS=settings.linux.json; CODEX_CONFIG=config.linux.toml; PASEO_CONFIG=config.linux.json
+if [ "$DARWIN" = 1 ]; then CLAUDE_SETTINGS=settings.json; CODEX_CONFIG=config.toml; PASEO_CONFIG=config.json; fi
 
 mkrepo() {
   rm -rf "$REPO"; mkdir -p "$REPO"
   cp "$ROOT/link.sh" "$REPO/"
   mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{agents,extensions,themes,skills/code-review} \
     "$REPO"/pi/extensions/subagent \
-    "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,herdr-auto-title,vscode}
+    "$REPO"/claude "$REPO"/codex "$REPO"/config/{paseo,ghostty,herdr,herdr-auto-title,vscode}
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
@@ -26,6 +26,7 @@ mkrepo() {
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
   echo mac > "$REPO/codex/config.toml"; echo linux > "$REPO/codex/config.linux.toml"
+  echo mac > "$REPO/config/paseo/config.json"; echo linux > "$REPO/config/paseo/config.linux.json"
   echo '{}' > "$REPO/codex/hooks.json"
   for f in .zshrc .zprofile .zshenv starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env vscode/settings.json vscode/keybindings.json; do
     echo "$f" > "$REPO/config/$f"
@@ -50,6 +51,7 @@ all_links() {
   points "$H/.claude/settings.json" "claude/$CLAUDE_SETTINGS"
   points "$H/.claude/statusline-command.sh" claude/statusline-command.sh
   points "$H/.codex/config.toml" "codex/$CODEX_CONFIG"; points "$H/.codex/hooks.json" codex/hooks.json
+  points "$H/.paseo/config.json" "config/paseo/$PASEO_CONFIG"
   for s in alpha beta; do points "$H/.claude/skills/$s" agents/skills/$s; done
   if [ "$DARWIN" = 1 ]; then
     for f in .zshrc .zprofile .zshenv; do points "$H/$f" config/$f; done

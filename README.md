@@ -18,7 +18,7 @@ pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
 codex/                 -> ~/.codex/ (platform config, shared hooks.json)
 scripts/agent-hook.sh   optional session integrations, guarded when not installed
-config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
+config/                other dotfiles (zsh, ghostty, starship, herdr, paseo, VS Code, VPS files)
 .env.example           names of the secrets ~/.env should hold (not linked)
 tests/                 test-link.sh, test-researcher.py, test-app-deploy.sh
 ```
@@ -35,7 +35,8 @@ For each `source -> destination`:
 5. Anything else: print `SKIP <path> (differs from repo)` and leave it. Exit status is 1.
 
 Also: Claude entries are skipped if `~/.claude` is missing, Codex entries if `~/.codex` is
-missing, and `config/` links run only on macOS. Broken links into this repo in
+missing, and `config/` links run only on macOS (except `config/paseo`, linked on both
+platforms). Broken links into this repo in
 `~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills), as are
 retired repo links such as `~/.pi/agent/subagents.json` and `~/.pi/agent/open-tui.json`. Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,
@@ -68,7 +69,10 @@ link per skill; `link.sh` creates them. Create new personal skills in `~/.agents
 
 Pi settings and agent content are shared. `link.sh` selects `claude/settings.json`
 and `codex/config.toml` on macOS, and `claude/settings.linux.json` and
-`codex/config.linux.toml` on Linux, linking them to the clients' usual filenames.
+`codex/config.linux.toml` on Linux, linking them to the clients' usual filenames;
+`config/paseo/config.json` vs `config/paseo/config.linux.json` links to
+`~/.paseo/config.json` the same way (Paseo tracks its own listen address,
+relay and providers in that file).
 The Mac files retain desktop integrations and local app paths; the Linux files
 exclude those integrations and preserve the VPS's `/home/diab` project trust.
 Keep shared behavior aligned when editing either platform variant.
