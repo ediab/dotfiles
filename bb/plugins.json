@@ -20,6 +20,12 @@
       "localWorkaround": true
     },
     {
+      "id": "files-editor",
+      "version": "0.1.6",
+      "enabled": true,
+      "source": "git:https://github.com/abdoutelb/bb-plugin-files-editor.git@semver:^0.1.2"
+    },
+    {
       "id": "graph-studio",
       "version": "0.1.2",
       "enabled": true,
@@ -53,7 +59,7 @@
     {
       "id": "usage-tracker",
       "version": "0.1.14",
-      "enabled": true,
+      "enabled": false,
       "source": "git:https://github.com/MateoCerquetella/bb-plugins.git@semver:usage-tracker/:^0.1.6",
       "subdirectory": "plugins/usage-tracker"
     }

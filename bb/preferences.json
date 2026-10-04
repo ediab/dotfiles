@@ -57,19 +57,18 @@
       "graph-studio/studio",
       "simple-notes/docs",
       "tasks/tasks",
-      "theme-preview/preview"
+      "theme-preview/preview",
+      "files-editor/files"
     ],
     "sidebar.visiblePluginPanels": [
+      "files-editor/files",
       "simple-notes/docs",
       "tasks/tasks",
       "__bb__/new-thread",
       "__bb__/extensions",
-      "__bb__/skills",
-      "__bb__/automations",
       "agent-board/agent-board-global",
       "file-manager/file-manager",
-      "graph-studio/studio",
-      "__bb__/search-threads"
+      "graph-studio/studio"
     ],
     "sidebar.navigationProvider": "__automatic__",
     "sidebar.headerProvider": "__builtin__",

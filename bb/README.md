@@ -87,7 +87,7 @@ Only clone if that destination does not already exist. This workaround was built
 
 - `diab.getbb.app`: the Mac server, with the plugins and preferences originally captured here.
 - `diabvps.getbb.app`: a separate VPS server set up with a persistent `bb.service`.
-- A machine was subsequently enrolled into `diab.getbb.app` by the user. Enrollment adds a worker; it does not migrate the server or reassign its address. Its post-enrollment status has not been verified here.
+- A machine was subsequently enrolled into `diab.getbb.app` by the user. Enrollment adds a worker; it does not migrate the server or reassign its address. At the October 2026 refresh (BB 0.45.0), `machine list` shows both machines `connected` on the Mac server.
 
 In the Mac desktop app, use **macOS menu bar → Window → Server** to choose a server. A Mac-hosted server must stay running for its workers to receive tasks. Settings captured here do not decide which server owns your data.
 
