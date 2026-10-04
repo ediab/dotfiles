@@ -1,9 +1,10 @@
 # dotfiles
 
-Public repo holding the latest Pi, Claude and Codex settings, the skills they use, and
-ordinary Mac config. **The checkout is the live copy:** `link.sh` symlinks every file or
-folder below into place, so a setting saved by an app or a skill you edit is already in the
-repo. There is no copy step, state, backups or dry run.
+Public repo holding the latest Pi, Claude and Codex settings, the skills they use,
+portable BB preferences and setup helpers, and ordinary Mac config. **The checkout is
+the live copy:** `link.sh` symlinks the linked configuration below into place, so a
+setting saved by an app or a skill you edit is already in the repo. BB is an exception:
+its settings use explicit snapshot/restore commands rather than live symlinks.
 
 ## Layout
 
@@ -19,9 +20,16 @@ claude/                -> ~/.claude/ (platform settings, shared statusline-comma
 codex/                 -> ~/.codex/ (platform config, shared hooks.json)
 scripts/agent-hook.sh   optional session integrations, guarded when not installed
 config/                other dotfiles (zsh, ghostty, starship, herdr, paseo, VS Code, VPS files)
+bb/                    explicit install/update and portable preference snapshot/restore (not linked)
 .env.example           names of the secrets ~/.env should hold (not linked)
-tests/                 test-link.sh, test-researcher.py, test-app-deploy.sh
+tests/                 link, deploy, settings, subagent, title-border and BB checks
 ```
+
+## BB
+
+See [`bb/README.md`](bb/README.md) for explicit install/update commands, portable
+preference snapshot/restore, and the plugin inventory. BB runtime state and credentials
+stay outside this repo. `link.sh` does not install, update, link, or apply BB settings.
 
 ## `link.sh`
 
@@ -105,6 +113,8 @@ bash tests/test-app-deploy.sh
 python3 tests/test-researcher.py   # researcher scope and its web-tool provider
 python3 tests/test-subagents.py    # pi-subagents migration contract (package, profiles, config)
 python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
+node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
+python3 -m unittest discover -s tests -p test_bb.py # BB preference boundaries
 ```
 
 Credits for copied-in skills: [`agents/ATTRIBUTION.md`](agents/ATTRIBUTION.md).

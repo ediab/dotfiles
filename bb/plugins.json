@@ -1,0 +1,61 @@
+{
+  "plugins": [
+    {
+      "id": "agent-board",
+      "version": "0.6.1",
+      "enabled": true,
+      "source": "git:https://github.com/aaronphifer/bb-plugin-agent-board.git@semver:^0.6.1"
+    },
+    {
+      "id": "attention",
+      "version": "0.1.5",
+      "enabled": true,
+      "source": "npm:bb-plugin-attention@^0.1.0"
+    },
+    {
+      "id": "bb-sidebar",
+      "version": "0.2.31",
+      "enabled": true,
+      "source": "git:https://github.com/yusuf8834/bb-sidebar.git@v0.2.31",
+      "localWorkaround": true
+    },
+    {
+      "id": "graph-studio",
+      "version": "0.1.2",
+      "enabled": true,
+      "source": "git:https://github.com/sajov/bb-plugins.git@semver:graph-studio/:^0.1.0",
+      "subdirectory": "bb-plugin-graph-studio"
+    },
+    {
+      "id": "handoff",
+      "version": "0.7.2",
+      "enabled": true,
+      "source": "git:https://github.com/vburojevic/bb-plugin-handoff.git@semver:^0.7.0"
+    },
+    {
+      "id": "image-preview",
+      "version": "0.1.0",
+      "enabled": true,
+      "source": "git:https://github.com/Dwite/bb-plugin-image-preview.git@semver:^0.1.0"
+    },
+    {
+      "id": "machine-sidebar",
+      "version": "0.1.2",
+      "enabled": true,
+      "source": "git:https://github.com/regenrek/bb-plugin-machine-sidebar.git@semver:^0.1.1"
+    },
+    {
+      "id": "tokyo-night",
+      "version": "0.1.0",
+      "enabled": true,
+      "source": "git:https://github.com/krehel/bb-plugin-tokyo-night.git@semver:^0.1.0"
+    },
+    {
+      "id": "usage-tracker",
+      "version": "0.1.14",
+      "enabled": true,
+      "source": "git:https://github.com/MateoCerquetella/bb-plugins.git@semver:usage-tracker/:^0.1.6",
+      "subdirectory": "plugins/usage-tracker"
+    }
+  ]
+}
