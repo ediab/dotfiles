@@ -119,8 +119,6 @@ cask "homebrew-app"
 cask "iina"
 # AI usage tracker for Cursor, Claude Code, Codex, Copilot and more
 cask "openusage"
-# Self-hosted daemon for AI coding agents
-cask "paseo"
 # Open-source code editor
 cask "visual-studio-code"
 mas "Amphetamine", id: 937984704
