@@ -60,7 +60,7 @@ class SettingsTests(unittest.TestCase):
 class RuntimeConfigTests(unittest.TestCase):
     def test_concurrency_and_depth(self):
         config = json.loads((ROOT / 'pi/extensions/subagent/config.json').read_text())
-        self.assertIs(config['asyncByDefault'], False)
+        self.assertIs(config['asyncByDefault'], True)
         self.assertEqual(config['globalConcurrencyLimit'], 4)
         self.assertEqual(config['parallel']['concurrency'], 4)
         self.assertEqual(config['maxSubagentDepth'], 2)
@@ -121,7 +121,7 @@ class ProfileTests(unittest.TestCase):
 class SkillAndLinkTests(unittest.TestCase):
     def test_code_review_uses_workflow_dispatch(self):
         text = (ROOT / 'pi/skills/code-review/SKILL.md').read_text()
-        self.assertIn('subagent({ workflow: true, async: false })', text)
+        self.assertIn('subagent({ workflow: true, async: true })', text)
         self.assertIn('runs.all', text)
         self.assertNotIn('inherit_context', text)
 

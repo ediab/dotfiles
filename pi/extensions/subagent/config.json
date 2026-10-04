@@ -1,5 +1,5 @@
 {
-  "asyncByDefault": false,
+  "asyncByDefault": true,
   "globalConcurrencyLimit": 4,
   "parallel": {
     "concurrency": 4

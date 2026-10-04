@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
+description: "Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes: Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs independent reviewers in parallel (BB child threads inside BB; Pi subagents in standalone Pi) and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to \"review since X\"."
 ---
 
 Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
@@ -8,9 +8,9 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
 
-Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings. In pi, launch both `reviewer` children inside one foreground workflow script (`runs.all`), so both results come back together; they count as two leaf agents toward the owner's delegation cap.
+Both axes run as **independent parallel reviewers** so they don't pollute each other's context, then this skill aggregates their findings. Read `personal-workflow` before dispatch: inside BB (`BB_THREAD_ID` is set), use BB child threads; in standalone Pi, use one asynchronous `pi-subagents` workflow. Both reviewers count toward the owner's delegation cap.
 
-Spec-compass find: this skill's two subagents are the one pre-authorized review delegation — running this skill is enough to spawn them, no extra "use a reviewer subagent" request needed (per personal-workflow).
+An explicit user invocation of this dedicated two-axis review authorizes only the report-only reviewers described here, subject to applicable user/project rules. Automatic skill loading for an ordinary review request is not independent permission to delegate. When delegation is not authorized, review inline and retain the two report headings.
 
 The issue tracker should have been provided to you (e.g. `docs/agents/issue-tracker.md`). If it's missing and no spec path or tracker doc exists, ask the user where the spec lives; if there is none, the **Spec** axis will skip and report "no spec available".
 
@@ -57,9 +57,13 @@ Each smell reads *what it is* → *how to fix*; match it against the diff:
 - **Middle Man**: a class or function that mostly just delegates onward. → cut it, call the real target direct.
 - **Refused Bequest**: a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
 
-### 4. Spawn both sub-agents in parallel
+### 4. Run authorized reviewers in parallel
 
-Launch both as children of one foreground workflow, so they run concurrently and return together. Write the script as a ```js workflow block in the reply, then call `subagent({ workflow: true, async: false })` in the same reply:
+Choose the host-specific branch before launching; do not mix runners or switch to another runner after a failed launch without the user's approval.
+
+**Inside BB (`BB_THREAD_ID` is set):** read `bb-cli` and its thread-creation/operation references. Resolve the current project, environment, machine, and Pi model. Create one BB child thread per available axis with the current thread as parent (`--parent-self`), an explicit project and `--provider pi`, and the verified model. Attach to the current environment for these report-only readers; never let them edit shared files. Pass each self-contained brief through `--prompt-file` or stdin. Each brief must identify the repo/base/ref, relevant files, standards/spec, expected output, and the boundary: report only, no edits, no further delegation. The children do not inherit this conversation or the native `reviewer` profile. Yield to BB completion notifications, then collect both final outputs and verify material findings against the source before aggregation.
+
+**Standalone Pi:** read `pi-subagents`, check `subagent({ action: "list", capabilities: true })` for an executable `reviewer`, and load its workflow guidance. Launch both reviewers inside one asynchronous workflow. Write the script in one fenced code block tagged `js workflow`, then call `subagent({ workflow: true, async: true })` in the same reply:
 
 ```js workflow
 const [standards, spec] = await runs.all([
@@ -68,6 +72,8 @@ const [standards, spec] = await runs.all([
 ]);
 return "## Standards\n\n" + standards.output + "\n\n## Spec\n\n" + spec.output;
 ```
+
+Yield to native completion notifications rather than polling or blocking on `bg_wait`. The main agent collects the completed result and verifies material findings before presenting the report.
 
 **Standards child brief** — its `task` should include:
 
@@ -81,7 +87,7 @@ return "## Standards\n\n" + standards.output + "\n\n## Spec\n\n" + spec.output;
 - The path or fetched contents of the spec.
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
 
-If the spec is missing, drop the Spec child from `runs.all` (and the second section from the returned text) and note this in the final report.
+If the spec is missing, omit the Spec reviewer and note this in the final report. In standalone Pi, also adjust `runs.all`, its destructuring, and the returned text so they refer only to the Standards result.
 
 ### 5. Aggregate
 

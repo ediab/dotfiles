@@ -64,11 +64,12 @@ The agent owns execution and verification; the user controls intent, material tr
 
 ## Delegation
 
+* Choose the execution host's delegation layer before dispatch. Inside BB (`BB_THREAD_ID` is set), new authorized workers run as BB child threads; read `bb-cli` and use the current thread as parent. Standalone Pi uses `pi-subagents`; other standalone clients keep their native delegation tools. Explicit user requests for a different runner take precedence when supported. Existing workers stay on the layer that launched them; never replace a failed run through another layer without approval. This routing rule does not authorize delegation by itself.
 * The main agent owns the goal and result. Planning stays in the main context and is never delegated.
 * Task ownership is end-to-end: the agent that investigates a change implements, tests, and corrects it. Delegate meaningfully independent work or a fresh second opinion on a finished artifact, not sequential explore → plan → code → fix stages of one task.
 * When work is ticketed, use blocking edges to identify what can start. Each worker owns one ticket at a time; independent unblocked tickets may run in parallel. Prefer the ticket graph for parallel implementation; use ad-hoc delegation for independent tasks that do not fit it.
 * Before delegating, read the selected agent's configured tools and scope. Brief every dispatch self-contained (goal, paths, scope, constraints, done-criteria). Use a fresh context for self-contained ticket work; carry context forward only when correctness depends on prior discussion.
-* Prefer one well-briefed helper over several loosely directed ones. Respect the current client's configured agent limit; if none is available, use no more than four active agents. Use background execution only when there is useful work to do while it runs; otherwise keep the task in the foreground.
+* Prefer one well-briefed helper over several loosely directed ones. Respect the current client's configured agent limit; if none is available, use no more than four active agents. Prefer background execution with completion notifications, including independent final reviews. If only helpers are running, yield rather than polling. Foreground blocking is for a necessary dependency when the selected runner supports it, not final reviews.
 * Use a fresh independent audit agent for each second opinion; do not reuse one that has already seen the work. Do not silently retry a failed delegation through a different agent.
 * Verify material subagent findings against the underlying files or sources rather than acting on the summary.
 
