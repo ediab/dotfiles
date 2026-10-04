@@ -32,6 +32,20 @@ systemctl --user status bb.service
 
 Check a real task after updating; an active service alone is not proof an agent works. The Mac desktop app is a separate installation: update it through its supported app update mechanism, not this npm script. No automatic updater is scheduled by this folder.
 
+## BB skills in user scope
+
+`bb skills` (bb-user scope) skills live in `~/.bb/skills/` — plain files owned by the BB CLI, editable in the app or via `bb skills` commands. They are separate from the tracked skills in `agents/` (linked via `link.sh`) and from skills shipped inside plugins (`plugins.json` covers those). `bb/skills/` mirrors `~/.bb/skills/`: five entries at capture time — `diff-review`, `ui-audit`, `web-design`, `bb-pi-control`, `bb-pi-health`. It is a plain copy, not a link; `link.sh` does not touch it.
+
+```sh
+# Capture current skills into the repo (run from the dotfiles root):
+rsync -a --delete ~/.bb/skills/ bb/skills/
+
+# Restore on a machine (review the diff first — see below):
+rsync -a bb/skills/ ~/.bb/skills/
+```
+
+Restoring is a copy in, not a link: if `~/.bb/skills/<name>/SKILL.md` already exists and differs, review the diff before overwriting — agents may have edited the live copy in place. The installed BB release has no `skills export`/`skills import` command, so this folder is the portable copy.
+
 ## Capture current preferences
 
 From the dotfiles root:
