@@ -8,9 +8,9 @@ The user has asked for a **retrospective**. You are suggesting improvements to t
 
 ## Steps
 
-1. Call the Skill tool with `writing-for-agents` for the writing style guide.
+1. Read the writing-for-agents skill (`~/.agents/skills/writing-for-agents/SKILL.md`) for the writing style guide.
 
-2. Read the primary sources for the session the user specifies. This may mean searching through session logs on this machine. If the user doesn't specify a session, default to the current one.
+2. Read the primary sources for the session the user specifies. If the user doesn't specify a session, default to the current one. Locate the current session's log: `$PI_SESSION_FILE` when set (bb-bridged runs; `~/.bb/pi-bridge-sessions/`), otherwise `~/.pi/agent/sessions/` (Pi terminal runs; per-cwd dirs with mangled paths — newest file wins). **Snapshot the log first** (`cp` to a temp file): the log appends while you read it, so a live read can never reach its own tail.
 
 3. Look for candidates for improvement in these categories.
 
