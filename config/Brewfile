@@ -80,6 +80,8 @@ brew "terminal-notifier"
 brew "testssl"
 # Simplified and community-driven man pages
 brew "tldr"
+# Upgrade all the things
+brew "topgrade"
 # Executes a program periodically, showing output fullscreen
 brew "watch"
 # Extensible IRC client
@@ -98,6 +100,8 @@ brew "zsh-fast-syntax-highlighting"
 brew "zsh-syntax-highlighting"
 # Android SDK component
 cask "android-platform-tools"
+# IDE for running and orchestrating coding agents
+cask "bb"
 cask "claude-usage-tracker"
 # OpenAI's coding agent that runs in your terminal
 cask "codex"
@@ -115,6 +119,8 @@ cask "homebrew-app"
 cask "iina"
 # AI usage tracker for Cursor, Claude Code, Codex, Copilot and more
 cask "openusage"
+# Self-hosted daemon for AI coding agents
+cask "paseo"
 # Open-source code editor
 cask "visual-studio-code"
 mas "Amphetamine", id: 937984704

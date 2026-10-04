@@ -20,23 +20,11 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 
-[projects."/Users/eliasdiab/Dev/twitterbot"]
-trust_level = "trusted"
-
-
 [projects."/Users/eliasdiab/Dev/greek_embassy_bot"]
 trust_level = "trusted"
 
 
-[projects."/Users/eliasdiab/Dev/rsshub-vps-deploy"]
-trust_level = "trusted"
-
-
 [projects."/Users/eliasdiab/Downloads"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Dev/miniflux"]
 trust_level = "trusted"
 
 
@@ -45,14 +33,6 @@ trust_level = "trusted"
 
 
 [projects."/Users/eliasdiab/Dev/notes"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Dev/stirling-pdf"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Dev/matrix"]
 trust_level = "trusted"
 
 
@@ -72,31 +52,11 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 
-[projects."/Users/eliasdiab/Documents/ETF Screener"]
-trust_level = "trusted"
-
-
 [projects."/Users/eliasdiab/Dev/etf-screener"]
 trust_level = "trusted"
 
 
-[projects."/Users/eliasdiab/Dev/spotify-mcp-server"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Dev/spending"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Dev/argus"]
-trust_level = "trusted"
-
-
 [projects."/Users/eliasdiab/Dev/irc_bot"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Dev/ytmusic-mcp"]
 trust_level = "trusted"
 
 
@@ -116,18 +76,6 @@ trust_level = "trusted"
 trust_level = "trusted"
 
 
-[projects."/Users/eliasdiab/Desktop/VRT model"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Desktop/Citadel - Mine/QCOM_official"]
-trust_level = "trusted"
-
-
-[projects."/Users/eliasdiab/Desktop/QCOM"]
-trust_level = "trusted"
-
-
 [projects."/Users/eliasdiab/Dev/dotfiles"]
 trust_level = "trusted"
 
@@ -144,11 +92,6 @@ memories = true
 url = "https://mcp.context7.com/mcp"
 http_headers_helper = "sed -n -E 's/^CONTEXT7_API_KEY=(.+)/{\"CONTEXT7_API_KEY\":\"\\1\"}/p' /Users/eliasdiab/.env"
 
-
-
-[mcp_servers.spotify]
-command = "/opt/homebrew/bin/node"
-args = ["/Users/eliasdiab/Dev/spotify-mcp-server/build/index.js"]
 
 
 [mcp_servers.node_repl]
@@ -201,7 +144,7 @@ screen_reader_detection_done = true
 
 
 [[skills.config]]
-path = "/Users/eliasdiab/.codex/plugins/cache/openai-primary-runtime/presentations/26.513.11550/skills/presentations/SKILL.md"
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-primary-runtime/presentations/26.921.10847/skills/presentations/SKILL.md"
 enabled = false
 
 

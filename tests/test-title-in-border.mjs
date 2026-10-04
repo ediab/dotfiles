@@ -204,7 +204,7 @@ test("module loads and default export is a function", async () => {
   assert.equal(typeof factory, "function");
 });
 
-test("configuration keeps only the requested powerline change", () => {
+test("configuration keeps the requested powerline layout and cost display", () => {
   const settings = JSON.parse(
     readFileSync(join(REPO_ROOT, "pi", "settings.json"), "utf8"),
   );
@@ -224,7 +224,10 @@ test("configuration keeps only the requested powerline change", () => {
     "cost",
   ]);
   assert.equal(settings.powerline.layout.left.includes("session"), false);
-  assert.equal("cost" in settings.powerline, false);
+  assert.deepEqual(settings.powerline.cost, {
+    subscriptionDisplay: "reported-cost",
+    currency: "GBP",
+  });
   assert.equal(title.maxTokens, 30);
   assert.equal(title.maxLength, 60);
 });

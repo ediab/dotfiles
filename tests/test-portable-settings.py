@@ -57,7 +57,7 @@ class PortableSettingsTests(unittest.TestCase):
     def test_linux_claude_keeps_shared_behavior_without_mac_server(self):
         mac = json.loads((ROOT / 'claude/settings.json').read_text())
         linux = json.loads((ROOT / 'claude/settings.linux.json').read_text())
-        mac.pop('mcpServers')
+        mac.pop('mcpServers', None)  # Mac-only local servers, when any are configured
         self.assertEqual(mac, linux)
         self.assertNotIn('/Users/', json.dumps(linux))
         self.assertNotIn('/opt/homebrew/', json.dumps(linux))

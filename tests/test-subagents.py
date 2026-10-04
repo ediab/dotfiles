@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 AGENTS = ROOT / 'pi/agents'
 ROLES = ['general-purpose', 'explorer', 'researcher', 'worker', 'reviewer']
-PACKAGE = 'npm:pi-subagents@0.74.0'
+PACKAGE = 'npm:pi-subagents'
 
 TINTIN_SYNTAX = ['prompt_mode:', 'inherit_context:', 'tools: all', 'extensions: true',
                  'extensions: false', 'skills: false']
@@ -43,11 +43,12 @@ class SettingsTests(unittest.TestCase):
         self.assertIn(PACKAGE, entries)
         self.assertFalse([entry for entry in entries if 'tintinweb' in str(entry)])
 
-    def test_package_keeps_guidance_skill_and_drops_prompt_templates(self):
+    def test_package_keeps_guidance_skill_and_opts_into_prompt_templates(self):
         entry = next(entry for entry in self.settings['packages']
                      if isinstance(entry, dict) and entry.get('source') == PACKAGE)
-        self.assertEqual(entry.get('prompts'), [])
-        self.assertTrue(entry.get('skills'))
+        self.assertIn('skills/pi-subagents/**', entry.get('skills'))
+        self.assertIn('+prompts/council.md', entry.get('prompts'))
+        self.assertTrue(all(p.startswith('+prompts/') for p in entry['prompts']))
 
     def test_builtin_roles_and_watchdog_disabled(self):
         subagents = self.settings['subagents']
