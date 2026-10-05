@@ -13,8 +13,9 @@ agents/AGENTS.md       -> ~/.pi/agent/AGENTS.md, ~/.codex/AGENTS.md, ~/.claude/C
 agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
 pi/skills/code-review  -> ~/.pi/agent/skills/code-review (Pi-only)
-pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
-pi/extensions/subagent/config.json -> ~/.pi/agent/extensions/subagent/config.json (pi-subagents runtime config)
+pi/skills/orchestrate  -> ~/.pi/agent/skills/orchestrate (Pi-only, explicit-only orchestration)
+pi/{agents,extensions,themes,workflows}/ -> ~/.pi/agent/<same>
+pi/herdr.json          -> ~/.pi/agent/herdr.json (pi-herdr settings: caps, depth, notifications)
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
 codex/                 -> ~/.codex/ (platform config, shared hooks.json)
@@ -22,7 +23,7 @@ scripts/agent-hook.sh   optional session integrations, guarded when not installe
 config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 bb/                    explicit install/update and portable preference snapshot/restore (not linked)
 .env.example           names of the secrets ~/.env should hold (not linked)
-tests/                 link, deploy, settings, subagent, title-border and BB checks
+tests/                 link, deploy, settings, herdr agents, title-border and BB checks
 ```
 
 ## BB
@@ -107,7 +108,7 @@ This is a deliberate operation, never an automatic overwrite.
 bash tests/test-link.sh            # link.sh against a fake HOME (never the real one)
 bash tests/test-app-deploy.sh
 python3 tests/test-researcher.py   # researcher scope and its web-tool provider
-python3 tests/test-subagents.py    # pi-subagents migration contract (package, profiles, config)
+python3 tests/test-herdr.py        # pi-herdr contract (package, agent defs, defaults)
 python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
 node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
 python3 -m unittest discover -s tests -p test_bb.py # BB preference boundaries

@@ -8,7 +8,7 @@ Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
 
-Both axes run as **independent parallel reviewers** so they don't pollute each other's context, then this skill aggregates their findings. Read `personal-workflow` before dispatch: inside BB (`BB_THREAD_ID` is set), use BB child threads; in standalone Pi, use one asynchronous `pi-subagents` workflow. Both reviewers count toward the owner's delegation cap.
+Both axes run as **independent parallel reviewers** so they don't pollute each other's context, then this skill aggregates their findings. Read `personal-workflow` before dispatch: inside BB (`BB_THREAD_ID` is set), use BB child threads; in standalone Pi, spawn two visible `reviewer` agents through pi-herdr. Both reviewers count toward the owner's delegation cap.
 
 An explicit user invocation of this dedicated two-axis review authorizes only the report-only reviewers described here, subject to applicable user/project rules. Automatic skill loading for an ordinary review request is not independent permission to delegate. When delegation is not authorized, review inline and retain the two report headings.
 
@@ -63,17 +63,7 @@ Choose the host-specific branch before launching; do not mix runners or switch t
 
 **Inside BB (`BB_THREAD_ID` is set):** read `bb-cli` and its thread-creation/operation references. Resolve the current project, environment, machine, and Pi model. Create one BB child thread per available axis with the current thread as parent (`--parent-self`), an explicit project and `--provider pi`, and the verified model. Attach to the current environment for these report-only readers; never let them edit shared files. Pass each self-contained brief through `--prompt-file` or stdin. Each brief must identify the repo/base/ref, relevant files, standards/spec, expected output, and the boundary: report only, no edits, no further delegation. The children do not inherit this conversation or the native `reviewer` profile. Yield to BB completion notifications, then collect both final outputs and verify material findings against the source before aggregation.
 
-**Standalone Pi:** read `pi-subagents`, check `subagent({ action: "list", capabilities: true })` for an executable `reviewer`, and load its workflow guidance. Launch both reviewers inside one asynchronous workflow. Write the script in one fenced code block tagged `js workflow`, then call `subagent({ workflow: true, async: true })` in the same reply:
-
-```js workflow
-const [standards, spec] = await runs.all([
-  { key: "standards", label: "Review standards compliance", agent: "reviewer", context: "fresh", task: "<standards brief>" },
-  { key: "spec", label: "Review spec conformance", agent: "reviewer", context: "fresh", task: "<spec brief>" }
-]);
-return "## Standards\n\n" + standards.output + "\n\n## Spec\n\n" + spec.output;
-```
-
-Yield to native completion notifications rather than polling or blocking on `bg_wait`. The main agent collects the completed result and verifies material findings before presenting the report.
+**Standalone Pi:** spawn both reviewers as visible Herdr agents with `herdr_spawn_agent` (`type: "reviewer"`, autonomous), one per axis, in the same reply. Each task is the corresponding brief below. Then collect both with `herdr_get_agent_result` (`wait: true`) and verify material findings against the source before aggregation:
 
 **Standards child brief** — its `task` should include:
 
@@ -87,7 +77,7 @@ Yield to native completion notifications rather than polling or blocking on `bg_
 - The path or fetched contents of the spec.
 - The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
 
-If the spec is missing, omit the Spec reviewer and note this in the final report. In standalone Pi, also adjust `runs.all`, its destructuring, and the returned text so they refer only to the Standards result.
+If the spec is missing, omit the Spec reviewer and note this in the final report.
 
 ### 5. Aggregate
 

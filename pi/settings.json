@@ -9,8 +9,8 @@
   "tuiMode": "fullscreen",
   "externalEditor": "druk",
   "skills": [],
-  "enableInstallTelemetry": false,
   "defaultProjectTrust": "ask",
+  "enableInstallTelemetry": false,
   "extensions": [
     "-extensions/env-loader.ts"
   ],
@@ -37,33 +37,10 @@
     "npm:pi-extmgr",
     "npm:pi-powerline-footer",
     "npm:pi-title",
-    {
-      "source": "npm:pi-subagents",
-      "skills": [
-        "skills/pi-subagents/**",
-        "+skills/council-mode/SKILL.md"
-      ],
-      "prompts": [
-        "+prompts/council.md",
-        "+prompts/gather-context-and-clarify.md",
-        "+prompts/parallel-cleanup.md",
-        "+prompts/parallel-research.md",
-        "+prompts/parallel-review.md",
-        "+prompts/review-loop.md"
-      ]
-    },
     "npm:pi-contextimate",
-    "npm:@dietrichgebert/ponytail"
+    "npm:@dietrichgebert/ponytail",
+    "npm:@andrewjacop/pi-herdr"
   ],
-  "subagents": {
-    "disableBuiltins": true,
-    "watchdog": {
-      "enabled": false,
-      "children": {
-        "enabled": false
-      }
-    }
-  },
   "powerline": {
     "preset": "default",
     "placement": "below",

@@ -48,7 +48,7 @@ Start with the inventory, then follow evidence into the relevant branch:
   Pi's built-in trust prompt; explain the effect before recommending `ask`.
   Worktrees and prompt instructions do not provide process isolation.
 - **Workflow consistency:** compare user workflow, custom agents/review skills,
-  installed `pi-subagents` guidance, and its effective configuration. Check
+  installed `pi-herdr` guidance, and its effective configuration. Check
   foreground/background assumptions, authorization rules, context inheritance,
   and separate BB-thread/Pi-child concurrency limits. A configured preference
   may be deliberate; label conflicts rather than silently fixing them.

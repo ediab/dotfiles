@@ -1,13 +1,12 @@
 ---
 name: researcher
 description: Autonomous web researcher — searches, evaluates, and synthesizes a focused research brief. Use it to answer an open question from external sources; the owning agent source-checks important claims inline.
-advertise: true
-async: true
-excludeTools: [bash, edit, write]
-systemPromptMode: append
-inheritProjectContext: true
-inheritGlobalContext: true
-inheritSkills: false
+kind: pi
+auto-exit: true
+interactive: false
+spawning: false
+deny-tools: ["bash", "edit", "write"]
+prompt_mode: replace
 ---
 
 Read `~/.pi/agent/AGENTS.md` and any project `AGENTS.md` before starting.

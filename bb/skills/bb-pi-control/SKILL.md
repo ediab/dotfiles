@@ -29,9 +29,7 @@ behalf.
 
 - **BB thread:** use `bb thread ...`; its ID is `thr_...`. Read the relevant
   `bb-cli` reference for thread operation or failure recovery.
-- **Pi child run:** use the `subagent` tool's status/steer/stop controls. Read
-  `pi-subagents` and its management guide for exact IDs and supported actions.
-  Inspecting an existing run does not authorize launching another one.
+- **Pi child run (Herdr pane):** read the run's pi-herdr surface: `herdr_list_agents` for status, `herdr_get_agent_result` for output, `herdr_message_agent` to steer, `herdr_interrupt_agent` to cancel the current turn. Inspecting an existing run does not authorize launching another one.
 - **Persistent server or shell:** use `bb terminal ...` scoped to the correct
   thread/environment/machine, not a detached shell process the user cannot see.
 
@@ -60,14 +58,14 @@ unless they request continuation.
 
 For new authorized delegation, read `personal-workflow` for host-specific routing
 and `bb-cli`'s thread-creation reference. In BB, create BB child threads parented
-to the current thread (`--parent-self`), rather than Pi-native subagents. Resolve
+to the current thread (`--parent-self`), rather than spawning Herdr agents in the Pi session. Resolve
 the project, environment/machine, provider and model before launch; include a
 self-contained brief because a new thread does not inherit this conversation.
 Use separate workspaces for concurrent writers. For report-only reviewers, the
 same environment is acceptable. Keep one clear owner and let background children
 report completion. A routing preference never authorizes extra workers, reviews,
-or nested fanout; apply the user's delegation rules first. Existing Pi child runs
-still use Pi controls, and a failed BB launch is not permission to switch layers.
+or nested fanout; apply the user's delegation rules first. Existing Herdr panes
+still use the pi-herdr controls above, and a failed BB launch is not permission to switch layers.
 
 ## Complete
 

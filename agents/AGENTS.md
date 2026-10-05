@@ -18,10 +18,12 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 * Do not copy skill procedures into this file.
 * Create new personal skills in `~/.agents/skills/<name>`.
 
-## Subagents
+## Delegation and orchestration
 
-* Spawn subagents only for independent investigation, specialist work, or parallel work.
-* The main agent owns synthesis and verification of subagent results.
+* Delegate only for independent investigation, specialist work, or parallel work — and only when the user asks for it or an explicit orchestration skill is invoked.
+* The main agent owns synthesis and verification of delegated results.
+* When this session is working under another orchestrator (for example as a BB worker), act as a normal worker and do not spawn a nested agent fleet unless the user explicitly asks for nested delegation.
+* There must be one orchestrator at a time. The presence of orchestration tools (such as pi-herdr) is not permission to use them.
 
 ## Jev — Pi only
 

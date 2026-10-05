@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / 'pi/agents/researcher.md'
-EXPECTED_EXCLUDES = ['bash', 'edit', 'write']
+EXPECTED_DENY = ['bash', 'edit', 'write']
 
 
 def frontmatter(path):
@@ -23,8 +23,9 @@ def frontmatter(path):
 
 
 def listed(value):
+    value = value.strip()
     if not value.startswith('['):
-        return [value]
+        return [item.strip() for item in value.split(',') if item.strip()]
     return [item.strip().strip('"\'') for item in value[1:-1].split(',') if item.strip()]
 
 
@@ -33,16 +34,11 @@ class ResearcherTests(unittest.TestCase):
         self.fields = frontmatter(PROFILE)
 
     def test_restricted_tools(self):
-        # pi-subagents 0.74.0 cannot honour a `tools` allowlist on Pi 0.99.2, so the
-        # researcher's scope is a denylist over the child's default tools.
-        self.assertNotIn('tools:', PROFILE.read_text())
-        self.assertEqual(listed(self.fields['excludeTools']), EXPECTED_EXCLUDES)
-
-    def test_web_tools_come_from_ambient_providers(self):
-        # Foreground children cannot load providers, so the researcher runs as a
-        # background child, where pi-web-access registers the web tools.
-        self.assertEqual(self.fields['async'], 'true')
-        self.assertNotIn('extensions', self.fields)
+        # pi-herdr honours a `tools` allowlist, but the researcher's scope stays a
+        # denylist (it needs whatever ambient tools the session provides, minus
+        # file-writing and shell).
+        self.assertNotIn('tools', self.fields)
+        self.assertEqual(listed(self.fields['deny-tools']), EXPECTED_DENY)
 
     def test_no_tintin_extension_selectors(self):
         self.assertIsNone(re.search(r'"ext:', PROFILE.read_text()))
