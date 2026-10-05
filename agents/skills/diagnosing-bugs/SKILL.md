@@ -11,7 +11,7 @@ A clear low-risk fix takes the light path: inspect the relevant flow and callers
 
 A discipline for hard bugs. Skip phases only when explicitly justified.
 
-When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
+When exploring the codebase, read the project glossary (`GLOSSARY.md`, or an established filename such as `CONTEXT.md`, if present) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
 
 ## Redact
 

@@ -18,7 +18,7 @@ Work from whatever is already in the conversation context. If the user passes a 
 
 ### 2. Explore the codebase (optional)
 
-If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's shared domain vocabulary (see the `domain-modeling` skill / `CONTEXT.md` if one exists), and respect ADRs in the area you're touching.
+If you have not already explored the codebase, do so to understand the current state of the code. Ticket titles and descriptions should use the project's shared domain vocabulary. Read the project glossary (`GLOSSARY.md` or its established filename) if present, consult `domain-modeling` when sharpening terminology, and respect ADRs in the area you're touching.
 
 Look for opportunities to prefactor the code to make the implementation easier. "Make the change easy, then make the easy change."
 

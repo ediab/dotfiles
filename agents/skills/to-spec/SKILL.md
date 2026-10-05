@@ -18,7 +18,8 @@ unless an unresolved decision needs their input.
 
 1. Explore the repo to understand the current state of the codebase, if you
    haven't already. Use the project's shared domain vocabulary throughout the
-   spec (see the `domain-modeling` skill / `CONTEXT.md` if one exists), and
+   spec. Read the project glossary (`GLOSSARY.md` or its established filename)
+   if present, consult `domain-modeling` when sharpening terminology, and
    respect any ADRs in the area you're touching.
 
 2. Sketch out the seams at which you're going to test the feature. Existing

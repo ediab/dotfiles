@@ -12,9 +12,11 @@ A **flow** is a path through skills. Most work follows the main idea-to-delivery
 
 ## Main flow: idea → delivery
 
-1. **Sharpen the idea.** Use `grill-with-docs` when working in a repository so decisions can be recorded in `CONTEXT.md` and ADRs. Without a working repository, use `grill-me`. Both use the `grilling` interview method; `grill-with-docs` also leaves a project record.
+1. **Sharpen the idea.** Use `grill-with-docs` when working in a repository so decisions can be recorded in the project glossary (`GLOSSARY.md` for new projects) and ADRs. Without a working repository, use `grill-me`. Both use the `grilling` interview method; `grill-with-docs` also leaves a project record.
 2. **If a runnable answer is needed**, such as testing a state model, business rule, or UI, hand off the focused question, use `prototype` to answer it with throwaway code, then hand the result back to the original work. A prototype is a detour for a question that is hard to settle on paper.
 3. **For work spanning sessions**, create a spec with `to-spec`, then split it into blocker-aware tickets with `to-tickets`. Implement one ticket at a time, in a clean context, respecting its blockers. For a small change, use `implement` directly in the current context.
+
+4. **If you want to improve future runs**, explicitly invoke `retro` after a build, especially one that went sideways. It reviews the session for improvements to the agent's environment, not more code changes. Run it before clearing the session, or supply that session's log later. It is an optional follow-up, not an automatic phase.
 
 The implementation procedure owns its testing and verification steps. Use `tdd` on its own when you want to build one concrete behavior test-first. After implementation, use the repository's code-review workflow when one is available; otherwise review the change inline against its intent and project standards.
 
@@ -23,7 +25,7 @@ Keep idea-shaping and ticket planning in one context when their decisions need t
 ## On-ramps
 
 - **Incoming bugs or requests you did not create** → use a triage workflow if one is installed. It turns raw reports into agent-ready work; tickets already produced by `to-tickets` do not need triage.
-- **Something is broken** → use `diagnosing-bugs`, especially for intermittent failures, regressions, or bugs that resist a first pass. It establishes a tight feedback loop before theorizing, then adds a regression test.
+- **Something is broken** → use `diagnosing-bugs`, especially for intermittent failures, regressions, or bugs that resist a first pass. It establishes a tight feedback loop before theorizing, then adds a regression test. After the fix, offer `retro` to examine what would have prevented the bug; run it only when explicitly requested.
 - **A huge, foggy effort**—such as a greenfield project or a feature too large to plan in one session → use `wayfinder`. It resolves decision tickets into a shared map; it produces decisions, not implementation. Once the map clears, return to `to-spec`, then `to-tickets` and implementation. If the effort proves small, implement directly instead.
 
 ## Codebase health
@@ -34,7 +36,7 @@ For upkeep rather than feature work, use a codebase-improvement survey if one is
 
 These skills supply language and concepts to other work. Use them directly when terminology or a design concept is the problem, or let other procedures consult them:
 
-- `domain-modeling` sharpens domain language, resolves overloaded terms, and records important decisions in `CONTEXT.md` or ADRs.
+- `domain-modeling` sharpens domain language, resolves overloaded terms, and records important decisions in the project glossary or ADRs.
 - `codebase-design`, when installed, provides vocabulary for module shape: interfaces, depth, seams, adapters, and locality.
 - `writing-for-agents` guides documents agents consume, including skills and project instructions.
 
