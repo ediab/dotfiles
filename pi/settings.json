@@ -11,7 +11,9 @@
   "skills": [],
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "ask",
-  "extensions": ["-extensions/env-loader.ts"],
+  "extensions": [
+    "-extensions/env-loader.ts"
+  ],
   "steeringMode": "all",
   "followUpMode": "all",
   "quietStartup": true,
@@ -50,7 +52,8 @@
         "+prompts/review-loop.md"
       ]
     },
-    "npm:pi-contextimate"
+    "npm:pi-contextimate",
+    "npm:@dietrichgebert/ponytail"
   ],
   "subagents": {
     "disableBuiltins": true,
