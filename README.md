@@ -26,6 +26,22 @@ bb/                    explicit install/update and portable preference snapshot/
 tests/                 link, deploy, settings, herdr agents, title-border and BB checks
 ```
 
+## Pi installation
+
+Install Pi separately from the Brewfile on macOS and Linux:
+
+```sh
+curl -fsSL https://pi.dev/install.sh | sh
+pi --version
+```
+
+Use `pi update self` to update the installer-managed runtime. Pi packages still
+live in `~/.pi/agent/npm` and `~/.pi/agent/git`; do not remove these directories
+when switching away from a global npm installation. Configuration, credentials
+and sessions remain in `~/.pi/agent`. Credentials stay machine-local and untracked;
+use `pi auth check --provider deepseek` and `pi auth check --provider openai`
+to check readiness without printing secrets.
+
 ## Pi intercom
 
 `pi/settings.json` enables `npm:pi-intercom` for session-to-session messaging.
@@ -108,7 +124,7 @@ This is a deliberate operation, never an automatic overwrite.
 
 1. `git clone git@github.com:ediab/dotfiles.git ~/Dev/dotfiles`
 2. `~/Dev/dotfiles/link.sh` (resolve any `SKIP` by merging that file into the repo, deleting the live one, rerunning)
-3. `brew bundle --file=~/Dev/dotfiles/config/Brewfile`
+3. `brew bundle --file=~/Dev/dotfiles/config/Brewfile` (macOS), then install Pi using the command above
 4. `cp ~/Dev/dotfiles/.env.example ~/.env && chmod 600 ~/.env`, then fill in the values
 5. Add Claude's Context7 server (its config in `~/.claude.json` is not in the repo):
    `claude mcp add-json --scope user context7 '{"type":"http","url":"https://mcp.context7.com/mcp","headersHelper":"..."}'`

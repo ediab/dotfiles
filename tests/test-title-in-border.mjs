@@ -7,14 +7,17 @@
  * imported; behavior is exercised through the public event/factory/render flow.
  *
  * Run:
- *   PI_PACKAGE_ROOT="$(npm root -g)/@earendil-works/pi-coding-agent" \
- *     node --test tests/test-title-in-border.mjs
+ *   node --test tests/test-title-in-border.mjs
+ *
+ * Uses the installer-managed Pi release by default. PI_PACKAGE_ROOT can
+ * override the package directory for a different installation.
  *
  * Requires jiti and @earendil-works/pi-tui from the Pi installation; no
  * dependencies are added to the dotfiles repo.
  */
 
 import { createRequire } from "node:module";
+import { homedir } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -29,51 +32,38 @@ const EXTENSION_PATH = join(
   "title-in-border.ts",
 );
 
+const installRoot = join(
+  process.env.PI_CODING_AGENT_DIR ?? join(homedir(), ".pi", "agent"),
+  "install",
+);
 const packageRoot =
   process.env.PI_PACKAGE_ROOT ??
   join(
-    process.env.npm_config_prefix ?? "/opt/homebrew/lib/node_modules",
+    installRoot,
+    "releases",
+    readFileSync(join(installRoot, "current-version"), "utf8").trim(),
+    "node_modules",
     "@earendil-works/pi-coding-agent",
   );
 
-for (const dir of [packageRoot, join(packageRoot, "node_modules", "jiti")]) {
-  if (!existsSync(join(dir, "package.json"))) {
-    console.error(
-      `test-title-in-border: Pi installation not found at ${packageRoot}\n` +
-        `Set PI_PACKAGE_ROOT to the @earendil-works/pi-coding-agent package directory.`,
-    );
-    process.exit(1);
-  }
+if (!existsSync(join(packageRoot, "package.json"))) {
+  console.error(
+    `test-title-in-border: Pi installation not found at ${packageRoot}\n` +
+      `Set PI_PACKAGE_ROOT to the @earendil-works/pi-coding-agent package directory.`,
+  );
+  process.exit(1);
 }
 
 const require = createRequire(join(packageRoot, "package.json"));
 const { createJiti } = require("jiti");
 
 // Host packages resolved exactly as Pi's loader resolves them for extensions.
-const piTuiEntry = join(
-  packageRoot,
-  "node_modules",
-  "@earendil-works",
-  "pi-tui",
-  "dist",
-  "index.js",
+const piTuiEntry = require.resolve("@earendil-works/pi-tui");
+const hostPackageRoot = dirname(
+  dirname(require.resolve("@earendil-works/pi-tui/package.json")),
 );
-const piAgentEntry = join(
-  packageRoot,
-  "node_modules",
-  "@earendil-works",
-  "pi-agent-core",
-  "dist",
-  "index.js",
-);
-const piAiEntry = join(
-  packageRoot,
-  "node_modules",
-  "@earendil-works",
-  "pi-ai",
-  "dist",
-  "compat.js",
-);
+const piAgentEntry = join(hostPackageRoot, "pi-agent-core", "dist", "index.js");
+const piAiEntry = join(hostPackageRoot, "pi-ai", "dist", "compat.js");
 const typeboxEntry = require.resolve("typebox", { paths: [packageRoot] });
 
 // Mirrors Pi's loader: fresh module cache per import, host packages resolved
@@ -99,14 +89,7 @@ const jiti = createJiti(join(packageRoot, "dist", "index.js"), {
 const loadExtension = () => jiti.import(EXTENSION_PATH, { default: true });
 
 const { visibleWidth, stripTerminalSequences } = require(
-  join(
-    packageRoot,
-    "node_modules",
-    "@earendil-works",
-    "pi-tui",
-    "dist",
-    "utils.js",
-  ),
+  join(dirname(piTuiEntry), "utils.js"),
 );
 
 const NO_COLOR = (text) => `«${text}»`; // visible sentinel around colored spans
