@@ -22,7 +22,7 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 
 * Delegate only for independent investigation, specialist work, or parallel work — and only when the user asks for it or an explicit orchestration skill is invoked.
 * The main agent owns synthesis and verification of delegated results.
-* When this session is working under another orchestrator (for example as a BB worker), act as a normal worker and do not spawn a nested agent fleet unless the user explicitly asks for nested delegation.
+* In Pi, when `BB_THREAD_ID` is set or this session is working under another orchestrator, act as a normal worker: never spawn Pi/Herdr agents or invoke the `orchestrate` skill. This holds even when delegation is explicitly requested; return the request to the owning orchestrator.
 * There must be one orchestrator at a time. The presence of orchestration tools (such as pi-herdr) is not permission to use them.
 
 ## Jev — Pi only

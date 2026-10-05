@@ -78,10 +78,6 @@ export VISUAL="$EDITOR"
 export ENABLE_TOOL_SEARCH=true
 export PI_ASK_USER_DISPLAY_MODE=inline
 
-# pi-subagents
-export PI_SUBAGENT_ENABLE_SET_TAB_TITLE=1
-export PI_SUBAGENT_SHELL_READY_DELAY_MS=1200
-
 # Homebrew (Apple Silicon)
 [[ -d "/opt/homebrew/bin" ]] && export PATH="/opt/homebrew/bin:$PATH"
 

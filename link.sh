@@ -52,7 +52,6 @@ link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the l
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link pi/skills/code-review "$H/.pi/agent/skills/code-review"
 link pi/skills/orchestrate "$H/.pi/agent/skills/orchestrate"
-link pi/workflows "$H/.pi/agent/workflows"
 link agents/AGENTS.md "$H/.pi/agent/AGENTS.md"
 link agents/skills "$H/.agents/skills"   # Pi and Codex read this
 if [ -d "$H/.claude" ]; then
@@ -81,7 +80,7 @@ for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/*; do
 done
 
 # Retired links: cleanup for config files left by removed packages
-for p in "$H/.pi/agent/subagents.json" "$H/.pi/agent/open-tui.json"; do
+for p in "$H/.pi/agent/subagents.json" "$H/.pi/agent/open-tui.json" "$H/.pi/agent/workflows"; do
   [ -L "$p" ] && [ ! -e "$p" ] || continue
   case "$(readlink "$p")" in "$REPO"/*) echo "remove retired $p"; rm -f "$p";; esac
 done

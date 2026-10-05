@@ -14,7 +14,7 @@ agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
 pi/skills/code-review  -> ~/.pi/agent/skills/code-review (Pi-only)
 pi/skills/orchestrate  -> ~/.pi/agent/skills/orchestrate (Pi-only, explicit-only orchestration)
-pi/{agents,extensions,themes,workflows}/ -> ~/.pi/agent/<same>
+pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
 pi/herdr.json          -> ~/.pi/agent/herdr.json (pi-herdr settings: caps, depth, notifications)
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)

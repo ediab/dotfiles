@@ -13,15 +13,14 @@ if [ "$DARWIN" = 1 ]; then CLAUDE_SETTINGS=settings.json; CODEX_CONFIG=config.to
 mkrepo() {
   rm -rf "$REPO"; mkdir -p "$REPO"
   cp "$ROOT/link.sh" "$REPO/"
-  mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{agents,extensions,themes,skills/code-review} \
-    "$REPO"/pi/extensions/subagent \
+  mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{agents,extensions,themes,skills/code-review,skills/orchestrate} \
     "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,herdr-auto-title,vscode}
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
-  echo agent > "$REPO/pi/agents/worker.md"; echo ext > "$REPO/pi/extensions/env-loader.ts"; echo theme > "$REPO/pi/themes/t.json"
-  for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
-  echo '{}' > "$REPO/pi/extensions/subagent/config.json"
+  echo orchestrate > "$REPO/pi/skills/orchestrate/SKILL.md"
+  echo agent > "$REPO/pi/agents/implementer.md"; echo ext > "$REPO/pi/extensions/env-loader.ts"; echo theme > "$REPO/pi/themes/t.json"
+  for f in settings herdr web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
   echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
@@ -40,10 +39,10 @@ expect_status() { # expect_status <code> <message>; uses $out and $rc from the l
 go() { rc=0; out="$(run 2>&1)" || rc=$?; }
 all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
-  for f in web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
-  [ -f "$H/.pi/agent/extensions/subagent/config.json" ] || fail 'subagent runtime config not reachable through the extensions link'
+  for f in herdr web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
   for d in agents extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
   points "$H/.pi/agent/skills/code-review" pi/skills/code-review
+  points "$H/.pi/agent/skills/orchestrate" pi/skills/orchestrate
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
   points "$H/.agents/skills" agents/skills
   points "$H/.claude/CLAUDE.md" agents/AGENTS.md; points "$H/.codex/AGENTS.md" agents/AGENTS.md
@@ -135,6 +134,19 @@ ln -s /nowhere/else "$H/.pi/agent/open-tui.json"
 go; expect_status 0 foreignopentui
 [ -L "$H/.pi/agent/open-tui.json" ] || fail 'removed foreign Open TUI link'
 rm "$H/.pi/agent/open-tui.json"
+
+echo "7c2. retired workflow repo link is removed; real folders and foreign links stay"
+ln -s "$REPO/pi/workflows" "$H/.pi/agent/workflows"
+go; expect_status 0 retiredworkflows
+[ ! -L "$H/.pi/agent/workflows" ] || fail 'retired workflow repo link kept'
+mkdir "$H/.pi/agent/workflows"; echo mine > "$H/.pi/agent/workflows/custom.js"
+go; expect_status 0 realworkflows
+[ -f "$H/.pi/agent/workflows/custom.js" ] || fail 'removed real workflows'
+rm "$H/.pi/agent/workflows/custom.js"; rmdir "$H/.pi/agent/workflows"
+ln -s /nowhere/else "$H/.pi/agent/workflows"
+go; expect_status 0 foreignworkflows
+[ -L "$H/.pi/agent/workflows" ] || fail 'removed foreign workflows link'
+rm "$H/.pi/agent/workflows"
 
 echo "7d. both supported platforms select their tracked settings"
 mkdir -p "$WORK/bin"

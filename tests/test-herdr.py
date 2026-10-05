@@ -101,14 +101,11 @@ class AgentTests(unittest.TestCase):
             for key in stale:
                 self.assertFalse(re.search(rf'^{key}:', block, re.M), f'{name}: stale key {key}')
 
-    def test_workflows_lookup_dir_declared(self):
-        # implement-review.js is looked up via ~/.pi/agent/workflows (linked to pi/workflows)
-        workflow = ROOT / 'pi/workflows/implement-review.js'
-        self.assertTrue(workflow.is_file())
-        text = workflow.read_text()
-        self.assertIn('export const meta = {', text)
-        self.assertNotIn('Date.now', text)
-        self.assertNotIn('Math.random', text)
+    def test_custom_workflow_retired(self):
+        self.assertFalse((ROOT / 'pi/workflows/implement-review.js').exists())
+
+    def test_no_stale_shell_config(self):
+        self.assertNotIn('PI_SUBAGENT_', (ROOT / 'config/.zshrc').read_text())
 
 
 if __name__ == '__main__':

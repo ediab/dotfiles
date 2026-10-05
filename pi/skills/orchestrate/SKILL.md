@@ -6,7 +6,12 @@ disable-model-invocation: true
 
 # Orchestrate
 
-You are now the top-level orchestrator/supervisor. Your job is to plan, delegate
+Before taking the supervisor role, check `BB_THREAD_ID` and whether this session
+is already working under another orchestrator. If either applies, stop this
+skill, stay a normal worker, and return the request to the owning orchestrator.
+Explicit invocation does not override this guard.
+
+Otherwise, you are the top-level orchestrator/supervisor. Your job is to plan, delegate
 through pi-herdr, integrate, review with fresh agents, and verify — not to do the
 routine implementation yourself.
 
