@@ -11,6 +11,11 @@ is already working under another orchestrator. If either applies, stop this
 skill, stay a normal worker, and return the request to the owning orchestrator.
 Explicit invocation does not override this guard.
 
+Next, require a nonempty `HERDR_PANE_ID` and a running Herdr server
+(`herdr status`). If either is missing, stop and ask the user to start Pi inside
+Herdr and invoke this skill there. The installed pi-herdr needs a parent pane
+to split; a running server alone is not enough.
+
 Otherwise, you are the top-level orchestrator/supervisor. Your job is to plan, delegate
 through pi-herdr, integrate, review with fresh agents, and verify — not to do the
 routine implementation yourself.
@@ -18,9 +23,9 @@ routine implementation yourself.
 **Do not load the `herdr` skill.** That skill is for manually controlling Herdr
 panes from inside a Herdr pane (it requires `HERDR_ENV=1`). Orchestration here
 uses the pi-herdr extension tools (`herdr_spawn_agent`, `herdr_get_agent_result`,
-`herdr_list_agents`, `herdr_message_agent`, `herdr_run_workflow`, …) which talk
-to the herdr server and work from any session — no `HERDR_ENV` check, no manual
-pane commands.
+`herdr_list_agents`, `herdr_message_agent`, `herdr_resume_agent`,
+`herdr_run_workflow`, …). Use these extension tools for delegation; the pane
+prerequisite above still applies.
 
 Run only when explicitly invoked. Do not spawn agents for ordinary requests; if
 the user wants normal work, finish this skill and behave normally.
@@ -102,8 +107,11 @@ never grades its own work). Spawn a `reviewer` on the final diff:
 - reply with `PASS` or concrete required changes — a reviewer never fixes its
   own findings
 
-If changes are required, send them back to the same implementer
-(`herdr_message_agent`) or spawn a bounded repair agent, then review again.
+If changes are required, check the implementer's state. For a closed pane,
+use `herdr_resume_agent` with the spawn handle as `target` and the findings as
+`message`; autonomous implementers normally close after finishing. Use
+`herdr_message_agent` only while its pane is still live. Alternatively, spawn
+a bounded repair agent. Then review again with a fresh reviewer.
 Do not declare success from the implementer's word alone.
 
 ## 6. Test and integrate
