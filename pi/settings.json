@@ -39,7 +39,8 @@
     "npm:pi-title",
     "npm:pi-contextimate",
     "npm:@dietrichgebert/ponytail",
-    "npm:@andrewjacop/pi-herdr"
+    "npm:@andrewjacop/pi-herdr",
+    "npm:pi-intercom"
   ],
   "powerline": {
     "preset": "default",
