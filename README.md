@@ -26,6 +26,18 @@ bb/                    explicit install/update and portable preference snapshot/
 tests/                 link, deploy, settings, herdr agents, title-border and BB checks
 ```
 
+## Pi intercom
+
+`pi/settings.json` enables `npm:pi-intercom` for session-to-session messaging.
+It is enabled by default; the local broker starts automatically when Pi connects,
+so no separate service or tracked intercom config is needed. Use `/alias <name>`
+to name a session and the `intercom` tool's `status` or `list` action to check connectivity.
+
+After pulling dotfiles on another machine, run `./link.sh` and
+`pi install npm:pi-intercom` to install the package. Restart existing Pi sessions
+or run `/reload` to load it. Each machine has its own local broker;
+pulling settings does not itself enable cross-machine messaging.
+
 ## BB
 
 See [`bb/README.md`](bb/README.md) for explicit install/update commands, portable
