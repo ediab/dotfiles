@@ -5,7 +5,7 @@ kind: pi
 auto-exit: true
 interactive: false
 spawning: false
-tools: read, bash
+tools: read, bash, tool_search, mcp__context7__*
 deny-tools: ["write", "edit"]
 prompt_mode: replace
 ---

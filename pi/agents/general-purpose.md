@@ -5,7 +5,7 @@ kind: pi
 auto-exit: true
 interactive: false
 spawning: false
-tools: read, bash, edit, write, grep, find, ls
+tools: read, bash, edit, write, grep, find, ls, codemode
 prompt_mode: replace
 ---
 
