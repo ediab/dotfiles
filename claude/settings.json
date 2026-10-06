@@ -111,5 +111,15 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "api.gitguardian.com"
+      ],
+      "allowMachLookup": [
+        "com.apple.trustd.agent"
+      ]
+    }
+  }
 }
