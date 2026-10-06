@@ -19,7 +19,7 @@ The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `.
 - `pi/`, `claude/`, `codex/` — each client's settings, plus Pi-only skills, agent profiles, extensions and themes. `link.sh` selects `claude/settings.linux.json` and `codex/config.linux.toml` on Linux; the usual filenames are the Mac variants. Settings conflicts are protected, not normal VPS exceptions; a reconciled machine has zero skips.
 - `config/` — ordinary Mac, app and VPS configuration, linked into `$HOME` on macOS only.
 - Secrets live in `~/.env` (never in the repo; `.env.example` lists the names).
-- `pi/settings.json` has a git clean filter (set by `link.sh`) that drops Pi's `lastChangelogVersion` bump, so a dirty `pi/settings.json` is a real settings change, not update noise.
+- `pi/settings.json` has a git clean filter (set by `link.sh`) that drops Pi's machine-local `lastChangelogVersion` and `deviceId`, so a dirty `pi/settings.json` is a real settings change, not update noise.
 - In Claude Code's sandbox, commits work (the ggshield hook reads `GITGUARDIAN_API_KEY` from `~/.env`), but `git push` and `ssh vps` need the macOS SSH agent and must run outside the sandbox. `.git/config` and `.git/hooks` are sandbox-protected, so `link.sh` also runs outside it.
 
 Ordinary home config sources linked from `config/`:
@@ -31,11 +31,7 @@ Committing, pushing and VPS deployment still need an explicit request.
 
 ## VPS access
 
-To access this VPS use `ssh vps` (alias defined in `~/.ssh/config`).
-- Host: `77.42.90.4`
-- User: `diab`
-- IdentityFile: `~/.ssh/id_rsa_nroot`
-- ControlMaster multiplexing enabled; LocalForward 18789, 18792, 19999.
+To access this VPS use `ssh vps`. Host, user, key, multiplexing and port forwards are defined only in the machine-local `~/.ssh/config`; read it there when needed and never copy those details into this public repo.
 
 VPS/app configuration helpers are independent: `config/vps/deploy-vps.sh` (shell files/instructions), `config/herdr/deploy-vps.sh` (Herdr config/reload), and `config/druk/deploy-druk.sh` (local settings; `DEPLOY_DRUK_HOST=vps` also selects remote settings). Choose only the explicitly requested scope; package/service maintenance is separate.
 

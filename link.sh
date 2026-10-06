@@ -19,9 +19,24 @@ sys.exit(bad)' "${pend[@]}" || skipped=1
 }
 swap() { ln -s "$1" "$2.tmp.$$" && pend+=("$2.tmp.$$" "$2") || { echo "FAIL $2"; skipped=1; }; }
 
+# Leftovers of a run killed mid-swap carry its PID: drop a temp link, or a moved-aside folder
+# that still matches the repo. Live PIDs belong to a concurrent run; leave those alone.
+sweep() { # sweep <source> <destination>
+  local p pid
+  for p in "$2".tmp.* "$2".old.*; do
+    [ -e "$p" ] || [ -L "$p" ] || continue
+    pid="${p##*.}"; case "$pid" in ''|*[!0-9]*) continue ;; esac
+    kill -0 "$pid" 2>/dev/null && continue
+    if [ -L "$p" ]; then rm -f "$p"
+    elif diff -rq "$1" "$p" >/dev/null 2>&1; then echo "remove leftover $p"; rm -rf "$p"
+    else echo "SKIP $p (leftover differs from repo)"; skipped=1; fi
+  done
+}
+
 link() { # link <repo-relative source> <destination>
   local src="$REPO/$1" dst="$2"
   [ -e "$src" ] || return 0   # not in the repo (yet)
+  sweep "$src" "$dst"
   if [ -L "$dst" ]; then
     [ "$(readlink "$dst")" = "$src" ] || { echo "relink $dst"; swap "$src" "$dst"; }
   elif [ ! -e "$dst" ]; then
@@ -33,17 +48,20 @@ link() { # link <repo-relative source> <destination>
       if mv "$dst" "$old" 2>/dev/null; then
         swap "$src" "$dst"; flush
         rm -rf "$old"   # was verified identical to src; the repo holds the content, so drop it even if the link failed
-      fi
+      elif [ -L "$dst" ] || [ ! -e "$dst" ]; then
+        link "$1" "$dst"   # a concurrent run moved it first
+      else echo "FAIL $dst (could not move it aside)"; skipped=1; fi
     else swap "$src" "$dst"; fi
   elif [ -L "$dst" ] || [ ! -e "$dst" ]; then
     link "$1" "$dst"   # a concurrent run changed it while we compared
   else echo "SKIP $dst (differs from repo)"; skipped=1; fi
 }
 
-# Pi rewrites lastChangelogVersion in pi/settings.json after each update; keep it out of git
-# so pulls are not blocked. Git config is per clone, so set it on every run.
+# Pi writes machine-local keys into pi/settings.json: lastChangelogVersion after each update,
+# deviceId (a per-machine login ID) on first use. Keep both out of git so pulls are not
+# blocked and machines do not share one ID. Git config is per clone, so set it on every run.
 if git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
-  git -C "$REPO" config filter.pi-settings.clean "jq 'del(.lastChangelogVersion)'"
+  git -C "$REPO" config filter.pi-settings.clean "jq 'del(.lastChangelogVersion, .deviceId)'"
 fi
 
 platform="$(uname)"
@@ -56,8 +74,7 @@ esac
 for f in settings herdr web-search pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
-link pi/skills/code-review "$H/.pi/agent/skills/code-review"
-link pi/skills/orchestrate "$H/.pi/agent/skills/orchestrate"
+for d in "$REPO"/pi/skills/*/; do d="$(basename "$d")"; link "pi/skills/$d" "$H/.pi/agent/skills/$d"; done
 link agents/AGENTS.md "$H/.pi/agent/AGENTS.md"
 link agents/skills "$H/.agents/skills"   # Pi and Codex read this
 if [ -d "$H/.claude" ]; then

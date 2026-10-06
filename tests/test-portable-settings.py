@@ -58,6 +58,7 @@ class PortableSettingsTests(unittest.TestCase):
         mac = json.loads((ROOT / 'claude/settings.json').read_text())
         linux = json.loads((ROOT / 'claude/settings.linux.json').read_text())
         mac.pop('mcpServers', None)  # Mac-only local servers, when any are configured
+        mac.pop('sandbox', None)  # Mac-only: lets the ggshield hook reach GitGuardian via macOS trustd
         self.assertEqual(mac, linux)
         self.assertNotIn('/Users/', json.dumps(linux))
         self.assertNotIn('/opt/homebrew/', json.dumps(linux))

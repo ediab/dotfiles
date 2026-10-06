@@ -1,15 +1,19 @@
 # Herdr config for the VPS (`ssh vps` → ~/.config/herdr/config.toml).
-# Deploy with herdr/deploy-vps.sh. The VPS copy is NOT symlinked — nothing on the
-# VPS reads this repo, so this file is the source of truth and is pushed by script.
+# Deploy with herdr/deploy-vps.sh. The VPS copy is NOT symlinked to the VPS
+# dotfiles checkout, so this file is the source of truth and is pushed by script.
 #
 # Kept deliberately close to the local config.toml so a `diff` stays readable.
 # Intentional differences from the local file:
 #   * [ui.toast] delivery = "terminal" — the VPS is headless, so "system" has no
 #     notification service to talk to. "terminal" hands it to the outer terminal,
 #     which is Ghostty when attached over SSH.
+#   * status_indicators = "symbols" (Mac: "dots"), so states differ by shape.
+#   * [[keys.command]] bindings for the VPS-only tab-smart-rename and annotate
+#     plugins.
+#   * No [experimental] allow_nested (Mac only, for running herdr inside a pane).
 #   * No Oh My Zsh plugin bindings (that plugin is installed on the Mac only).
-#   * reload_config is pinned to the same key as the Mac for consistent muscle
-#     memory, even though nothing on the VPS occupies prefix+shift+r.
+#   * reload_config uses the same key as the Mac (prefix+shift+c) for consistent
+#     muscle memory.
 
 onboarding = false
 

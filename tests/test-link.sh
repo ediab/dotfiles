@@ -19,7 +19,7 @@ mkrepo() {
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
   echo orchestrate > "$REPO/pi/skills/orchestrate/SKILL.md"
-  echo agent > "$REPO/pi/agents/implementer.md"; echo ext > "$REPO/pi/extensions/env-loader.ts"; echo theme > "$REPO/pi/themes/t.json"
+  echo agent > "$REPO/pi/agents/implementer.md"; echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
   for f in settings herdr web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
   echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
@@ -67,9 +67,9 @@ mkrepo; mkhome; go; expect_status 0 fresh; all_links
 [ "$DARWIN" = 1 ] || [ ! -e "$H/.zshrc" ] || fail 'config links must be macOS-only'
 
 echo "2. already correct: leave alone, print nothing, write nothing"
-before="$(cd "$H" && find . -type l -exec stat -f '%i %m %N' {} + 2>/dev/null || find . -type l -printf '%i %T@ %p\n')"
+before="$(cd "$H" && find . -type l -exec ls -li {} + | sort)"   # a rewritten link gets a new inode
 sleep 1; go; expect_status 0 rerun; [ -z "$out" ] || fail "rerun printed: $out"
-after="$(cd "$H" && find . -type l -exec stat -f '%i %m %N' {} + 2>/dev/null || find . -type l -printf '%i %T@ %p\n')"
+after="$(cd "$H" && find . -type l -exec ls -li {} + | sort)"   # a rewritten link gets a new inode
 [ "$before" = "$after" ] || fail 'rerun rewrote links'
 
 echo "3. other symlink: replaced"
@@ -178,8 +178,9 @@ rm -rf "$REPO/agents/skills/gamma"; go; expect_status 0 delete
 
 echo "9b. a run killed between moving a folder aside and linking: next run recovers"
 mkhome; go; expect_status 0 setup9b
-rm "$H/.claude/skills/alpha"; cp -R "$REPO/agents/skills/alpha" "$H/.claude/skills/alpha.old.123"   # state after the aside, before the link
+rm "$H/.claude/skills/alpha"; cp -R "$REPO/agents/skills/alpha" "$H/.claude/skills/alpha.old.99999999"   # state after the aside, before the link (dead PID)
 go; expect_status 0 recover; points "$H/.claude/skills/alpha" agents/skills/alpha
+[ ! -e "$H/.claude/skills/alpha.old.99999999" ] || fail 'leftover folder from the killed run kept'
 
 echo "10. two simultaneous runs (ROUNDS, default 5; mixed starting states)"
 for i in $(seq 1 "${ROUNDS:-5}"); do
@@ -196,15 +197,24 @@ for i in $(seq 1 "${ROUNDS:-5}"); do
   find "$H" -name '*.tmp.*' -o -name '*.old.*' | grep -q . && fail "round $i: leftovers"
 done
 
-echo "11. in a git clone, Pi's lastChangelogVersion bump does not dirty pi/settings.json; real edits do"
+echo "10b. a folder that cannot be moved aside is reported, not silently skipped"
+mkrepo; mkhome; mkdir -p "$H/.pi/agent"; cp -R "$REPO/pi/themes" "$H/.pi/agent/themes"; chmod 555 "$H/.pi/agent"
+go; chmod 755 "$H/.pi/agent"; expect_status 1 unmovable
+echo "$out" | grep -Fq "FAIL $H/.pi/agent/themes (could not move it aside)" || fail "no FAIL for unmovable folder: $out"
+
+echo "10c. every pi/skills folder gets a Pi link"
+mkdir -p "$REPO/pi/skills/delta"; echo delta > "$REPO/pi/skills/delta/SKILL.md"; go; expect_status 0 piskill
+points "$H/.pi/agent/skills/delta" pi/skills/delta
+
+echo "11. in a git clone, Pi's machine-local keys do not dirty pi/settings.json; real edits do"
 mkrepo; cp "$ROOT/.gitattributes" "$REPO/"; mkhome
-printf '{\n  "a": 1,\n  "lastChangelogVersion": "1.0.0"\n}' > "$REPO/pi/settings.json"
+printf '{\n  "a": 1,\n  "deviceId": "mac-id",\n  "lastChangelogVersion": "1.0.0"\n}' > "$REPO/pi/settings.json"
 g() { git -C "$REPO" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null "$@"; }
 g init -q; go; expect_status 0 gitfilter
 g add -A; g commit -qm init
-g show HEAD:pi/settings.json | grep -q lastChangelogVersion && fail 'lastChangelogVersion committed'
-sed -i.bak 's/1\.0\.0/9.9.9/' "$REPO/pi/settings.json"; rm "$REPO/pi/settings.json.bak"
-[ -z "$(g status --porcelain pi/settings.json)" ] || fail 'version bump dirtied pi/settings.json'
+g show HEAD:pi/settings.json | grep -Eq 'lastChangelogVersion|deviceId' && fail 'machine-local key committed'
+sed -i.bak -e 's/1\.0\.0/9.9.9/' -e 's/mac-id/vps-id/' "$REPO/pi/settings.json"; rm "$REPO/pi/settings.json.bak"
+[ -z "$(g status --porcelain pi/settings.json)" ] || fail 'machine-local keys dirtied pi/settings.json'
 sed -i.bak 's/"a": 1/"a": 2/' "$REPO/pi/settings.json"; rm "$REPO/pi/settings.json.bak"
 [ -n "$(g status --porcelain pi/settings.json)" ] || fail 'real edit hidden by the filter'
 

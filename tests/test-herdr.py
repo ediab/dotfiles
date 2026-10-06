@@ -76,6 +76,13 @@ class AgentTests(unittest.TestCase):
         for name, path in self.files.items():
             fields = frontmatter(path)
             self.assertEqual(fields.get('spawning'), 'false', f'{name} must not spawn')
+            # pi-herdr 0.6 parses `spawning` but does not enforce it; the tool
+            # selection does. An allowlist must not name herdr tools, and a
+            # denylist-only profile must deny them all.
+            if 'tools' in fields:
+                self.assertNotIn('herdr_', fields['tools'], f'{name} allowlists herdr tools')
+            else:
+                self.assertIn('herdr_*', listed(fields.get('deny-tools', '[]')), f'{name} can reach herdr tools')
             self.assertEqual(fields.get('auto-exit'), 'true', f'{name} must auto-exit')
             self.assertEqual(fields.get('interactive'), 'false', f'{name} must be non-interactive')
             self.assertEqual(fields.get('kind'), 'pi', f'{name} must be a pi agent')

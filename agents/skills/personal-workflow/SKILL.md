@@ -44,7 +44,7 @@ The agent owns execution and verification; the user controls intent, material tr
 * After modifying code, run the most relevant available tests, type checks, linters, or validation commands.
 * Prefer targeted checks during iteration; run broader project checks when appropriate before finishing.
 * Fix errors introduced by your changes. Do not hide failures by weakening tests, types, or validation.
-* Validate proportionately; stronger evidence for money, private data, authentication, and live-service behaviour. A passing test suite does not prove a live service works.
+* Validate proportionately; stronger evidence for money, private data, authentication, and live-service behaviour.
 * Report what was checked and what remains unverified, including validation that could not be run.
 * Add tests only when failure signals real breakage; skip assertions on styling, colors, or internal structure.
 

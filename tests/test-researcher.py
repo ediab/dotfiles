@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / 'pi/agents/researcher.md'
-EXPECTED_DENY = ['bash', 'edit', 'write']
+EXPECTED_DENY = ['bash', 'edit', 'write', 'herdr_*']
 
 
 def frontmatter(path):
@@ -36,7 +36,8 @@ class ResearcherTests(unittest.TestCase):
     def test_restricted_tools(self):
         # pi-herdr honours a `tools` allowlist, but the researcher's scope stays a
         # denylist (it needs whatever ambient tools the session provides, minus
-        # file-writing and shell).
+        # file-writing and shell). herdr_* goes too: herdr_run_command types into
+        # panes (a shell by another name) and herdr_spawn_agent spawns.
         self.assertNotIn('tools', self.fields)
         self.assertEqual(listed(self.fields['deny-tools']), EXPECTED_DENY)
 

@@ -1,5 +1,6 @@
 # druk market extensions — one id per line.
-# Installed from druk's own market (empty extensionRegistry) by the deploy.
+# Inventory only: deploy-druk.sh does not install these. Install them from druk's own market
+# (empty extensionRegistry) by hand.
 # Lines starting with # and blank lines are ignored.
 python
 sql

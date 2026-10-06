@@ -250,8 +250,10 @@ if [ "$DRY_RUN" -eq 1 ] || [ "$LOCKED" -eq 1 ]; then
   refresh_all
 else
   # Re-exec under the deploy lock; same wait budget as the push-to-deploy path.
-  if ! flock -w 540 "$LOCK_FILE" "$0" --locked; then
+  # -E 75 tells a lock timeout apart from the locked run's own failure exit.
+  rc=0; flock -w 540 -E 75 "$LOCK_FILE" "$0" --locked || rc=$?
+  if [ "$rc" -eq 75 ]; then
     echo "could not take $LOCK_FILE within 540s (a deploy in progress?) — aborting" >&2
-    exit 1
   fi
+  exit "$rc"
 fi

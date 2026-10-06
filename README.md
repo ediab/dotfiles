@@ -12,11 +12,11 @@ its settings use explicit snapshot/restore commands rather than live symlinks.
 agents/AGENTS.md       -> ~/.pi/agent/AGENTS.md, ~/.codex/AGENTS.md, ~/.claude/CLAUDE.md
 agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
-pi/skills/code-review  -> ~/.pi/agent/skills/code-review (Pi-only)
-pi/skills/orchestrate  -> ~/.pi/agent/skills/orchestrate (Pi-only, explicit-only orchestration)
+pi/skills/<name>/      -> ~/.pi/agent/skills/<name> (Pi-only: code-review, explicit-only orchestrate)
 pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
 pi/herdr.json          -> ~/.pi/agent/herdr.json (pi-herdr settings: caps, depth, notifications)
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
+pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
 codex/                 -> ~/.codex/ (platform config, shared hooks.json)
 scripts/agent-hook.sh   optional session integrations, guarded when not installed
@@ -111,15 +111,19 @@ The Mac files retain desktop integrations and local app paths; the Linux files
 exclude those integrations and preserve the VPS's `/home/diab` project trust.
 Keep shared behavior aligned when editing either platform variant.
 
-Pi rewrites `lastChangelogVersion` in `pi/settings.json` after every update. A
-git clean filter (`.gitattributes`, configured by `link.sh` with `jq`) keeps that
-key out of commits, so the bump never dirties the tree or blocks a pull.
+Pi writes two machine-local keys into `pi/settings.json`: `lastChangelogVersion`
+after every update and `deviceId` (a per-machine login ID). A git clean filter
+(`.gitattributes`, configured by `link.sh` with `jq`) keeps both out of commits, so
+they never dirty the tree or block a pull, and each machine keeps its own ID.
 
 The local ggshield pre-commit hook (`.git/hooks/pre-commit`, untracked) falls back
 to `GITGUARDIAN_API_KEY` from `~/.env`, because sandboxed agents cannot read the
 macOS keychain where `ggshield auth login` stores the token. `claude/settings.json`
 lets sandboxed commands reach `api.gitguardian.com` and the macOS `trustd` service
 (ggshield checks TLS through it), so agent commits are scanned inside the sandbox.
+These grants only matter where Claude Code's sandbox is on: BB's Claude Code threads
+enable it. The interactive `claude` alias in `config/.zshrc` skips permissions and
+runs unsandboxed (`claude-safe` keeps the configured permission mode).
 `git push` and `ssh vps` still run outside it: the SSH key is unlocked by the
 macOS SSH agent and keychain, which the sandbox blocks, so each push asks for
 permission. That prompt is intentional.
@@ -139,8 +143,12 @@ This is a deliberate operation, never an automatic overwrite.
 1. `git clone git@github.com:ediab/dotfiles.git ~/Dev/dotfiles`
 2. `~/Dev/dotfiles/link.sh` (resolve any `SKIP` by merging that file into the repo, deleting the live one, rerunning)
 3. `brew bundle --file=~/Dev/dotfiles/config/Brewfile` (macOS), then install Pi using the command above
+   and oh-my-zsh (`.zshrc` loads it from `~/.oh-my-zsh` when present):
+   `sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended --keep-zshrc`
 4. `cp ~/Dev/dotfiles/.env.example ~/.env && chmod 600 ~/.env`, then fill in the values
-   (`GITGUARDIAN_API_KEY` is a GitGuardian personal access token with `scan` scope)
+   (`GITGUARDIAN_API_KEY` is a GitGuardian personal access token with `scan` scope).
+   Shell-only secrets (for example `ZAI_BASE_URL`/`ZAI_API_KEY` for the `glm` function)
+   go in `~/.zshrc.secrets` (`chmod 600`), which `.zshrc` sources when present.
 5. `cd ~/Dev/dotfiles && ggshield install -m local`, then add the `~/.env` token fallback
    above `ggshield secret scan pre-commit` in `.git/hooks/pre-commit`:
    ```sh

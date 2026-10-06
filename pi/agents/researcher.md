@@ -5,7 +5,7 @@ kind: pi
 auto-exit: true
 interactive: false
 spawning: false
-deny-tools: ["bash", "edit", "write"]
+deny-tools: ["bash", "edit", "write", "herdr_*"]
 prompt_mode: replace
 ---
 

@@ -10,8 +10,9 @@
 // are stated here as well: if the package's own file is ever narrowed or replaced by an
 // upgrade, general updates still install unattended.
 //
-// Deployed by config/vps/deploy-vps.sh (sudo install) from the dotfiles repo — edit it there,
-// never on the VPS. `~/apps/AGENTS.md` documents the resulting behaviour.
+// Versioned in the dotfiles repo — edit it there, never on the VPS. No deploy script installs
+// it; after an edit, install it by hand from the VPS checkout:
+//   sudo install -m 644 config/vps/apt/51-vps-auto-updates /etc/apt/apt.conf.d/51-vps-auto-updates `~/apps/AGENTS.md` documents the resulting behaviour.
 
 Unattended-Upgrade::Allowed-Origins {
         "${distro_id}:${distro_codename}";

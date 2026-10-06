@@ -34,8 +34,8 @@ disabled and their installed definitions removed; do not recreate them.
 
 ## VPS access and deployment
 
-Use `ssh vps` (alias in `~/.ssh/config`). Host: `77.42.90.4`, user: `diab`, key:
-`~/.ssh/id_rsa_nroot`.
+Use `ssh vps`. Host, user, key and port forwards live only in the machine-local
+`~/.ssh/config`; keep them out of this public repo.
 
 These sources are copied by explicit scripts; the VPS does not read this checkout:
 

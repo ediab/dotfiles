@@ -83,10 +83,11 @@ if [ -n "$cwd" ] && git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
       /^u /            { c++ }
       /^\? /           { u++ }
       END { if (head=="(detached)") head="HEAD@" oid
-            printf "%s|%d|%d|%d|%d|%d|%d|%d\n", head, s, m, u, c, st, a, b }' > "$cache.tmp" \
-      && mv "$cache.tmp" "$cache"
+            printf "%d|%d|%d|%d|%d|%d|%d|%s\n", s, m, u, c, st, a, b, head }' > "$cache.tmp.$$" \
+      && mv "$cache.tmp.$$" "$cache"
   fi
-  IFS='|' read -r g_head g_s g_m g_u g_c g_st g_a g_b < "$cache"
+  # head goes last: read hands the rest of the line to it, so a | in a branch name is safe.
+  IFS='|' read -r g_s g_m g_u g_c g_st g_a g_b g_head < "$cache"
   flags=""
   [ "${g_c:-0}" -gt 0 ] && flags+="${RED}=${g_c}${R} "
   [ "${g_m:-0}" -gt 0 ] && flags+="${YEL}!${g_m}${R} "

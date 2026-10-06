@@ -20,7 +20,7 @@ This file is versioned in the dotfiles repo at `config/vps/apps-AGENTS.md` and d
 
 ## OS auto-updates
 
-- `unattended-upgrades` installs updates from the base, security and ESM pockets with an automatic reboot at 03:30. The policy is `/etc/apt/apt.conf.d/51-vps-auto-updates`, versioned at `config/vps/apt/51-vps-auto-updates` in the dotfiles repo and installed by `config/vps/deploy-vps.sh` — edit it there.
+- `unattended-upgrades` installs updates from the base, security and ESM pockets with an automatic reboot at 03:30. The policy is `/etc/apt/apt.conf.d/51-vps-auto-updates`, versioned at `config/vps/apt/51-vps-auto-updates` in the dotfiles repo — edit it there, then install it by hand from `~/Dev/dotfiles`: `sudo install -m 644 config/vps/apt/51-vps-auto-updates /etc/apt/apt.conf.d/51-vps-auto-updates`. No deploy script installs it.
 - `50unattended-upgrades` is the package's own file (shipped from `/usr/share/unattended-upgrades/`) and is not managed here. apt merges the origins from both files, so general updates still install if that one is ever replaced by an upgrade. Do not hand-edit it: that is what left a stray `.bak-*` file behind and made apt warn about an invalid filename extension.
 - Kernels left over from reboots are reaped by `Remove-Unused-Kernel-Packages` during unattended runs; the weekly cleanup only runs `autoremove`.
 - A reboot is cut short of an in-flight deploy by the `vps-deploy-inhibit` shutdown inhibit.

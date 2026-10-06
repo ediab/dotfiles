@@ -96,8 +96,6 @@ brew "zoxide"
 brew "zsh-autosuggestions"
 # Feature-rich syntax highlighting for Zsh
 brew "zsh-fast-syntax-highlighting"
-# Fish shell like syntax highlighting for zsh
-brew "zsh-syntax-highlighting"
 # Android SDK component
 cask "android-platform-tools"
 # IDE for running and orchestrating coding agents
@@ -154,7 +152,7 @@ npm "agent-spreadsheet"
 npm "antigravity-claude-proxy"
 npm "basedpyright"
 npm "chrome-devtools-axi"
-npm "clawdbot"
+npm "openclaw"
 npm "cline"
 npm "gh-axi"
 npm "lavish-axi"

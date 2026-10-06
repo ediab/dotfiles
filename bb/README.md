@@ -34,17 +34,20 @@ Check a real task after updating; an active service alone is not proof an agent 
 
 ## BB skills in user scope
 
-`bb skills` (bb-user scope) skills live in `~/.bb/skills/` — plain files owned by the BB CLI, editable in the app or via `bb skills` commands. They are separate from the tracked skills in `agents/` (linked via `link.sh`) and from skills shipped inside plugins (`plugins.json` covers those). `bb/skills/` mirrors `~/.bb/skills/`: five entries at capture time — `diff-review`, `ui-audit`, `web-design`, `bb-pi-control`, `bb-pi-health`. It is a plain copy, not a link; `link.sh` does not touch it.
+`bb skills` (bb-user scope) skills live in `~/.bb/skills/` — plain files owned by the BB CLI, editable in the app or via `bb skills` commands. They are separate from the tracked skills in `agents/` (linked via `link.sh`) and from skills shipped inside plugins (`plugins.json` covers those). `bb/skills/` is the canonical copy of `~/.bb/skills/` (`diff-review`, `ui-audit`, `web-design`, `bb-pi-control`, `bb-pi-health`): edit skills here, then restore. It is a plain copy, not a link; `link.sh` does not touch it.
 
 ```sh
-# Capture current skills into the repo (run from the dotfiles root):
-rsync -a --delete ~/.bb/skills/ bb/skills/
+# Compare first (run from the dotfiles root):
+diff -ru bb/skills ~/.bb/skills
 
-# Restore on a machine (review the diff first — see below):
+# Restore the repo copy onto a machine:
 rsync -a bb/skills/ ~/.bb/skills/
+
+# Capture only an edit made in the live copy that you want to keep, one skill at a time:
+cp ~/.bb/skills/<name>/SKILL.md bb/skills/<name>/SKILL.md
 ```
 
-Restoring is a copy in, not a link: if `~/.bb/skills/<name>/SKILL.md` already exists and differs, review the diff before overwriting — agents may have edited the live copy in place. The installed BB release has no `skills export`/`skills import` command, so this folder is the portable copy.
+Never capture the whole folder with `rsync --delete`: a stale live copy would silently revert repo edits. Agents may edit the live copy in place, so review the diff before restoring too. The installed BB release has no `skills export`/`skills import` command, so this folder is the portable copy.
 
 ## Capture current preferences
 
@@ -81,27 +84,21 @@ Tracked settings cover selected general preferences, theme ID, favicon color, si
 
 Those omissions are intentional: this is a portable preference restore, not a complete server backup. Never symlink all of `~/.bb` into this public repo.
 
-## Plugins and the sidebar workaround
+## Plugins
 
 Use the `source` in `plugins.json` with `bb plugin install`. For monorepos, also pass the recorded `--subdirectory`. Entries prefixed `builtin:` are shipped with BB rather than separate marketplace downloads; the inventory here records external plugins only. Version fields record what was observed, while semver source ranges can install newer compatible versions. Plugin installation runs full-trust code; review sources before installing.
 
-The BB Sidebar entry needs a local workaround for version 0.2.31:
+BB Sidebar no longer needs the old 0.2.31 local build: since 0.2.34 it is a normal managed install from the source in `plugins.json`. Refresh the inventory from the live state after plugin changes:
 
 ```sh
-git clone --depth 1 --branch v0.2.31 https://github.com/yusuf8834/bb-sidebar.git "$HOME/.bb/local-plugins/bb-sidebar"
-cd "$HOME/.bb/local-plugins/bb-sidebar"
-npm install --save-prod 'react-day-picker@^9.14.0' --omit=dev --ignore-scripts --no-audit --no-fund
-bb plugin build .
-bb plugin install "path:$HOME/.bb/local-plugins/bb-sidebar"
+bb plugin list --json | jq '{plugins: [.plugins[] | select(.source | startswith("builtin:") | not) | {id, version, enabled, source} + (if .subdirectory then {subdirectory} else {} end)] | sort_by(.id)}' > bb/plugins.json
 ```
-
-Only clone if that destination does not already exist. This workaround was built and installed on the Mac; it is not a marketplace-tracking installation. Keep its folder in place. Verify whether the upstream release fixes the dependency before switching back to a managed install.
 
 ## Current server arrangement
 
-- `diab.getbb.app`: the Mac server, with the plugins and preferences originally captured here.
-- `diabvps.getbb.app`: a separate VPS server set up with a persistent `bb.service`.
-- A machine was subsequently enrolled into `diab.getbb.app` by the user. Enrollment adds a worker; it does not migrate the server or reassign its address. At the October 2026 refresh (BB 0.45.0), `machine list` shows both machines `connected` on the Mac server.
+- The Mac server, with the plugins and preferences originally captured here.
+- A separate VPS server set up with a persistent `bb.service`.
+- A machine was subsequently enrolled into the Mac server by the user. Enrollment adds a worker; it does not migrate the server or reassign its address. At the October 2026 refresh (BB 0.45.0), `machine list` shows both machines `connected` on the Mac server.
 
 In the Mac desktop app, use **macOS menu bar → Window → Server** to choose a server. A Mac-hosted server must stay running for its workers to receive tasks. Settings captured here do not decide which server owns your data.
 

@@ -27,7 +27,6 @@
 
 set -uo pipefail
 
-APPS_DIR="$HOME/apps"
 CACHE_CEILING="${CACHE_CEILING:-3GB}"
 JOURNAL_CEILING="${JOURNAL_CEILING:-200M}"
 LOG_DIR="$HOME/logs"
@@ -62,25 +61,19 @@ fi
 # Take the same lock as a push-to-deploy: image pruning must never race a build whose new
 # image is tagged but not yet attached to a container.
 if [ "$DRY_RUN" -eq 0 ] && [ "$LOCKED" -eq 0 ]; then
-  if ! flock -w 540 "$LOCK_FILE" "$0" --locked; then
+  # -E 75 tells a lock timeout apart from the locked run's own failure exit.
+  rc=0; flock -w 540 -E 75 "$LOCK_FILE" "$0" --locked || rc=$?
+  if [ "$rc" -eq 75 ]; then
     echo "could not take $LOCK_FILE within 540s (a deploy in progress?) — aborting" >&2
-    exit 1
   fi
-  exit 0
+  exit "$rc"
 fi
 
 echo "=== vps-cleanup $(date -Is) dry_run=$DRY_RUN locked=$LOCKED ==="
 df -h / | tail -1
 
-run() {
-  if [ "$DRY_RUN" -eq 1 ]; then
-    echo "  [dry-run] $*"
-  else
-    "$@"
-  fi
-}
-
-# Like run(), but a failure is counted and reported instead of vanishing into the log.
+# Run a step (or print it in dry-run); a failure is counted and reported instead of
+# vanishing into the log.
 attempt() {
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "  [dry-run] $*"

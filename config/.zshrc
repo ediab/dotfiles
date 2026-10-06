@@ -38,7 +38,9 @@ plugins=(
 ENABLE_CORRECTION="false"       # no "did you mean" autocorrect
 COMPLETION_WAITING_DOTS="true"
 
-source $ZSH/oh-my-zsh.sh
+if [[ -d "$ZSH" ]]; then
+  source "$ZSH/oh-my-zsh.sh"
+fi
 
 # ==============================================
 # 2. HISTORY  (must come AFTER oh-my-zsh, which sets its own tiny defaults)
@@ -97,7 +99,7 @@ export PATH="$HOME/.antigravity-ide/antigravity-ide/bin:$PATH"
 # On macOS this only matters with XQuartz running, and it makes some tools
 # wrongly believe an X display is available. Add it back if you actually use X11.
 
-# Secrets (ZAI_API_KEY etc). Sourced before the aliases that reference it.
+# Shell-only secrets (e.g. ZAI_API_KEY, ZAI_BASE_URL for glm). Machine-local, never in the repo.
 [[ -f ~/.zshrc.secrets ]] && source ~/.zshrc.secrets
 
 # ==============================================
@@ -151,9 +153,16 @@ alias gsp='git stash pop'
 alias lg='lazygit'
 
 # --- AI tooling ---
-# NOTE the single quotes on glm: they defer variable expansion until the alias
-# is *run*, so it still works if ~/.zshrc.secrets loads later or changes.
-alias glm='ANTHROPIC_MODEL=GLM-4.7 ANTHROPIC_BASE_URL=$ZAI_BASE_URL ANTHROPIC_AUTH_TOKEN=$ZAI_API_KEY claude --dangerously-skip-permissions'
+# glm: Claude Code against Z.ai. Needs ZAI_BASE_URL and ZAI_API_KEY in ~/.zshrc.secrets;
+# refuses to run without them rather than starting Claude with an empty token.
+glm() {
+  if [[ -z "${ZAI_BASE_URL:-}" || -z "${ZAI_API_KEY:-}" ]]; then
+    echo "glm: set ZAI_BASE_URL and ZAI_API_KEY in ~/.zshrc.secrets" >&2
+    return 1
+  fi
+  ANTHROPIC_MODEL=GLM-4.7 ANTHROPIC_BASE_URL=$ZAI_BASE_URL ANTHROPIC_AUTH_TOKEN=$ZAI_API_KEY \
+    command claude --dangerously-skip-permissions "$@"
+}
 
 # --- herdr / remote ---
 # Thin local client attached to the VPS Herdr server: panes and agents keep
@@ -264,14 +273,19 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
   source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 [[ -f /opt/homebrew/opt/zsh-fast-syntax-highlighting/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh ]] && \
   source /opt/homebrew/opt/zsh-fast-syntax-highlighting/share/zsh-fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
+# Up/Down search history by the typed prefix; must load after the highlighter.
+[[ -f $ZSH/plugins/history-substring-search/history-substring-search.plugin.zsh ]] && \
+  source $ZSH/plugins/history-substring-search/history-substring-search.plugin.zsh
 
 # ==============================================
 # 9. KEYBINDINGS  (after the plugins that define the widgets)
 # ==============================================
 
 bindkey '^ '   autosuggest-accept       # ctrl+space: accept whole suggestion
-bindkey '^[[A' history-substring-search-up   2>/dev/null
-bindkey '^[[B' history-substring-search-down 2>/dev/null
+if (( ${+widgets[history-substring-search-up]} )); then
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+fi
 bindkey '^[[1;5C' forward-word          # ctrl+right
 bindkey '^[[1;5D' backward-word         # ctrl+left
 
