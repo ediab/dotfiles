@@ -76,7 +76,8 @@ missing, and `config/` links run only on macOS. Broken links into this repo in
 `~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills), as are
 retired repo links such as `~/.pi/agent/subagents.json` and `~/.pi/agent/open-tui.json`. Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,
-so concurrent runs never see a half-made link.
+so concurrent runs never see a half-made link. Each run also sets this clone's
+`filter.pi-settings.clean` git config (see Platform settings).
 
 ## Adding or changing a skill
 
@@ -116,7 +117,12 @@ key out of commits, so the bump never dirties the tree or blocks a pull.
 
 The local ggshield pre-commit hook (`.git/hooks/pre-commit`, untracked) falls back
 to `GITGUARDIAN_API_KEY` from `~/.env`, because sandboxed agents cannot read the
-macOS keychain where `ggshield auth login` stores the token.
+macOS keychain where `ggshield auth login` stores the token. `claude/settings.json`
+lets sandboxed commands reach `api.gitguardian.com` and the macOS `trustd` service
+(ggshield checks TLS through it), so agent commits are scanned inside the sandbox.
+`git push` and `ssh vps` still run outside it: the SSH key is unlocked by the
+macOS SSH agent and keychain, which the sandbox blocks, so each push asks for
+permission. That prompt is intentional.
 
 Session hooks use `scripts/agent-hook.sh`; optional helpers and Herdr-installed
 hooks are invoked only when present. Context7 credentials stay in each host's
@@ -134,7 +140,16 @@ This is a deliberate operation, never an automatic overwrite.
 2. `~/Dev/dotfiles/link.sh` (resolve any `SKIP` by merging that file into the repo, deleting the live one, rerunning)
 3. `brew bundle --file=~/Dev/dotfiles/config/Brewfile` (macOS), then install Pi using the command above
 4. `cp ~/Dev/dotfiles/.env.example ~/.env && chmod 600 ~/.env`, then fill in the values
-5. Add Claude's Context7 server (its config in `~/.claude.json` is not in the repo):
+   (`GITGUARDIAN_API_KEY` is a GitGuardian personal access token with `scan` scope)
+5. `cd ~/Dev/dotfiles && ggshield install -m local`, then add the `~/.env` token fallback
+   above `ggshield secret scan pre-commit` in `.git/hooks/pre-commit`:
+   ```sh
+   if [ -z "${GITGUARDIAN_API_KEY:-}" ] && [ -r "$HOME/.env" ]; then
+     GITGUARDIAN_API_KEY="$(sed -n 's/^GITGUARDIAN_API_KEY=//p' "$HOME/.env")"
+     [ -n "$GITGUARDIAN_API_KEY" ] && export GITGUARDIAN_API_KEY
+   fi
+   ```
+6. Add Claude's Context7 server (its config in `~/.claude.json` is not in the repo):
    `claude mcp add-json --scope user context7 '{"type":"http","url":"https://mcp.context7.com/mcp","headersHelper":"..."}'`
    where `headersHelper` is a command that prints `{"CONTEXT7_API_KEY":"<value read from ~/.env>"}`.
 

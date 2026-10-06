@@ -19,6 +19,8 @@ The VPS runs the same model: the repo is cloned at `~/Dev/dotfiles` there and `.
 - `pi/`, `claude/`, `codex/` — each client's settings, plus Pi-only skills, agent profiles, extensions and themes. `link.sh` selects `claude/settings.linux.json` and `codex/config.linux.toml` on Linux; the usual filenames are the Mac variants. Settings conflicts are protected, not normal VPS exceptions; a reconciled machine has zero skips.
 - `config/` — ordinary Mac, app and VPS configuration, linked into `$HOME` on macOS only.
 - Secrets live in `~/.env` (never in the repo; `.env.example` lists the names).
+- `pi/settings.json` has a git clean filter (set by `link.sh`) that drops Pi's `lastChangelogVersion` bump, so a dirty `pi/settings.json` is a real settings change, not update noise.
+- In Claude Code's sandbox, commits work (the ggshield hook reads `GITGUARDIAN_API_KEY` from `~/.env`), but `git push` and `ssh vps` need the macOS SSH agent and must run outside the sandbox. `.git/config` and `.git/hooks` are sandbox-protected, so `link.sh` also runs outside it.
 
 Ordinary home config sources linked from `config/`:
 - `.zshrc`, `.zprofile`, `.zshenv` → matching files in `$HOME`;
