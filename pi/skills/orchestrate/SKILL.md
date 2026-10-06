@@ -48,13 +48,15 @@ This skill is for work with genuinely parallel or separable parts.
 Shape the work roughly as:
 
 ```
-independent tickets  → parallel (max 4)
-      ↓                          ↓
-dependent ticket(s)          reviews (fresh agents)
-      ↓
-integration → tests → final spec check
+frontier (unblocked tickets, max 4 running)
+      ↓  each merge may unblock more → refill the frontier
+integration branch → tests → fresh review → final spec check
 ```
 
+- Tickets with blocking edges form a task graph, not a step list. The
+  **frontier** is every ticket whose blockers are all merged. Whenever a worker's
+  work merges, recompute the frontier and start newly unblocked tickets right
+  away (up to the cap) instead of waiting for the whole wave to finish.
 - Never parallelize tasks that edit the same code heavily or depend on one another.
 - Prefer 2–4 useful workers over many small ones (`max_parallel_agents: 4`).
 - For each worker, write down: the bounded task, the exact files/spec/ticket to
@@ -73,12 +75,19 @@ worker brief must be self-contained:
 
 Worktree isolation rules:
 
+- Multi-worker runs land on one **integration branch**: create it from the
+  default branch before the first spawn and check it out in the main tree.
+  Nothing reaches the default branch until the whole run passes review.
 - Truly independent concurrent code changes in the same repo: use
-  `herdr worktree create --cwd <repo>` to get a checkout path, spawn the
-  implementer with that path as `cwd`, then merge the worktree branch
-  (`merge --no-ff`) into the main tree when its review passes, and remove the
-  worktree (`herdr worktree remove --workspace <id> --force`, then
+  `herdr worktree create --cwd <repo> --base <integration-branch>` to get a
+  checkout path, spawn the implementer with that path as `cwd`, then merge the
+  worktree branch (`merge --no-ff`) into the integration branch when its review
+  passes, and remove the worktree
+  (`herdr worktree remove --workspace <id> --force`, then
   `git branch -D <branch>`).
+- Tell each worktree implementer to merge the current integration-branch tip
+  into its own branch and rerun its tests before reporting done, so conflicts
+  are resolved where the context is and your merge stays clean.
 - Small or sequential tasks that share a working tree: skip worktrees, spawn in
   the repo path, and sequence dependent edits instead.
 - Never spawn parallel in-repo writers without worktrees.
@@ -119,7 +128,9 @@ Do not declare success from the implementer's word alone.
 After implementation groups complete: run focused tests, lint/typecheck/build if
 applicable, relevant integration tests, and inspect the final diff yourself.
 Compare against the original task/spec. Do not declare completion because
-workers reported success — verify the actual repository state.
+workers reported success — verify the actual repository state. Report the
+integration branch; merge it to the default branch, push, or open a PR only
+when the user asks.
 
 ## 7. Stop conditions
 
