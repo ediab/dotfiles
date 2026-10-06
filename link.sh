@@ -40,6 +40,12 @@ link() { # link <repo-relative source> <destination>
   else echo "SKIP $dst (differs from repo)"; skipped=1; fi
 }
 
+# Pi rewrites lastChangelogVersion in pi/settings.json after each update; keep it out of git
+# so pulls are not blocked. Git config is per clone, so set it on every run.
+if git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$REPO" config filter.pi-settings.clean "jq 'del(.lastChangelogVersion)'"
+fi
+
 platform="$(uname)"
 case "$platform" in
   Darwin) claude_settings=settings.json; codex_config=config.toml ;;

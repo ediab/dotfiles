@@ -196,4 +196,16 @@ for i in $(seq 1 "${ROUNDS:-5}"); do
   find "$H" -name '*.tmp.*' -o -name '*.old.*' | grep -q . && fail "round $i: leftovers"
 done
 
+echo "11. in a git clone, Pi's lastChangelogVersion bump does not dirty pi/settings.json; real edits do"
+mkrepo; cp "$ROOT/.gitattributes" "$REPO/"; mkhome
+printf '{\n  "a": 1,\n  "lastChangelogVersion": "1.0.0"\n}' > "$REPO/pi/settings.json"
+g() { git -C "$REPO" -c user.name=t -c user.email=t@t -c core.hooksPath=/dev/null "$@"; }
+g init -q; go; expect_status 0 gitfilter
+g add -A; g commit -qm init
+g show HEAD:pi/settings.json | grep -q lastChangelogVersion && fail 'lastChangelogVersion committed'
+sed -i.bak 's/1\.0\.0/9.9.9/' "$REPO/pi/settings.json"; rm "$REPO/pi/settings.json.bak"
+[ -z "$(g status --porcelain pi/settings.json)" ] || fail 'version bump dirtied pi/settings.json'
+sed -i.bak 's/"a": 1/"a": 2/' "$REPO/pi/settings.json"; rm "$REPO/pi/settings.json.bak"
+[ -n "$(g status --porcelain pi/settings.json)" ] || fail 'real edit hidden by the filter'
+
 echo "PASS"

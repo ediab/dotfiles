@@ -110,6 +110,14 @@ The Mac files retain desktop integrations and local app paths; the Linux files
 exclude those integrations and preserve the VPS's `/home/diab` project trust.
 Keep shared behavior aligned when editing either platform variant.
 
+Pi rewrites `lastChangelogVersion` in `pi/settings.json` after every update. A
+git clean filter (`.gitattributes`, configured by `link.sh` with `jq`) keeps that
+key out of commits, so the bump never dirties the tree or blocks a pull.
+
+The local ggshield pre-commit hook (`.git/hooks/pre-commit`, untracked) falls back
+to `GITGUARDIAN_API_KEY` from `~/.env`, because sandboxed agents cannot read the
+macOS keychain where `ggshield auth login` stores the token.
+
 Session hooks use `scripts/agent-hook.sh`; optional helpers and Herdr-installed
 hooks are invoked only when present. Context7 credentials stay in each host's
 `~/.env`, not in tracked settings. Claude's user MCP registrations remain in
