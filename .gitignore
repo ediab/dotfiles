@@ -22,3 +22,4 @@ HANDOFF.md
 
 # Secrets live in ~/.env, never in the repo (safety net)
 .env
+.claude/
