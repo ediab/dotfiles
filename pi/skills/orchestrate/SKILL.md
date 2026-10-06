@@ -48,17 +48,18 @@ This skill is for work with genuinely parallel or separable parts.
 Shape the work roughly as:
 
 ```
-frontier (unblocked tickets, max 4 running)
-      ↓  each merge may unblock more → refill the frontier
-integration branch → tests → fresh review → final spec check
+frontier (unblocked tickets, within the configured concurrency limit)
+      ↓  delivery → ticket review → merge → integrated checks → unblock
+integration branch → full validation → fresh final review → spec check
 ```
 
 - Tickets with blocking edges form a task graph, not a step list. The
-  **frontier** is every ticket whose blockers are all merged. Whenever a worker's
-  work merges, recompute the frontier and start newly unblocked tickets right
-  away (up to the cap) instead of waiting for the whole wave to finish.
+  **frontier** is every ticket whose blockers are merged and pass integrated
+  checks. After each verified integration, recompute the frontier and start
+  newly unblocked tickets (up to the cap), without waiting for the whole wave.
 - Never parallelize tasks that edit the same code heavily or depend on one another.
-- Prefer 2–4 useful workers over many small ones (`max_parallel_agents: 4`).
+- Prefer a small useful fleet. Respect the configured concurrency limit; when
+  none is available, cap active agents at four, including reviewers and testers.
 - For each worker, write down: the bounded task, the exact files/spec/ticket to
   read, the acceptance criteria, and how the work integrates afterward.
 
@@ -71,50 +72,77 @@ worker brief must be self-contained:
 - exactly one bounded task, with the relevant files/spec/ticket paths
 - acceptance criteria and tests to run
 - an instruction not to broaden scope and not to spawn more agents
-- a request to report changed files, test results, and remaining concerns
+- for implementation, testing, and search workers, a final verdict: `DONE`
+  (acceptance criteria met), `BLOCKED` (decision or prerequisite needed), or
+  `FAILED` (execution failed), plus changed files, exact validation commands/results,
+  remaining concerns, and preserved partial work; reviewers use section 5's verdicts
+- for worktree implementers, explicit commit authorization and a request to
+  return their branch and committed delivery SHA
 
 Worktree isolation rules:
 
-- Multi-worker runs land on one **integration branch**: create it from the
-  default branch before the first spawn and check it out in the main tree.
-  Nothing reaches the default branch until the whole run passes review.
-- Truly independent concurrent code changes in the same repo: use
-  `herdr worktree create --cwd <repo> --base <integration-branch>` to get a
-  checkout path, spawn the implementer with that path as `cwd`, then merge the
-  worktree branch (`merge --no-ff`) into the integration branch when its review
-  passes, and remove the worktree
-  (`herdr worktree remove --workspace <id> --force`, then
-  `git branch -D <branch>`).
-- Tell each worktree implementer to merge the current integration-branch tip
-  into its own branch and rerun its tests before reporting done, so conflicts
-  are resolved where the context is and your merge stays clean.
-- Small or sequential tasks that share a working tree: skip worktrees, spawn in
-  the repo path, and sequence dependent edits instead.
-- Never spawn parallel in-repo writers without worktrees.
+- Before Git changes, record the current branch, HEAD, and working-tree status.
+  Confirm the approved task base; do not assume the default branch. Obtain
+  explicit authorization for branch creation/checkouts, commits, and integration
+  merges unless already granted. Invoking this skill alone is not Git approval.
+- Preserve existing staged, unstaged, and untracked work. If it affects the task
+  base or prevents safe isolation, resolve that with the user; do not stash,
+  reset, or include unrelated changes in worker deliveries.
+- Multi-worker implementation runs land on one **integration branch** created
+  from the approved base. Use a separate clean integration worktree if the main
+  checkout has unrelated changes. Nothing reaches the default branch during the run.
+- For independent concurrent writers, use
+  `herdr worktree create --cwd <repo> --base <integration-branch>` and spawn
+  each implementer with the returned checkout path as `cwd`. Record the ticket,
+  spawn handle, worktree path, branch, and review base SHA in the run checklist.
+- Worktree implementers commit only their assigned changes. Before delivery,
+  they merge the current integration tip into their branch, resolve conflicts,
+  rerun focused tests, and report the resulting SHA. If integration advances
+  before landing, return the task to its implementer for synchronization and
+  renewed validation/review.
+- Small or sequential tasks may share a checkout; sequence their edits.
+  Never spawn parallel in-repo writers without worktrees.
+- After verified integration and final review, confirm the delivery SHA is an ancestor of the
+  integration tip, the worker worktree is clean, and no agent/process still uses
+  it. Only then remove the worktree without force and delete the merged branch
+  with `git branch -d`. Preserve failed, blocked, or unmerged work for recovery.
 
-Do not duplicate work a worker is already doing. While agents run, monitor with
-`herdr_list_agents`; pull finals with `herdr_get_agent_result` (`wait: true`).
-You may answer a blocked worker with `herdr_message_agent`, but do not answer
-product/scope questions the user should decide — relay those to the user.
+Spawn in the background and handle completion notifications as they arrive.
+Use `herdr_get_agent_result` to read exact finals; an idle/closed pane is not
+proof of `DONE`. Use `herdr_list_agents` for inspection or recovery, not a polling
+loop. When only helpers are running, yield; use `wait: true` only for a necessary
+dependency. Do not duplicate a worker's task.
+
+Use `herdr_message_agent` for blocked freeform answers and `herdr_send_keys` for
+option-list answers. Relay material product/scope decisions to the user.
+Use `herdr_run_workflow` for repetitive fan-out, dynamically discovered task
+lists, or real pipelines; ordinary supervised spawns suit a small ticket graph.
 
 ## 4. Parent stays in control
 
 The parent owns: the plan, dependency ordering, integration decisions, conflict
-resolution, whether another worker is needed, stopping/redirecting stuck agents
-(`herdr_send_keys` ctrl+c with `agentScope: true`), and the user-facing summary.
+resolution, whether another worker is needed, and the user-facing summary.
+Stop and redirect live spawned Pi workers with `herdr_interrupt_agent`, followed
+by `herdr_message_agent`. For a gone worker, inspect its retained result and
+partial repository state, then use `herdr_resume_agent` with the spawn handle
+and a bounded recovery instruction. Do not discard partial work or silently
+retry through a different runner. `BLOCKED` and `FAILED` tickets do not unblock
+dependents.
 Do not send routine questions to the user; continue autonomously through
 ordinary engineering decisions.
 
 ## 5. Review with a fresh agent
 
 Implementation and review must be done by different agents (the implementer
-never grades its own work). Spawn a `reviewer` on the final diff:
+never grades its own work). Review each ticket delivery before integration,
+then use a fresh reviewer for the combined final changeset. Each brief supplies
+exact base/head SHAs, the checkout path, spec/ticket, and acceptance criteria:
 
 - compare the implementation with the relevant spec/ticket
 - inspect the actual diff (not summaries) and look for regressions
 - check for unnecessary scope expansion and missing tests
-- reply with `PASS` or concrete required changes — a reviewer never fixes its
-  own findings
+- reply with `PASS` or `CHANGES REQUIRED` and concrete findings; report blocked
+  or failed review explicitly — a reviewer never fixes its own findings
 
 If changes are required, check the implementer's state. For a closed pane,
 use `herdr_resume_agent` with the spawn handle as `target` and the findings as
@@ -125,15 +153,25 @@ Do not declare success from the implementer's word alone.
 
 ## 6. Test and integrate
 
-After implementation groups complete: run focused tests, lint/typecheck/build if
-applicable, relevant integration tests, and inspect the final diff yourself.
-Compare against the original task/spec. Do not declare completion because
-workers reported success — verify the actual repository state. Report the
-integration branch; merge it to the default branch, push, or open a PR only
-when the user asks.
+For each worktree implementation `DONE` delivery, verify its committed changes and validation evidence,
+obtain ticket review `PASS`, then serialize its authorized merge (`--no-ff`)
+into the integration branch. Run focused integrated checks before marking the
+ticket merged and unblocking dependents. A failed check leaves the ticket
+unresolved: return findings to its implementer, preserve the work, and repeat
+the validation/review gate before releasing dependents.
+
+Shared-checkout tasks use the same validation/review gate on their exact diff;
+commit only when authorized. Read-only worker results need verification, not a merge.
+
+After all tickets integrate, run lint/typecheck/build and relevant integration
+tests where applicable, inspect the combined diff yourself, and obtain fresh
+final review. Compare against the original task/spec and acceptance criteria.
+Report the integration branch, delivered SHAs, checks, and any unresolved work.
+Merge to the default branch, push, or open a PR only when the user asks.
 
 ## 7. Stop conditions
 
 Stop and ask the user only when a decision materially changes product behavior,
-architecture, scope, irreversible data, credentials/secrets, or triggers
-expensive external actions. Everything else is yours to decide and proceed.
+architecture, scope, irreversible data, credentials/secrets, triggers expensive
+external actions, or requires Git authorization not already granted. Everything
+else within the approved plan is yours to decide and proceed.
