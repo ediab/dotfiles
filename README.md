@@ -85,6 +85,22 @@ After pulling dotfiles on another machine, run `./link.sh` and
 or run `/reload` to load it. Each machine has its own local broker;
 pulling settings does not itself enable cross-machine messaging.
 
+## Pi project memory
+
+[`pi/extensions/memory/`](pi/extensions/memory/README.md) is a local extension package,
+loaded automatically through the existing personal extensions link. New Pi sessions
+recall the current checkout's root `MEMORY.md` and its private notes; existing sessions
+need `/reload` or a restart. Automatic recall has also been checked in a real BB Pi thread.
+
+Project memory is shareable; private notes and named task handoffs stay untracked under
+`~/.pi/agent/memory/`, isolated by checkout and machine. Nothing is committed automatically.
+Ask Pi to check memory status, save a verified lesson, select another project, or resume
+a named handoff. Files are created lazily; no empty memories are seeded across `~/Dev`.
+Private content still enters model context: this is not a secret vault.
+
+See [`docs/pi-memory/DESIGN.md`](docs/pi-memory/DESIGN.md) for agreed boundaries and
+[`VALIDATION.md`](docs/pi-memory/VALIDATION.md) for test results and limitations.
+
 ## BB
 
 See [`bb/README.md`](bb/README.md) for explicit install/update commands, portable
@@ -202,6 +218,7 @@ python3 tests/test-researcher.py   # researcher scope and its web-tool provider
 python3 tests/test-herdsman.py     # pinned package, strict agent schema, leaf policy and config
 python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
 node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
+node --test tests/test-memory.mjs   # memory store, extension hooks and installed-SDK compaction
 python3 -m unittest discover -s tests -p test_bb.py # BB preference boundaries
 ```
 

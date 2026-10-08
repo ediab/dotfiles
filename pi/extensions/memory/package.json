@@ -1,0 +1,16 @@
+{
+  "name": "home-pi-memory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Checkout-scoped Markdown memory for personal Pi sessions",
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
