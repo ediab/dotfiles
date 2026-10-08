@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+description: Strict test-first development. Use only when the user explicitly requests TDD, test-first development, or a red-green workflow. Requests for tests or integration tests alone use the normal validation workflow.
 ---
 
 # Test-Driven Development

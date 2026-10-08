@@ -41,6 +41,7 @@ The agent owns execution and verification; the user controls intent, material tr
 
 ## Validation
 
+* Choose test timing to suit the task; strict test-first development is opt-in. For bug fixes, prefer a reproducing check before editing when practical. Derive expected results from requirements or independent examples, and verify the full requested behaviour even when tests pass.
 * After modifying code, run the most relevant available tests, type checks, linters, or validation commands.
 * Prefer targeted checks during iteration; run broader project checks when appropriate before finishing.
 * Fix errors introduced by your changes. Do not hide failures by weakening tests, types, or validation.
