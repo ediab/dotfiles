@@ -14,7 +14,7 @@ agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
 pi/skills/<name>/      -> ~/.pi/agent/skills/<name> (Pi-only: code-review, explicit-only orchestrate)
 pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
-pi/herdr.json          -> ~/.pi/agent/herdr.json (pi-herdr settings: caps, depth, notifications)
+pi/pi-herdsman/config.json -> ~/.pi/agent/pi-herdsman/config.json (config only; runtime state stays local)
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
@@ -23,7 +23,7 @@ scripts/agent-hook.sh   optional session integrations, guarded when not installe
 config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 bb/                    explicit install/update and portable preference snapshot/restore (not linked)
 .env.example           names of the secrets ~/.env should hold (not linked)
-tests/                 link, deploy, settings, herdr agents, title-border and BB checks
+tests/                 link, deploy, settings, Herdsman agents, title-border and BB checks
 ```
 
 ## Pi installation
@@ -41,6 +41,37 @@ when switching away from a global npm installation. Configuration, credentials
 and sessions remain in `~/.pi/agent`. Credentials stay machine-local and untracked;
 use `pi auth check --provider deepseek` and `pi auth check --provider openai`
 to check readiness without printing secrets.
+
+## Pi Herdsman
+
+`pi/settings.json` pins `npm:pi-herdsman@0.21.3`. It requires Node >=22.19.0,
+Pi >=1.0.4 and Herdr >=0.9.3. Install the package separately from linking:
+
+```sh
+./link.sh
+pi install npm:pi-herdsman@0.21.3
+herdr integration install pi
+```
+
+Start a fresh Pi session inside Herdr; `/agents` manages Agents and definitions.
+The shipped release uses `agent_delegate`, `agent_list`, `agent_steer`,
+`agent_interrupt`, `agent_reply`, and `agent_continue`; results arrive automatically.
+Use its installed documentation, not newer upstream tool names.
+
+Custom profiles retain their existing roles and tools, inherit project/global
+policy and skills, and are leaves (`agents: []`, `excludeTools: ["agent", ...]`).
+Delegation still requires explicit authorization. The orchestration workflow caps
+active workers at four; this is owner-enforced policy, not a runtime semaphore.
+Herdsman has no matching concurrency/depth settings or JavaScript workflow runner.
+Ordinary `agent_delegate` runs in its caller's cwd, so the orchestration skill
+sequences writers and parallelizes read-only work. Branch-isolated parallel
+writers require the separate native Manager workflow and an explicitly configured
+managed-Lead policy; the skill does not activate that or relax the no-nesting rule.
+
+Only `config.json` is linked under `~/.pi/agent/pi-herdsman/`; mailboxes, result
+artifacts, and sessions remain machine-local. Placement stays `split`, and Manager
+activation is explicit. Existing sessions need restarting or `/reload` for the
+new extension; do not disrupt other sessions or delete their histories.
 
 ## Pi intercom
 
@@ -74,7 +105,8 @@ For each `source -> destination`:
 Also: Claude entries are skipped if `~/.claude` is missing, Codex entries if `~/.codex` is
 missing, and `config/` links run only on macOS. Broken links into this repo in
 `~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills), as are
-retired repo links such as `~/.pi/agent/subagents.json` and `~/.pi/agent/open-tui.json`. Links
+retired repo links such as `~/.pi/agent/herdr.json`, `~/.pi/agent/subagents.json`,
+and `~/.pi/agent/open-tui.json`. Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,
 so concurrent runs never see a half-made link. Each run also sets this clone's
 `filter.pi-settings.clean` git config (see Platform settings).
@@ -167,7 +199,7 @@ This is a deliberate operation, never an automatic overwrite.
 bash tests/test-link.sh            # link.sh against a fake HOME (never the real one)
 bash tests/test-app-deploy.sh
 python3 tests/test-researcher.py   # researcher scope and its web-tool provider
-python3 tests/test-herdr.py        # pi-herdr contract (package, agent defs, defaults)
+python3 tests/test-herdsman.py     # pinned package, strict agent schema, leaf policy and config
 python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
 node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
 python3 -m unittest discover -s tests -p test_bb.py # BB preference boundaries

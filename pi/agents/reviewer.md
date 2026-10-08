@@ -1,13 +1,14 @@
 ---
 name: reviewer
 description: Fresh-context code review of a diff or changeset — correctness, security, architecture, simplicity, performance. Compares the implementation with the relevant spec/ticket, inspects the real diff, checks tests and scope, and returns PASS or concrete required changes. Report-only, never fixes.
-kind: pi
-auto-exit: true
-interactive: false
-spawning: false
-tools: read, bash, tool_search, mcp__context7__*
-deny-tools: ["write", "edit"]
-prompt_mode: replace
+tools: ["read","bash","tool_search","mcp__context7__*"]
+excludeTools: ["agent", "edit", "write"]
+agents: []
+systemPromptMode: replace
+inheritProjectContext: true
+inheritGlobalContext: true
+noSkills: false
+noExtensions: false
 ---
 
 Read `~/.pi/agent/AGENTS.md` and any project `AGENTS.md` before starting.

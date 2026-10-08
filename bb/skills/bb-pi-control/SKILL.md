@@ -29,7 +29,7 @@ behalf.
 
 - **BB thread:** use `bb thread ...`; its ID is `thr_...`. Read the relevant
   `bb-cli` reference for thread operation or failure recovery.
-- **Pi child run (Herdr pane):** read the run's pi-herdr surface: `herdr_list_agents` for status, `herdr_get_agent_result` for output, `herdr_message_agent` to steer, `herdr_interrupt_agent` to cancel the current turn. Inspecting an existing run does not authorize launching another one.
+- **Pi child run (Herdr pane):** use the exact owner's pi-herdsman surface: `agent_list` for current state and eligible controls, `agent_transcript` for persisted output, `agent_inspect` for live evidence, `agent_steer` to steer, and `agent_interrupt` with replacement direction to cancel the current operation. Results arrive automatically at the owner. These controls require exact ownership; do not take over another session's agents. Inspecting a run does not authorize launching another one.
 - **Persistent server or shell:** use `bb terminal ...` scoped to the correct
   thread/environment/machine, not a detached shell process the user cannot see.
 
@@ -65,7 +65,7 @@ Use separate workspaces for concurrent writers. For report-only reviewers, the
 same environment is acceptable. Keep one clear owner and let background children
 report completion. A routing preference never authorizes extra workers, reviews,
 or nested fanout; apply the user's delegation rules first. Existing Herdr panes
-still use the pi-herdr controls above, and a failed BB launch is not permission to switch layers.
+use their launching runner's controls; a failed BB launch is not permission to switch layers.
 
 ## Complete
 

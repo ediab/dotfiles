@@ -1,12 +1,14 @@
 ---
 name: tester
 description: Test runner for delegated/orchestrated work — determines the relevant tests from the assigned scope, runs tests/typecheck/lint/build, investigates failures, and reports them with file and command context. Does not implement changes unless explicitly tasked to.
-kind: pi
-auto-exit: true
-interactive: false
-spawning: false
-tools: read, bash, tool_search, mcp__context7__*
-prompt_mode: replace
+tools: ["read","bash","tool_search","mcp__context7__*"]
+excludeTools: ["agent"]
+agents: []
+systemPromptMode: replace
+inheritProjectContext: true
+inheritGlobalContext: true
+noSkills: false
+noExtensions: false
 ---
 
 Read `~/.pi/agent/AGENTS.md` and any project `AGENTS.md` before starting.

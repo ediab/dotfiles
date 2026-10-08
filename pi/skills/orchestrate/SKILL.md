@@ -6,172 +6,120 @@ disable-model-invocation: true
 
 # Orchestrate
 
-Before taking the supervisor role, check `BB_THREAD_ID` and whether this session
-is already working under another orchestrator. If either applies, stop this
-skill, stay a normal worker, and return the request to the owning orchestrator.
-Explicit invocation does not override this guard.
+Run only when explicitly invoked. Read `personal-workflow` before dispatch.
+If `BB_THREAD_ID` is set, this session is a managed Agent, or it is already
+working under another orchestrator, stay a normal worker and return the request
+to its owner. Explicit invocation does not override this guard.
 
-Next, require a nonempty `HERDR_PANE_ID` and a running Herdr server
-(`herdr status`). If either is missing, stop and ask the user to start Pi inside
-Herdr and invoke this skill there. The installed pi-herdr needs a parent pane
-to split; a running server alone is not enough.
+Require a nonempty `HERDR_PANE_ID` and a running Herdr server
+(`herdr status server`). Otherwise ask the user to start Pi inside Herdr.
+This skill uses a Lead's owned pi-herdsman Agents, not Manager/Chief mode.
 
-Otherwise, you are the top-level orchestrator/supervisor. Your job is to plan, delegate
-through pi-herdr, integrate, review with fresh agents, and verify — not to do the
-routine implementation yourself.
+Use the pinned package's installed docs under
+`~/.pi/agent/npm/node_modules/pi-herdsman/docs/`: `reference/agent.md` for
+tool contracts, `reference/agent-definition-schema.md` for profiles, and
+`guides/project-orchestration.md` only if branch-isolated project work is
+requested. Do not use the manual `herdr` skill to bypass ownership controls.
 
-**Do not load the `herdr` skill.** That skill is for manually controlling Herdr
-panes from inside a Herdr pane (it requires `HERDR_ENV=1`). Orchestration here
-uses the pi-herdr extension tools (`herdr_spawn_agent`, `herdr_get_agent_result`,
-`herdr_list_agents`, `herdr_message_agent`, `herdr_resume_agent`,
-`herdr_run_workflow`, …). Use these extension tools for delegation; the pane
-prerequisite above still applies.
+## 1. Understand and plan
 
-Run only when explicitly invoked. Do not spawn agents for ordinary requests; if
-the user wants normal work, finish this skill and behave normally.
+Read relevant project instructions, specs, tickets, existing plans, and code.
+Identify the outcome, constraints, acceptance criteria, dependency graph, and
+genuinely independent work. Trivial or inseparable tasks need no fleet.
 
-## 1. Understand the task
+The frontier consists of tickets whose blockers are delivered, reviewed, and
+pass integrated checks. Recompute it after each verified integration instead
+of waiting for a whole wave. Cap active workers at four, including reviewers
+and testers. This is owner-enforced policy; pi-herdsman has no matching hard
+concurrency/depth config. All custom worker definitions are leaves.
 
-Read the relevant, existing files only: `AGENTS.md`, `SPEC.md`, `CONCEPTS.md`,
-`README.md`, ticket files, and existing plans in `docs/plans/`. Identify:
+Write each brief self-contained: one bounded objective, input paths, approved
+scope, acceptance criteria, checks, expected handoff, and escalation boundary.
+Keep one adequate scope artifact rather than duplicating instructions; temporary
+coordination material stays untracked. Pass relevant files and exact reusable
+result refs through `files`.
 
-- the requested outcome
-- constraints and acceptance criteria
-- the dependency graph
-- which tasks can run independently
+## 2. Choose a safe execution boundary
 
-If the task is trivial or sequential, do it directly instead of spawning agents.
-This skill is for work with genuinely parallel or separable parts.
+`agent_delegate` starts in the calling Lead's cwd; it accepts no `cwd`,
+`isolated`, or worktree option. Never pretend a path in the task changes that
+runtime boundary. Sequence writers in this checkout and parallelize independent
+read-only work. Do not overlap readers with a changing diff they must review.
 
-## 2. Build a dependency-aware plan
+For concurrent branch-isolated implementation, stop this Lead workflow and
+explain the separate native Manager workflow (`/manager`, `staff_delegate`).
+It needs approved branches/worktrees and a deliberately configured managed-Lead
+policy compatible with the user's no-nested-orchestration rule; do not activate
+it or relax that rule implicitly.
 
-Shape the work roughly as:
+Before authorized Git operations, record branch, HEAD, and working-tree status.
+Preserve unrelated staged, unstaged, and untracked work. Invocation alone grants
+no branch, commit, merge, push, or deployment permission.
 
-```
-frontier (unblocked tickets, within the configured concurrency limit)
-      ↓  delivery → ticket review → merge → integrated checks → unblock
-integration branch → full validation → fresh final review → spec check
-```
+## 3. Delegate and receive results
 
-- Tickets with blocking edges form a task graph, not a step list. The
-  **frontier** is every ticket whose blockers are merged and pass integrated
-  checks. After each verified integration, recompute the frontier and start
-  newly unblocked tickets (up to the cap), without waiting for the whole wave.
-- Never parallelize tasks that edit the same code heavily or depend on one another.
-- Prefer a small useful fleet. Respect the configured concurrency limit; when
-  none is available, cap active agents at four, including reviewers and testers.
-- For each worker, write down: the bounded task, the exact files/spec/ticket to
-  read, the acceptance criteria, and how the work integrates afterward.
+Use `agent_delegate` with `definition` (`implementer`, `reviewer`,
+`tester`, `explorer`, `researcher`, or `general-purpose`), `task`,
+optional unique `label`, and optional `files`.
 
-## 3. Delegate through pi-herdr
+Workers must not broaden scope or delegate. Require `DONE`, `BLOCKED`, or
+`FAILED`, plus changed/inspected files, exact validation commands/results,
+remaining concerns, and preserved partial work. Reviewers use section 5's
+verdicts. Authorize commits explicitly when required and request delivery SHAs.
 
-Spawn visible Herdr agents with `herdr_spawn_agent` (types: `implementer`,
-`reviewer`, `tester`, `explorer` — definitions in `~/.pi/agent/agents/`). Each
-worker brief must be self-contained:
+Acceptance is not completion. Results arrive automatically at the exact owner;
+yield when only Agents are working, do not poll. An idle/closed pane proves
+neither success nor delivery. Verify material findings against source files.
+Forward an exact delivered `result:<agent>#<index>` via `files` when another
+assignment depends on it; do not substitute a summary of its evidence.
 
-- exactly one bounded task, with the relevant files/spec/ticket paths
-- acceptance criteria and tests to run
-- an instruction not to broaden scope and not to spawn more agents
-- for implementation, testing, and search workers, a final verdict: `DONE`
-  (acceptance criteria met), `BLOCKED` (decision or prerequisite needed), or
-  `FAILED` (execution failed), plus changed files, exact validation commands/results,
-  remaining concerns, and preserved partial work; reviewers use section 5's verdicts
-- for worktree implementers, explicit commit authorization and a request to
-  return their branch and committed delivery SHA
+## 4. Keep ownership and recovery explicit
 
-Worktree isolation rules:
+Use `agent_list` for a fresh roster or recovery decision, not a polling loop.
+A live record's exact `agent` and `available_tools` guide permitted actions;
+each operation revalidates identity and lifecycle.
 
-- Before Git changes, record the current branch, HEAD, and working-tree status.
-  Confirm the approved task base; do not assume the default branch. Obtain
-  explicit authorization for branch creation/checkouts, commits, and integration
-  merges unless already granted. Invoking this skill alone is not Git approval.
-- Preserve existing staged, unstaged, and untracked work. If it affects the task
-  base or prevents safe isolation, resolve that with the user; do not stash,
-  reset, or include unrelated changes in worker deliveries.
-- Multi-worker implementation runs land on one **integration branch** created
-  from the approved base. Use a separate clean integration worktree if the main
-  checkout has unrelated changes. Nothing reaches the default branch during the run.
-- For independent concurrent writers, use
-  `herdr worktree create --cwd <repo> --base <integration-branch>` and spawn
-  each implementer with the returned checkout path as `cwd`. Record the ticket,
-  spawn handle, worktree path, branch, and review base SHA in the run checklist.
-- Worktree implementers commit only their assigned changes. Before delivery,
-  they merge the current integration tip into their branch, resolve conflicts,
-  rerun focused tests, and report the resulting SHA. If integration advances
-  before landing, return the task to its implementer for synchronization and
-  renewed validation/review.
-- Small or sequential tasks may share a checkout; sequence their edits.
-  Never spawn parallel in-repo writers without worktrees.
-- After verified integration and final review, confirm the delivery SHA is an ancestor of the
-  integration tip, the worker worktree is clean, and no agent/process still uses
-  it. Only then remove the worktree without force and delete the merged branch
-  with `git branch -d`. Preserve failed, blocked, or unmerged work for recovery.
+- `agent_steer` with `agent` and `message` cooperatively redirects live work.
+- `agent_interrupt` with replacement `message` cancels the current operation
+  and continues the same assignment; do not pair it with duplicate steering.
+- `agent_reply` answers an eligible correlated `ask_owner` question.
+- `agent_transcript` reads bounded persisted evidence; `agent_inspect` reads
+  bounded live terminal/process evidence when needed.
+- `agent_continue` starts one new assignment from the exact saved session path
+  or full UUID and a new `task`; it is not a live agent-label control.
+  Retired sessions require a fresh Agent with the previous result as evidence.
+- `agent_close` abandons eligible owned work; preserve partial repository and
+  session evidence and do not close merely because progress looks slow.
 
-Spawn in the background and handle completion notifications as they arrive.
-Use `herdr_get_agent_result` to read exact finals; an idle/closed pane is not
-proof of `DONE`. Use `herdr_list_agents` for inspection or recovery, not a polling
-loop. When only helpers are running, yield; use `wait: true` only for a necessary
-dependency. Do not duplicate a worker's task.
+Relay material scope/product decisions to the user; resolve ordinary engineering
+choices within approved constraints. Unknown identity fails closed. Blocked or
+failed work does not unblock dependents. Never silently switch runners.
 
-Use `herdr_message_agent` for blocked freeform answers and `herdr_send_keys` for
-option-list answers. Relay material product/scope decisions to the user.
-Use `herdr_run_workflow` for repetitive fan-out, dynamically discovered task
-lists, or real pipelines; ordinary supervised spawns suit a small ticket graph.
+## 5. Review with a fresh Agent
 
-## 4. Parent stays in control
+An implementer never grades its own work. Delegate a fresh `reviewer` for each
+delivery before marking it accepted, then another fresh reviewer for the combined
+final changeset. Supply exact base/head refs (or the bounded uncommitted diff),
+checkout, spec/ticket, and acceptance criteria. Require inspection of the real
+diff, regressions, scope, and tests, with `PASS` or `CHANGES REQUIRED`;
+blocked/failed review must be explicit. Reviewers report only, never fix.
 
-The parent owns: the plan, dependency ordering, integration decisions, conflict
-resolution, whether another worker is needed, and the user-facing summary.
-Stop and redirect live spawned Pi workers with `herdr_interrupt_agent`, followed
-by `herdr_message_agent`. For a gone worker, inspect its retained result and
-partial repository state, then use `herdr_resume_agent` with the spawn handle
-and a bounded recovery instruction. Do not discard partial work or silently
-retry through a different runner. `BLOCKED` and `FAILED` tickets do not unblock
-dependents.
-Do not send routine questions to the user; continue autonomously through
-ordinary engineering decisions.
+Return required corrections to the implementer through an eligible live steer,
+or continue its saved session after completion. A retired session needs a fresh
+bounded repair Agent. Re-review corrections with a fresh reviewer.
 
-## 5. Review with a fresh agent
+## 6. Validate and integrate
 
-Implementation and review must be done by different agents (the implementer
-never grades its own work). Review each ticket delivery before integration,
-then use a fresh reviewer for the combined final changeset. Each brief supplies
-exact base/head SHAs, the checkout path, spec/ticket, and acceptance criteria:
+For every `DONE` delivery, verify the actual diff or committed SHA and test
+evidence, obtain review `PASS`, and run focused integrated checks before
+acceptance or unblocking dependents. Commit only when authorized.
+Preserve failed or unmerged work; never reset or discard it to clear the queue.
 
-- compare the implementation with the relevant spec/ticket
-- inspect the actual diff (not summaries) and look for regressions
-- check for unnecessary scope expansion and missing tests
-- reply with `PASS` or `CHANGES REQUIRED` and concrete findings; report blocked
-  or failed review explicitly — a reviewer never fixes its own findings
+After all work is accepted, run applicable lint/typecheck/build and integration
+checks, inspect the combined diff yourself, obtain fresh final review, and compare
+against the original goal. Report delivered SHAs, checks, and unresolved work.
+Push, merge to the default branch, open a PR, or deploy only when requested.
 
-If changes are required, check the implementer's state. For a closed pane,
-use `herdr_resume_agent` with the spawn handle as `target` and the findings as
-`message`; autonomous implementers normally close after finishing. Use
-`herdr_message_agent` only while its pane is still live. Alternatively, spawn
-a bounded repair agent. Then review again with a fresh reviewer.
-Do not declare success from the implementer's word alone.
-
-## 6. Test and integrate
-
-For each worktree implementation `DONE` delivery, verify its committed changes and validation evidence,
-obtain ticket review `PASS`, then serialize its authorized merge (`--no-ff`)
-into the integration branch. Run focused integrated checks before marking the
-ticket merged and unblocking dependents. A failed check leaves the ticket
-unresolved: return findings to its implementer, preserve the work, and repeat
-the validation/review gate before releasing dependents.
-
-Shared-checkout tasks use the same validation/review gate on their exact diff;
-commit only when authorized. Read-only worker results need verification, not a merge.
-
-After all tickets integrate, run lint/typecheck/build and relevant integration
-tests where applicable, inspect the combined diff yourself, and obtain fresh
-final review. Compare against the original task/spec and acceptance criteria.
-Report the integration branch, delivered SHAs, checks, and any unresolved work.
-Merge to the default branch, push, or open a PR only when the user asks.
-
-## 7. Stop conditions
-
-Stop and ask the user only when a decision materially changes product behavior,
-architecture, scope, irreversible data, credentials/secrets, triggers expensive
-external actions, or requires Git authorization not already granted. Everything
-else within the approved plan is yours to decide and proceed.
+Stop for material changes to intent, architecture, scope, irreversible data,
+credentials, expensive external actions, or unapproved Git/operational risk.
+Otherwise execute the approved sequence without routine continuation prompts.

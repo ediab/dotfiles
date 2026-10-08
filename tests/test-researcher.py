@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = ROOT / 'pi/agents/researcher.md'
-EXPECTED_DENY = ['bash', 'edit', 'write', 'herdr_*']
+EXPECTED_DENY = ['agent', 'edit', 'write', 'bash', 'powershell']
 
 
 def frontmatter(path):
@@ -34,12 +34,15 @@ class ResearcherTests(unittest.TestCase):
         self.fields = frontmatter(PROFILE)
 
     def test_restricted_tools(self):
-        # pi-herdr honours a `tools` allowlist, but the researcher's scope stays a
-        # denylist (it needs whatever ambient tools the session provides, minus
-        # file-writing and shell). herdr_* goes too: herdr_run_command types into
-        # panes (a shell by another name) and herdr_spawn_agent spawns.
-        self.assertNotIn('tools', self.fields)
-        self.assertEqual(listed(self.fields['deny-tools']), EXPECTED_DENY)
+        tools = listed(self.fields['tools'])
+        self.assertEqual(listed(self.fields['excludeTools']), EXPECTED_DENY)
+        self.assertEqual(listed(self.fields['agents']), [])
+        for name in ['bash', 'powershell', 'edit', 'write', 'codemode']:
+            self.assertNotIn(name, tools)
+        for name in ['read', 'web_enable', 'web_search', 'fetch_content',
+                     'get_search_content', 'tool_search', 'mcp__context7__*']:
+            self.assertIn(name, tools)
+        self.assertEqual(self.fields['noExtensions'], 'false')
 
     def test_no_tintin_extension_selectors(self):
         self.assertIsNone(re.search(r'"ext:', PROFILE.read_text()))

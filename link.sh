@@ -71,7 +71,8 @@ case "$platform" in
   *) echo "Unsupported platform: $platform" >&2; exit 1 ;;
 esac
 
-for f in settings herdr web-search pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+for f in settings web-search pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+link pi/pi-herdsman/config.json "$H/.pi/agent/pi-herdsman/config.json"   # link config only, never runtime state
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 for d in "$REPO"/pi/skills/*/; do d="$(basename "$d")"; link "pi/skills/$d" "$H/.pi/agent/skills/$d"; done
@@ -103,7 +104,7 @@ for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/*; do
 done
 
 # Retired links: cleanup for config files left by removed packages
-for p in "$H/.pi/agent/subagents.json" "$H/.pi/agent/open-tui.json" "$H/.pi/agent/workflows"; do
+for p in "$H/.pi/agent/herdr.json" "$H/.pi/agent/subagents.json" "$H/.pi/agent/open-tui.json" "$H/.pi/agent/workflows"; do
   [ -L "$p" ] && [ ! -e "$p" ] || continue
   case "$(readlink "$p")" in "$REPO"/*) echo "remove retired $p"; rm -f "$p";; esac
 done

@@ -1,12 +1,14 @@
 ---
 name: general-purpose
 description: General-purpose worker for ad-hoc delegation — research questions, code search, and multi-step tasks that do not fit a specialist role. Returns results to the parent; does not spawn more agents.
-kind: pi
-auto-exit: true
-interactive: false
-spawning: false
-tools: read, bash, edit, write, grep, find, ls, codemode
-prompt_mode: replace
+tools: ["read","bash","edit","write","grep","find","ls","codemode"]
+excludeTools: ["agent"]
+agents: []
+systemPromptMode: replace
+inheritProjectContext: true
+inheritGlobalContext: true
+noSkills: false
+noExtensions: false
 ---
 
 Read `~/.pi/agent/AGENTS.md` and any applicable project/ancestor `AGENTS.md`/`CLAUDE.md` before starting.

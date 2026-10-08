@@ -20,7 +20,8 @@ mkrepo() {
   echo review > "$REPO/pi/skills/code-review/SKILL.md"
   echo orchestrate > "$REPO/pi/skills/orchestrate/SKILL.md"
   echo agent > "$REPO/pi/agents/implementer.md"; echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
-  for f in settings herdr web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
+  for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
+  mkdir -p "$REPO/pi/pi-herdsman"; echo '{"spawnPlacement":"split"}' > "$REPO/pi/pi-herdsman/config.json"
   echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
@@ -39,7 +40,9 @@ expect_status() { # expect_status <code> <message>; uses $out and $rc from the l
 go() { rc=0; out="$(run 2>&1)" || rc=$?; }
 all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
-  for f in herdr web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
+  for f in web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
+  points "$H/.pi/agent/pi-herdsman/config.json" pi/pi-herdsman/config.json
+  [ ! -L "$H/.pi/agent/pi-herdsman" ] || fail 'runtime state directory must not be linked'
   for d in agents extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
   points "$H/.pi/agent/skills/code-review" pi/skills/code-review
   points "$H/.pi/agent/skills/orchestrate" pi/skills/orchestrate
@@ -147,6 +150,25 @@ ln -s /nowhere/else "$H/.pi/agent/workflows"
 go; expect_status 0 foreignworkflows
 [ -L "$H/.pi/agent/workflows" ] || fail 'removed foreign workflows link'
 rm "$H/.pi/agent/workflows"
+
+echo "7c3. retired agent config link goes; foreign links and real files stay"
+ln -s "$REPO/pi/herdr.json" "$H/.pi/agent/herdr.json"
+go; expect_status 0 retiredagentconfig
+[ ! -L "$H/.pi/agent/herdr.json" ] || fail 'retired repo config link kept'
+echo mine > "$H/.pi/agent/herdr.json"
+go; expect_status 0 realagentconfig
+[ "$(cat "$H/.pi/agent/herdr.json")" = mine ] || fail 'removed real config'
+rm "$H/.pi/agent/herdr.json"
+ln -s /nowhere/else "$H/.pi/agent/herdr.json"
+go; expect_status 0 foreignagentconfig
+[ -L "$H/.pi/agent/herdr.json" ] || fail 'removed foreign config link'
+rm "$H/.pi/agent/herdr.json"
+
+echo "7c4. linking config preserves machine-local runtime state"
+mkdir -p "$H/.pi/agent/pi-herdsman/mailboxes-v5"
+echo runtime > "$H/.pi/agent/pi-herdsman/mailboxes-v5/record"
+go; expect_status 0 runtimestate
+[ "$(cat "$H/.pi/agent/pi-herdsman/mailboxes-v5/record")" = runtime ] || fail 'runtime state changed'
 
 echo "7d. both supported platforms select their tracked settings"
 mkdir -p "$WORK/bin"
