@@ -30,7 +30,6 @@ ZSH_THEME=""
 # fight over the same command name.
 plugins=(
   git
-  herdr
   web-search
   copypath
 )
@@ -91,9 +90,8 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 [[ -s "$HOME/.bun/_bun" ]] && source "$HOME/.bun/_bun"
 
-# Local bins, antigravity (dupes collapse via typeset -U above)
+# Local bins (dupes collapse via typeset -U above)
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.antigravity-ide/antigravity-ide/bin:$PATH"
 
 # REMOVED: export DISPLAY=":0"
 # On macOS this only matters with XQuartz running, and it makes some tools

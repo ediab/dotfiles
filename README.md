@@ -58,10 +58,14 @@ The shipped release uses `agent_delegate`, `agent_list`, `agent_steer`,
 `agent_interrupt`, `agent_reply`, and `agent_continue`; results arrive automatically.
 Use its installed documentation, not newer upstream tool names.
 
-Custom profiles retain their existing roles and tools, inherit project/global
-policy and skills, and are leaves (`agents: []`, `excludeTools: ["agent", ...]`).
-Delegation still requires explicit authorization. The orchestration workflow caps
-active workers at four; this is owner-enforced policy, not a runtime semaphore.
+Custom `implementer`, `researcher`, `reviewer`, and `tester` profiles retain their
+roles and tools, inherit project/global policy and skills, and are leaves
+(`agents: []`, `excludeTools: ["agent", ...]`). Use bundled `scout` and `generalist`
+instead of the retired `explorer` and `general-purpose` profiles. Both bundled
+roles disable normal skill/extension discovery; `generalist` permits delegation
+to `scout` and `researcher`. Delegation still requires explicit authorization.
+The orchestration workflow caps active workers at four; this is owner-enforced
+policy, not a runtime semaphore.
 Herdsman has no matching concurrency/depth settings or JavaScript workflow runner.
 Ordinary `agent_delegate` runs in its caller's cwd, so the orchestration skill
 sequences writers and parallelizes read-only work. Branch-isolated parallel

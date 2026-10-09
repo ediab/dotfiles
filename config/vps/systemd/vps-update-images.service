@@ -1,5 +1,5 @@
 [Unit]
-Description=VPS third-party container image refresh (note-sx, karakeep-app)
+Description=VPS third-party container image refresh (note-sx)
 
 [Service]
 Type=oneshot

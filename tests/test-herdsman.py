@@ -6,7 +6,7 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-ROLES = {'general-purpose', 'implementer', 'explorer', 'researcher', 'reviewer', 'tester'}
+ROLES = {'implementer', 'researcher', 'reviewer', 'tester'}
 FIELDS = {
     'name', 'enabled', 'description', 'model', 'thinking', 'systemPromptMode',
     'bodyMode', 'noTools', 'noBuiltinTools', 'tools', 'excludeTools', 'permission',
@@ -17,9 +17,7 @@ ARRAYS = {'tools', 'excludeTools', 'skills', 'extensions', 'agents'}
 BOOLEANS = {'enabled', 'noTools', 'noBuiltinTools', 'noSkills', 'inheritSkills',
             'noExtensions', 'inheritProjectContext', 'inheritGlobalContext'}
 EXPECTED_TOOLS = {
-    'general-purpose': ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls', 'codemode'],
     'implementer': ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls', 'codemode'],
-    'explorer': ['read', 'grep', 'find', 'ls'],
     'reviewer': ['read', 'bash', 'tool_search', 'mcp__context7__*'],
     'tester': ['read', 'bash', 'tool_search', 'mcp__context7__*'],
     'researcher': ['read', 'grep', 'find', 'ls', 'ffgrep', 'fffind', 'tool_search',
@@ -103,6 +101,10 @@ class HerdsmanTests(unittest.TestCase):
         self.assertIn('Cap active workers at four', text)
         self.assertIn('accepts no `cwd`', text)
         self.assertIn('do not poll', text)
+        for role in ['scout', 'generalist']:
+            self.assertIn(f'`{role}`', text)
+        for retired in ['explorer', 'general-purpose']:
+            self.assertNotIn(f'`{retired}`', text)
 
 
 if __name__ == '__main__':

@@ -59,10 +59,13 @@ no branch, commit, merge, push, or deployment permission.
 ## 3. Delegate and receive results
 
 Use `agent_delegate` with `definition` (`implementer`, `reviewer`,
-`tester`, `explorer`, `researcher`, or `general-purpose`), `task`,
+`tester`, `scout`, `researcher`, or `generalist`), `task`,
 optional unique `label`, and optional `files`.
 
-Workers must not broaden scope or delegate. Require `DONE`, `BLOCKED`, or
+Use bundled `scout` and `generalist` policies; both disable normal skill and
+extension discovery, and `generalist` permits delegation to `scout` and
+`researcher`. Within this workflow, brief workers to stay in scope and return
+results directly without delegating. Require `DONE`, `BLOCKED`, or
 `FAILED`, plus changed/inspected files, exact validation commands/results,
 remaining concerns, and preserved partial work. Reviewers use section 5's
 verdicts. Authorize commits explicitly when required and request delivery SHAs.

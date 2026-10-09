@@ -9,7 +9,6 @@
 #
 # Scope: only projects whose runtime is a published image.
 #   note-sx      ghcr.io/note-sx/server:latest   (its push-to-deploy step is the same pull)
-#   karakeep-app ghcr.io/karakeep-app/karakeep:release
 # Everything else on the box is a local build deployed from git by the push-to-deploy
 # workflow (mp3podcasts, redact_pdf, cratch, onyx, greek_embassy_bot) and is
 # deliberately not touched here.
@@ -32,7 +31,7 @@ LOG="$LOG_DIR/vps-update-images.log"
 SNAP_ROOT="$HOME/backups"
 LOCK_FILE="$HOME/.cache/vps-deploy.lock"   # shared with ~/bin/vps-deploy.sh
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-150}"
-PROJECTS=(note-sx karakeep-app)
+PROJECTS=(note-sx)
 SNAPSHOT_TARGET=""
 
 DRY_RUN=0
@@ -81,8 +80,7 @@ rotate_snapshots() {
   done
 }
 
-# Snapshot an app's data with its containers stopped. Karakeep keeps everything in a Docker
-# volume (root-only, hence sudo); note-sx keeps db/ and userfiles/ inside its checkout.
+# Snapshot note-sx data with its containers stopped (db/ and userfiles/ in its checkout).
 # Sets SNAPSHOT_TARGET on success; a failed or partial tar is deleted, never left behind as
 # something the next run could mistake for a usable backup.
 snapshot_data() {
@@ -91,15 +89,6 @@ snapshot_data() {
   mkdir -p "$SNAP_ROOT/$project"
 
   case "$project" in
-    karakeep-app)
-      target="$SNAP_ROOT/$project/data-$stamp.tgz"
-      echo "  snapshot: karakeep-app_data -> $(basename "$target")"
-      if [ "$DRY_RUN" -eq 1 ]; then
-        echo "  [dry-run] sudo -n tar -czf $target -C /var/lib/docker/volumes/karakeep-app_data/_data ."
-      else
-        sudo -n tar -czf "$target" -C /var/lib/docker/volumes/karakeep-app_data/_data . || rc=1
-      fi
-      ;;
     note-sx)
       target="$SNAP_ROOT/$project/state-$stamp.tgz"
       echo "  snapshot: db/ + userfiles/ -> $(basename "$target")"
