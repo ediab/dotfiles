@@ -1,0 +1,8 @@
+[Unit]
+Description=Email disk warning, daily reminder, or recovery notice
+
+[Service]
+Type=oneshot
+ExecStart=%h/Dev/xbot/.venv/bin/python %h/bin/vps-disk-alert.py
+TimeoutStartSec=3min
+UMask=0077
