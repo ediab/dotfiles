@@ -27,6 +27,7 @@ mkrepo() {
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
   echo mac > "$REPO/codex/config.toml"; echo linux > "$REPO/codex/config.linux.toml"
   echo '{}' > "$REPO/codex/hooks.json"
+  mkdir -p "$REPO/codex/agents"; echo reviewer > "$REPO/codex/agents/reviewer.toml"
   for f in .zshrc .zprofile .zshenv starship.toml topgrade.toml ghostty/config herdr/config.toml herdr-auto-title/config.env vscode/settings.json vscode/keybindings.json; do
     echo "$f" > "$REPO/config/$f"
   done
@@ -52,6 +53,7 @@ all_links() {
   points "$H/.claude/settings.json" "claude/$CLAUDE_SETTINGS"
   points "$H/.claude/statusline-command.sh" claude/statusline-command.sh
   points "$H/.codex/config.toml" "codex/$CODEX_CONFIG"; points "$H/.codex/hooks.json" codex/hooks.json
+  points "$H/.codex/agents/reviewer.toml" codex/agents/reviewer.toml
   for s in alpha beta; do points "$H/.claude/skills/$s" agents/skills/$s; done
   if [ "$DARWIN" = 1 ]; then
     for f in .zshrc .zprofile .zshenv; do points "$H/$f" config/$f; done
@@ -109,10 +111,12 @@ points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md; points "$H/.agents/skills" age
 echo "7. broken-link cleanup"
 mkhome; go; expect_status 0 setup
 ln -s "$REPO/agents/skills/gone" "$H/.claude/skills/gone"; ln -s "$REPO/pi/skills/gone" "$H/.pi/agent/skills/gone"
+ln -s "$REPO/codex/agents/gone.toml" "$H/.codex/agents/gone.toml"
 ln -s /nowhere/else "$H/.claude/skills/foreign-broken"; mkdir "$H/.claude/skills/synced"; echo x > "$H/.claude/skills/synced/f"
 go; expect_status 0 cleanup
 [ ! -e "$H/.claude/skills/gone" ] && [ ! -L "$H/.claude/skills/gone" ] || fail 'broken Claude link kept'
 [ ! -L "$H/.pi/agent/skills/gone" ] || fail 'broken Pi link kept'
+[ ! -L "$H/.codex/agents/gone.toml" ] || fail 'broken Codex agent link kept'
 [ -L "$H/.claude/skills/foreign-broken" ] && [ -f "$H/.claude/skills/synced/f" ] || fail 'removed something not ours'
 points "$H/.claude/skills/alpha" agents/skills/alpha
 

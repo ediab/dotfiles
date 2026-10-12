@@ -18,7 +18,7 @@ pi/pi-herdsman/config.json -> ~/.pi/agent/pi-herdsman/config.json (config only; 
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
-codex/                 -> ~/.codex/ (platform config, shared hooks.json)
+codex/                 -> ~/.codex/ (platform config, shared hooks.json, personal agents)
 scripts/agent-hook.sh   optional session integrations, guarded when not installed
 config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 bb/                    explicit install/update and portable preference snapshot/restore (not linked)
@@ -126,7 +126,8 @@ For each `source -> destination`:
 
 Also: Claude entries are skipped if `~/.claude` is missing, Codex entries if `~/.codex` is
 missing, and `config/` links run only on macOS. Broken links into this repo in
-`~/.claude/skills` and `~/.pi/agent/skills` are removed (deleted or renamed skills), as are
+`~/.claude/skills`, `~/.pi/agent/skills` and `~/.codex/agents` are removed (deleted or
+renamed skills and agents), as are
 retired repo links such as `~/.pi/agent/herdr.json`, `~/.pi/agent/subagents.json`,
 and `~/.pi/agent/open-tui.json`. Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,

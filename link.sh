@@ -88,6 +88,7 @@ if [ -d "$H/.codex" ]; then
   link agents/AGENTS.md "$H/.codex/AGENTS.md"
   link "codex/$codex_config" "$H/.codex/config.toml"
   link codex/hooks.json "$H/.codex/hooks.json"
+  link codex/agents/reviewer.toml "$H/.codex/agents/reviewer.toml"
 fi
 if [ "$platform" = Darwin ]; then
   for f in .zshrc .zprofile .zshenv; do link "config/$f" "$H/$f"; done
@@ -98,7 +99,7 @@ fi
 flush
 
 # Remove links into the repo whose skill was deleted or renamed
-for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/*; do
+for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/* "$H"/.codex/agents/*; do
   [ -L "$p" ] && [ ! -e "$p" ] || continue
   case "$(readlink "$p")" in "$REPO"/*) echo "remove broken $p"; rm -f "$p";; esac
 done
