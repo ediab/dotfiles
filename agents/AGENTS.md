@@ -20,10 +20,9 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 
 ## Delegation and orchestration
 
-* Delegate only for independent investigation, specialist work, or parallel work — and only when the user asks for it or an explicit orchestration skill is invoked.
-* The main agent owns synthesis and verification of delegated results.
-* In Pi, when `BB_THREAD_ID` is set or this session is working under another orchestrator, act as a normal worker: never spawn Pi/Herdr agents or invoke the `orchestrate` skill. This holds even when delegation is explicitly requested; return the request to the owning orchestrator.
-* There must be one orchestrator at a time. The presence of orchestration tools (such as pi-herdsman) is not permission to use them.
+* Launch agents or reviewers only when the user requests delegation or explicitly invokes a workflow that authorizes it. An ordinary review request stays inline; having the tools is not permission.
+* Delegated workers never delegate or invoke `orchestrate`; they return requests to their owner. One orchestrator at a time.
+* Delegate through the host's own mechanism (BB child threads inside BB, pi-herdsman in standalone Pi) unless the user names another runner. The main agent checks delegated results against the sources.
 
 ## Jev — Pi only
 

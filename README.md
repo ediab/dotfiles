@@ -44,19 +44,21 @@ to check readiness without printing secrets.
 
 ## Pi Herdsman
 
-`pi/settings.json` pins `npm:pi-herdsman@0.21.3`. It requires Node >=22.19.0,
-Pi >=1.0.4 and Herdr >=0.9.3. Install the package separately from linking:
+`pi/settings.json` pins `npm:pi-herdsman@0.23.0`. It requires Node >=22.19.0,
+Pi >=1.1.0 and Herdr >=0.9.3. Install the package separately from linking:
 
 ```sh
 ./link.sh
-pi install npm:pi-herdsman@0.21.3
+pi install npm:pi-herdsman@0.23.0
 herdr integration install pi
 ```
 
-Start a fresh Pi session inside Herdr; `/agents` manages Agents and definitions.
-The shipped release uses `agent_delegate`, `agent_list`, `agent_steer`,
-`agent_interrupt`, `agent_reply`, and `agent_continue`; results arrive automatically.
-Use its installed documentation, not newer upstream tool names.
+Start a fresh Pi session inside Herdr; `/herdsman` manages Agents and definitions
+(`/agents` is an equivalent alias, and `/lead` picks the ordinary execution mode).
+The shipped release uses verb-first coordination tools — `delegate_agent`,
+`list_agents`, `steer_agent`, `interrupt_agent`, `reply_agent`, and
+`continue_agent`; results arrive automatically. Use its installed documentation,
+not tool names from another version.
 
 Custom `implementer`, `researcher`, `reviewer`, and `tester` profiles retain their
 roles and tools, inherit project/global policy and skills, and are leaves
@@ -67,7 +69,7 @@ to `scout` and `researcher`. Delegation still requires explicit authorization.
 The orchestration workflow caps active workers at four; this is owner-enforced
 policy, not a runtime semaphore.
 Herdsman has no matching concurrency/depth settings or JavaScript workflow runner.
-Ordinary `agent_delegate` runs in its caller's cwd, so the orchestration skill
+Ordinary `delegate_agent` runs in its caller's cwd, so the orchestration skill
 sequences writers and parallelizes read-only work. Branch-isolated parallel
 writers require the separate native Manager workflow and an explicitly configured
 managed-Lead policy; the skill does not activate that or relax the no-nesting rule.

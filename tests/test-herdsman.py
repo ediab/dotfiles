@@ -43,7 +43,7 @@ def frontmatter(path):
 class HerdsmanTests(unittest.TestCase):
     def test_package_and_config(self):
         settings = json.loads((ROOT / 'pi/settings.json').read_text())
-        self.assertIn('npm:pi-herdsman@0.21.3', settings['packages'])
+        self.assertIn('npm:pi-herdsman@0.23.0', settings['packages'])
         for entry in settings['packages']:
             source = entry['source'] if isinstance(entry, dict) else entry
             for retired in ['pi-' + 'herdr', 'pi-subagents']:
@@ -80,9 +80,13 @@ class HerdsmanTests(unittest.TestCase):
     def test_no_retired_extension_instructions(self):
         old_package = 'pi-' + 'herdr'
         old_tool = re.compile(r'\bherdr_(?:spawn|get|list|message|interrupt|resume|run|save|send|read|wait)\w*\b')
+        renamed_tool = re.compile(
+            r'\b(?:agent_(?:delegate|continue|steer|interrupt|reply|close|list|inspect|transcript)'
+            r'|staff_(?:delegate|resume|list|message|inspect|stop|transcript)'
+            r'|peer_(?:list|message)|supervisor_message)\b')
         files = [ROOT / 'README.md', ROOT / 'agents/AGENTS.md',
-                 ROOT / 'agents/ATTRIBUTION.md',
-                 ROOT / 'agents/skills/personal-workflow/SKILL.md']
+                 ROOT / 'agents/ATTRIBUTION.md']
+        files += list((ROOT / 'agents/skills/personal-workflow').glob('*.md'))
         files += list((ROOT / 'pi/skills').glob('*/SKILL.md'))
         files += list((ROOT / 'pi/agents').glob('*.md'))
         files += list((ROOT / 'bb/skills').glob('bb-pi-*/SKILL.md'))
@@ -91,12 +95,41 @@ class HerdsmanTests(unittest.TestCase):
                 text = path.read_text()
                 self.assertNotIn(old_package, text)
                 self.assertIsNone(old_tool.search(text))
+                self.assertIsNone(renamed_tool.search(text))
         self.assertFalse((ROOT / 'pi/workflows').exists())
+
+    def test_workflow_keeps_delegation_and_reviews_opt_in(self):
+        workflow_dir = ROOT / 'agents/skills/personal-workflow'
+        workflow = (workflow_dir / 'SKILL.md').read_text()
+        self.assertIn('](DELEGATION.md)', workflow)
+        self.assertTrue((workflow_dir / 'DELEGATION.md').is_file())
+        # Project-specific rules live in that project's docs, not shared skills.
+        for path in workflow_dir.glob('*.md'):
+            text = path.read_text()
+            for project_rule in ['POLARS_MAX_THREADS', 'phone render']:
+                self.assertNotIn(project_rule, text, path.name)
+
+        path = ROOT / 'pi/skills/orchestrate/SKILL.md'
+        self.assertEqual(frontmatter(path)['disable-model-invocation'], 'true')
+        orchestration = path.read_text()
+        self.assertIn('DELEGATION.md', orchestration)
+        self.assertNotIn('BB_THREAD_ID', orchestration)
+        for retired_gate in ['An implementer never grades its own work',
+                             'Re-review corrections with a fresh reviewer',
+                             'obtain fresh final review', 'obtain review `PASS`']:
+            self.assertNotIn(retired_gate, orchestration)
+
+    def test_planning_and_structured_implementation_stay_explicit(self):
+        for name in ['brainstorm', 'to-spec', 'to-tickets', 'ask-matt', 'implement']:
+            with self.subTest(skill=name):
+                path = ROOT / 'agents/skills' / name / 'SKILL.md'
+                self.assertEqual(frontmatter(path)['disable-model-invocation'], 'true')
 
     def test_workflow_uses_released_tool_contract(self):
         text = (ROOT / 'pi/skills/orchestrate/SKILL.md').read_text()
-        for tool in ['agent_delegate', 'agent_list', 'agent_reply', 'agent_steer',
-                     'agent_interrupt', 'agent_continue', 'agent_transcript']:
+        for tool in ['delegate_agent', 'list_agents', 'reply_agent', 'steer_agent',
+                     'interrupt_agent', 'continue_agent', 'close_agent',
+                     'read_agent_transcript', 'inspect_agent']:
             self.assertIn(f'`{tool}`', text)
         self.assertIn('Cap active workers at four', text)
         self.assertIn('accepts no `cwd`', text)

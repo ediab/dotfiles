@@ -33,7 +33,7 @@
     "npm:pi-powerline-footer",
     "npm:pi-title",
     "npm:@dietrichgebert/ponytail",
-    "npm:pi-herdsman@0.21.3",
+    "npm:pi-herdsman@0.23.0",
     "npm:pi-intercom"
   ],
   "powerline": {

@@ -29,7 +29,7 @@ behalf.
 
 - **BB thread:** use `bb thread ...`; its ID is `thr_...`. Read the relevant
   `bb-cli` reference for thread operation or failure recovery.
-- **Pi child run (Herdr pane):** use the exact owner's pi-herdsman surface: `agent_list` for current state and eligible controls, `agent_transcript` for persisted output, `agent_inspect` for live evidence, `agent_steer` to steer, and `agent_interrupt` with replacement direction to cancel the current operation. Results arrive automatically at the owner. These controls require exact ownership; do not take over another session's agents. Inspecting a run does not authorize launching another one.
+- **Pi child run (Herdr pane):** use the exact owner's pi-herdsman surface: `list_agents` for current state and eligible controls, `read_agent_transcript` for persisted output, `inspect_agent` for live evidence, `steer_agent` to steer, and `interrupt_agent` with replacement direction to cancel the current operation. Results arrive automatically at the owner. These controls require exact ownership; do not take over another session's agents. Inspecting a run does not authorize launching another one.
 - **Persistent server or shell:** use `bb terminal ...` scoped to the correct
   thread/environment/machine, not a detached shell process the user cannot see.
 
