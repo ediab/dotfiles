@@ -22,13 +22,19 @@
   },
   "showCacheMissNotices": true,
   "packages": [
-    "npm:pi-web-access",
-    "npm:@ff-labs/pi-fff",
-    "npm:pi-code-previews",
-    "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@narumitw/pi-btw",
-    "npm:pi-powerline-footer",
-    "npm:pi-title"
+    "npm:pi-web-access@0.39.0",
+    "npm:@ff-labs/pi-fff@0.11.0",
+    "npm:pi-code-previews@0.1.36",
+    {
+      "source": "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
+      "extensions": []
+    },
+    "npm:@narumitw/pi-btw@0.61.1",
+    "npm:pi-powerline-footer@0.20.1",
+    {
+      "source": "npm:pi-title@0.1.8",
+      "extensions": []
+    }
   ],
   "powerline": {
     "preset": "default",

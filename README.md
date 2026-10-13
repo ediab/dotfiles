@@ -41,6 +41,22 @@ and sessions remain in `~/.pi/agent`. Credentials stay machine-local and untrack
 use `pi auth check --provider deepseek` and `pi auth check --provider openai`
 to check readiness without printing secrets.
 
+## Pi packages and host-specific UI
+
+`pi/settings.json` pins the seven direct package versions. After linking on another
+machine, run `pi update --extensions` to reconcile the installed packages to those
+pins. To upgrade, change the version in settings, reconcile, and run the checks below.
+These are direct-package pins, not a lockfile for their transitive dependencies.
+
+`pi/extensions/standalone-ui.ts` loads the question and title packages only outside
+BB (`BB_THREAD_ID` absent). Their `extensions: []` settings suppress normal autoload,
+so BB gets neither Pi's duplicate question tool nor its automatic title requests.
+Keep those filters when changing versions; the guard imports the installed packages,
+not copies or patches of their code. Standalone Pi keeps both features.
+
+The personal summary skill is `/skill:pi-handoff`; BB's session-transfer plugin keeps
+`handoff`. Their distinct names prevent skill shadowing.
+
 ## Pi and BB orchestration
 
 Standalone Pi stays single-agent, including reviews. Inside BB, authorized
@@ -67,11 +83,20 @@ rm -rf ~/.pi/agent/{pi-herdsman,intercom,missions,pi-blackhole}
 Then restore the BB user skills (see [`bb/README.md`](bb/README.md#bb-skills-in-user-scope))
 and use fresh Pi/BB sessions.
 
-## Pi project memory (retired)
+## Project memory
 
-The Pi memory extension is archived in [`archive/pi-memory/`](archive/pi-memory/README.md)
-and no longer loads. Existing private notes stay untouched in `~/.pi/agent/memory/`.
-Use BB memory (`bb memory`) or a project's own docs instead.
+The shared [`agents/AGENTS.md`](agents/AGENTS.md#project-memory) defines the policy:
+repository facts live in a versioned root `MEMORY.md`, read by every client inside
+and outside BB. Create it when there is useful knowledge to retain, not as an empty
+file in every repo. Stage, commit and push only when authorized.
+
+[`bb/AGENTS.md`](bb/AGENTS.md) reserves BB memory for global, cross-project preferences
+and BB-wide operational knowledge, avoiding duplicate repository memory stores.
+Restore that file explicitly as described in [`bb/README.md`](bb/README.md#bb-user-instructions).
+
+The old Pi extension is archived in [`archive/pi-memory/`](archive/pi-memory/README.md)
+and no longer loads. `~/.pi/agent/memory/` keeps only the unmigrated security-audit
+notes (that folder is not a git repo); nothing loads them.
 
 ## BB
 
@@ -184,12 +209,18 @@ This is a deliberate operation, never an automatic overwrite.
 
 ## Tests
 
+Python checks require Python 3.11+ (`tomllib`). The commands below use `python3.11`
+explicitly because macOS/BB may resolve `python3` to Apple's Python 3.9. Substitute
+another installed 3.11+ executable if needed. Pi integration checks use the installed
+Pi runtime and packages; they make no model requests.
+
 ```sh
 bash tests/test-link.sh            # link.sh against a fake HOME (never the real one)
 bash tests/test-app-deploy.sh
-python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
+python3.11 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
 node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
-python3 -m unittest discover -s tests -p test_bb.py # BB preference boundaries
+node --test tests/test-pi-setup.mjs  # Package pins, BB/standalone loading, skill names
+python3.11 -m unittest discover -s tests -p test_bb.py # BB preference boundaries
 ```
 
 Credits for copied-in skills: [`agents/ATTRIBUTION.md`](agents/ATTRIBUTION.md).

@@ -39,6 +39,13 @@ class BBTests(unittest.TestCase):
         self.assertIn(["settings", "general", "providerOrder", "[]"], commands)
         self.assertIn(["settings", "ui", "set", "sidebar.threadListProvider", "bb-sidebar/inbox"], commands)
 
+    def test_lean_preferences_disable_telemetry_and_drop_retired_panels(self):
+        self.assertIs(self.preferences['general']['telemetryEnabled'], False)
+        self.assertNotIn('plugin:bb--provider-usage/usage',
+                         self.preferences['ui']['sidebar.footerOrder'])
+        self.assertNotIn('__bb__/automations',
+                         self.preferences['ui']['sidebar.pluginPanelOrder'])
+
     def test_reject_nonportable_fields_before_writes(self):
         for section, key in [("general", "machineServerUrl"), ("ui", "sidebar.collapsedProjects"),
                              ("appearance", "customCss")]:

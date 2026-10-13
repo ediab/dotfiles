@@ -9,7 +9,6 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 ## Research
 
 * Verify current or uncertain external facts from primary sources.
-* The owner source-checks claims a subagent brings back.
 * Prefer the `context7` MCP server for library/API documentation — it returns current, version-pinned docs.
 
 ## Browser automation
@@ -27,8 +26,8 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 ## Delegation and orchestration
 
 * Launch agents or reviewers only when the user requests delegation or explicitly invokes a workflow that authorizes it. An ordinary review request stays inline; having the tools is not permission.
-* Delegated workers return requests to their owner rather than delegating further. One orchestrator at a time.
-* Inside BB, use BB child threads for authorized delegation and BB messaging for coordination. Standalone Pi stays single-agent, including reviews; it does not spawn or coordinate other agents. Other standalone clients use their native mechanism. The main agent checks delegated results against the sources.
+* Delegated workers return requests to their owner rather than delegating further. One orchestrator at a time; it checks delegated results against the sources.
+* Inside BB, delegate via BB child threads and BB messaging. Standalone Pi stays single-agent, including reviews.
 
 ## Changes
 
@@ -39,10 +38,9 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 ## Context
 
 * Project `AGENTS.md` / `CLAUDE.md` files layer on top of this file and take precedence where they are more specific.
-* Task workflows and procedures live in skills, not here.
 
 ## Project memory
 
 * If the repository root has `MEMORY.md`, read it before starting work.
-* Record durable, verified facts there that the code and docs don't show: operational paths, deploy or recovery steps, gotchas, decisions. Never secrets, transient status, guesses, or anything already in `AGENTS.md`.
+* Use the repository's versioned `MEMORY.md` as the single home for durable, verified facts that the code and docs don't show: operational paths, deploy or recovery steps, gotchas, decisions. Create it when there is something worth retaining; commits still require authorization. Never secrets, transient status, guesses, or anything already in `AGENTS.md`.
 * Keep it short: update or remove stale entries rather than appending.

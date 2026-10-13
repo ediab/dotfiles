@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.11
 """Portable configuration and optional integration behavior, using a fake HOME."""
 import json
 import os

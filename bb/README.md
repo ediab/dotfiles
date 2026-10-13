@@ -5,13 +5,14 @@ This folder records how to install/update BB and restore selected preferences. I
 ## Files
 
 - `install.sh`: explicitly install the latest stable npm runtime, or a specified stable version.
+- `AGENTS.md`: portable BB user instructions, copied explicitly into the server's data directory.
 - `preferences.json`: last captured portable preferences from the Mac server.
 - `snapshot.py`: refresh that file using an allowlist of general, appearance, and sidebar settings.
 - `apply.py`: preview or explicitly restore those preferences to a chosen server.
 - `plugins.json`: manually maintained plugin inventory with observed versions, sources, and monorepo subdirectories. It is documentation, not an automatic installer.
 - `common.py`: shared preference allowlists and CLI calls.
 
-Requirements: Python 3, Node.js supported by BB (0.45.0 supports Node 22.19+, 24, or 26), npm, and a working `bb` CLI for snapshot/restore. The runtime install needs network access and runs the native dependency build scripts for `better-sqlite3`, `node-pty`, and `@parcel/watcher`.
+Requirements: Python 3.11+ for the repository's Python checks (commands below use `python3.11` explicitly), Node.js supported by BB (0.45.0 supports Node 22.19+, 24, or 26), npm, and a working `bb` CLI for snapshot/restore. The runtime install needs network access and runs the native dependency build scripts for `better-sqlite3`, `node-pty`, and `@parcel/watcher`.
 
 ## Install or update the npm runtime
 
@@ -31,6 +32,25 @@ systemctl --user status bb.service
 ```
 
 Check a real task after updating; an active service alone is not proof an agent works. The Mac desktop app is a separate installation: update it through its supported app update mechanism, not this npm script. No automatic updater is scheduled by this folder.
+
+## BB user instructions
+
+`bb/AGENTS.md` is the canonical copy of the BB-only preferences in `<dataDir>/AGENTS.md`
+(default `~/.bb/AGENTS.md`). It sets question-tool routing and the BB memory boundary;
+the shared `agents/AGENTS.md` remains the cross-client policy.
+
+On the machine running the target BB server, compare and merge any local differences
+before explicitly restoring (commands assume the default data directory):
+
+```sh
+diff -u ~/.bb/AGENTS.md bb/AGENTS.md
+mkdir -p ~/.bb
+cp bb/AGENTS.md ~/.bb/AGENTS.md
+```
+
+For an intentional live edit, review the reverse diff and copy it back to the repo.
+Use fresh provider sessions after restoring. `link.sh` and `apply.py` do not copy this
+file; server preferences and agent instructions are separate restore steps.
 
 ## BB skills in user scope
 
@@ -54,7 +74,7 @@ Never capture the whole folder with `rsync --delete`: a stale live copy would si
 From the dotfiles root:
 
 ```sh
-python3 bb/snapshot.py --server http://127.0.0.1:38886
+python3.11 bb/snapshot.py --server http://127.0.0.1:38886
 ```
 
 This targets the **local server**, not necessarily the server currently selected in the desktop window. To capture a VPS server over SSH, run the script in the VPS dotfiles checkout against its localhost server. Direct BB Connect URLs may require authentication that the CLI must already have; these scripts do not mint sessions or bypass access controls.
@@ -68,8 +88,8 @@ The initial snapshot uses **Catppuccin** and **BB Sidebar**. Tokyo Night is inst
 Install the required plugins first. `bb-sidebar/inbox` in the sidebar preferences requires the BB Sidebar plugin. Other panel IDs may refer to installed or bundled plugins.
 
 ```sh
-python3 bb/apply.py --server http://127.0.0.1:38886          # preview, no network writes
-python3 bb/apply.py --server http://127.0.0.1:38886 --apply  # explicitly write
+python3.11 bb/apply.py --server http://127.0.0.1:38886          # preview, no network writes
+python3.11 bb/apply.py --server http://127.0.0.1:38886 --apply  # explicitly write
 ```
 
 Restore uses BB's supported CLI rather than editing its database. It stops on the first error, but changes already applied are **not rolled back**. Capture the target's preferences to a private backup before restoring if you need to recover its previous configuration. Do not overwrite this shared snapshot with the target's backup unless that is intended.
@@ -105,9 +125,9 @@ In the Mac desktop app, use **macOS menu bar → Window → Server** to choose a
 ## Checks
 
 ```sh
-python3 -m unittest discover -s tests -p 'test_bb.py'
+python3.11 -m unittest discover -s tests -p 'test_bb.py'
 bash -n bb/install.sh
-python3 bb/apply.py --server http://127.0.0.1:38886
+python3.11 bb/apply.py --server http://127.0.0.1:38886
 ```
 
 Sources: the installed BB 0.45.0 CLI help and package README, plus the official [multiple-device guide](https://github.com/get-bb/bb/blob/main/docs/multiple-devices.md). No settings, packages, credentials, services, or server addresses are changed simply by pulling this folder or running `link.sh`.

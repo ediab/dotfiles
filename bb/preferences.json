@@ -8,7 +8,7 @@
     "defaultProviderId": "pi",
     "streamerMode": false,
     "allowFastServiceTier": true,
-    "telemetryEnabled": true,
+    "telemetryEnabled": false,
     "managedBranchPrefix": "bb/",
     "showUnhandledProviderEvents": false
   },
@@ -39,8 +39,7 @@
     "sidebar.footerOrder": [
       "builtin:settings",
       "builtin:mobile",
-      "builtin:report-bug",
-      "plugin:bb--provider-usage/usage"
+      "builtin:report-bug"
     ],
     "sidebar.hiddenFooterItems": [
       "builtin:mobile",
@@ -51,7 +50,6 @@
       "__bb__/search-threads",
       "__bb__/extensions",
       "__bb__/skills",
-      "__bb__/automations",
       "theme-preview/preview",
       "files-editor/files"
     ],
