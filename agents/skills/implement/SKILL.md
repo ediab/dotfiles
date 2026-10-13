@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Implement the work described by the user in the spec or tickets.
 
-Use TDD where possible, at pre-agreed seams — for the loop rules, what makes a good test, and where seams go, read and follow `../tdd/SKILL.md`.
+Follow the normal validation workflow. Use TDD only when the user explicitly requests TDD, test-first development, or a red-green workflow; then read and follow `../tdd/SKILL.md`. Invoking this skill alone does not opt into TDD.
 
 Run typechecking regularly, single test files regularly, and the full test suite once at the end.
 
