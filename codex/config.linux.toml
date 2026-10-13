@@ -7,6 +7,9 @@ plan_mode_reasoning_effort = "xhigh"
 [projects."/home/diab"]
 trust_level = "trusted"
 
+[projects."/home/diab/apps/morning-brief"]
+trust_level = "trusted"
+
 [features]
 hooks = true
 multi_agent = true
