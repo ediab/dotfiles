@@ -15,12 +15,8 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 ## Browser automation
 
 * Use the client's search/fetch tools for ordinary search and reading (pi-web-access in Pi).
-* Use Lightpanda MCP, when available, for JavaScript-dependent pages and website interaction.
-* Prefer compact page structure and targeted extraction over full HTML.
-* Refresh page structure after navigation or substantial changes; use fresh element references or node IDs.
-* Use text and page structure with Lightpanda; never request screenshots from it.
+* Use a browser tool only for JavaScript-dependent pages, interaction, or visual rendering; prefer compact page structure and targeted extraction over full HTML.
 * Close explicitly created browsing sessions when finished.
-* Use Chromium separately when visual rendering or unsupported browser features are required.
 
 ## Skills
 
@@ -34,14 +30,6 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 * Delegated workers return requests to their owner rather than delegating further. One orchestrator at a time.
 * Inside BB, use BB child threads for authorized delegation and BB messaging for coordination. Standalone Pi stays single-agent, including reviews; it does not spawn or coordinate other agents. Other standalone clients use their native mechanism. The main agent checks delegated results against the sources.
 
-## Jev — Pi only
-
-In Pi, when codemode exposes `models.classify()`, use Jev for non-obvious bounded judgments: filtering candidate search results, or classifying ambiguous failures. Skip it when deterministic code or an obvious decision suffices.
-
-Discover available Jev models with `await models.getAvailableOfType("classifier")`; prefer an available free Jev variant unless another is explicitly requested. Use `await models.classify(model, { state, questions })`. Questions support `choice`, `bool`, and `score`. Batch independent questions over the same state and send only the relevant, non-sensitive context.
-
-Check `stopReason === "stop"` and answer types before using results. Treat probabilities as advisory; resolve uncertain or failed classifications in the main context. Preserve authoritative sources and uncertain candidates when filtering. Existing approval, delegation, and validation rules remain authoritative.
-
 ## Changes
 
 * Preserve unrelated user changes; do not overwrite or revert them.
@@ -52,3 +40,9 @@ Check `stopReason === "stop"` and answer types before using results. Treat proba
 
 * Project `AGENTS.md` / `CLAUDE.md` files layer on top of this file and take precedence where they are more specific.
 * Task workflows and procedures live in skills, not here.
+
+## Project memory
+
+* If the repository root has `MEMORY.md`, read it before starting work.
+* Record durable, verified facts there that the code and docs don't show: operational paths, deploy or recovery steps, gotchas, decisions. Never secrets, transient status, guesses, or anything already in `AGENTS.md`.
+* Keep it short: update or remove stale entries rather than appending.

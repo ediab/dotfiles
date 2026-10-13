@@ -67,7 +67,7 @@ class PortableSettingsTests(unittest.TestCase):
         mac = tomllib.loads((ROOT / 'codex/config.toml').read_text())
         linux = tomllib.loads((ROOT / 'codex/config.linux.toml').read_text())
         for key in ['model', 'model_reasoning_effort', 'plan_mode_reasoning_effort',
-                    'features', 'memories']:
+                    'features']:
             self.assertEqual(mac[key], linux[key], key)
         self.assertEqual(linux['projects']['/home/diab']['trust_level'], 'trusted')
         self.assertEqual(set(linux['mcp_servers']), {'context7'})

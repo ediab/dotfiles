@@ -1,12 +1,6 @@
 {
   "plugins": [
     {
-      "id": "agent-board",
-      "version": "0.6.1",
-      "enabled": false,
-      "source": "git:https://github.com/aaronphifer/bb-plugin-agent-board.git@semver:^0.6.1"
-    },
-    {
       "id": "attention",
       "version": "0.1.5",
       "enabled": true,

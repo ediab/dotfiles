@@ -20,7 +20,7 @@
         "LIGHTPANDA_DISABLE_CORE_DUMP": "true"
       },
       "exposure": "codemode",
-      "description": "Browse JavaScript-powered websites, extract page content, and interact with forms."
+      "description": "Browse JavaScript-powered websites, extract page content, and interact with forms. Work from text and compact page structure, never screenshots; refresh the structure after navigation or substantial changes and use fresh node IDs. Close sessions you open."
     }
   }
 }
