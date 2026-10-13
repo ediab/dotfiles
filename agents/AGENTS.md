@@ -12,6 +12,16 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 * The owner source-checks claims a subagent brings back.
 * Prefer the `context7` MCP server for library/API documentation — it returns current, version-pinned docs.
 
+## Browser automation
+
+* Use pi-web-access, when available, for ordinary search and reading; otherwise use the client's search/fetch tools.
+* Use Lightpanda MCP, when available, for JavaScript-dependent pages and website interaction.
+* Prefer compact page structure and targeted extraction over full HTML.
+* Refresh page structure after navigation or substantial changes; use fresh element references or node IDs.
+* Use text and page structure with Lightpanda; never request screenshots from it.
+* Close explicitly created browsing sessions when finished.
+* Use Chromium separately when visual rendering or unsupported browser features are required.
+
 ## Skills
 
 * When a task matches a skill's description, read and follow that skill before acting.
