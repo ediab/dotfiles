@@ -101,11 +101,4 @@ for p in "$H"/.claude/skills/* "$H"/.pi/agent/skills/* "$H"/.codex/agents/*; do
   [ -L "$p" ] && [ ! -e "$p" ] || continue
   case "$(readlink "$p")" in "$REPO"/*) echo "remove broken $p"; rm -f "$p";; esac
 done
-
-# Retired links: cleanup for config files left by removed packages
-for p in "$H/.pi/agent/herdr.json" "$H/.pi/agent/subagents.json" "$H/.pi/agent/open-tui.json" "$H/.pi/agent/workflows" \
-  "$H/.pi/agent/agents" "$H/.pi/agent/pi-herdsman/config.json"; do
-  [ -L "$p" ] && [ ! -e "$p" ] || continue
-  case "$(readlink "$p")" in "$REPO"/*) echo "remove retired $p"; rm -f "$p";; esac
-done
 exit "$skipped"

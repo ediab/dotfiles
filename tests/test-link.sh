@@ -18,7 +18,7 @@ mkrepo() {
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
-  for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
+  for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json on purpose
   echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
@@ -40,9 +40,6 @@ all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
   for f in web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
   for d in extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
-  for p in agents pi-herdsman/config.json skills/orchestrate; do
-    [ ! -L "$H/.pi/agent/$p" ] || fail "retired link kept: $p"
-  done
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
   points "$H/.agents/skills" agents/skills
   points "$H/.claude/CLAUDE.md" agents/AGENTS.md; points "$H/.codex/AGENTS.md" agents/AGENTS.md
@@ -64,7 +61,6 @@ all_links() {
 echo "1. nothing there: create parents and link; missing repo source is not an error"
 mkrepo; mkhome; go; expect_status 0 fresh; all_links
 [ ! -e "$H/.pi/agent/mcp.json" ] || fail 'mcp.json should not exist'
-[ ! -e "$H/.pi/agent/subagents.json" ] || fail 'retired subagents.json should not be linked'
 [ "$DARWIN" = 1 ] || [ ! -e "$H/.zshrc" ] || fail 'config links must be macOS-only'
 
 echo "2. already correct: leave alone, print nothing, write nothing"
@@ -115,80 +111,6 @@ go; expect_status 0 cleanup
 [ ! -L "$H/.codex/agents/gone.toml" ] || fail 'broken Codex agent link kept'
 [ -L "$H/.claude/skills/foreign-broken" ] && [ -f "$H/.claude/skills/synced/f" ] || fail 'removed something not ours'
 points "$H/.claude/skills/alpha" agents/skills/alpha
-
-echo "7b. retired link: a dangling link into the repo goes, a foreign one stays"
-ln -s "$REPO/pi/subagents.json" "$H/.pi/agent/subagents.json"
-go; expect_status 0 retired
-[ ! -e "$H/.pi/agent/subagents.json" ] && [ ! -L "$H/.pi/agent/subagents.json" ] || fail 'retired repo link kept'
-ln -s /nowhere/elsewhere "$H/.pi/agent/subagents.json"
-go; expect_status 0 retiredforeign
-[ -L "$H/.pi/agent/subagents.json" ] || fail 'removed a foreign link'
-rm -f "$H/.pi/agent/subagents.json"
-
-echo "7c. retired Open TUI repo link is removed; real files and foreign links are preserved"
-ln -s "$REPO/pi/open-tui.json" "$H/.pi/agent/open-tui.json"
-go; expect_status 0 retiredopentui
-[ ! -L "$H/.pi/agent/open-tui.json" ] || fail 'retired Open TUI repo link kept'
-echo mine > "$H/.pi/agent/open-tui.json"
-go; expect_status 0 realopentui
-[ "$(cat "$H/.pi/agent/open-tui.json")" = mine ] || fail 'removed real Open TUI settings without approval'
-rm "$H/.pi/agent/open-tui.json"
-ln -s /nowhere/else "$H/.pi/agent/open-tui.json"
-go; expect_status 0 foreignopentui
-[ -L "$H/.pi/agent/open-tui.json" ] || fail 'removed foreign Open TUI link'
-rm "$H/.pi/agent/open-tui.json"
-
-echo "7c2. retired workflow repo link is removed; real folders and foreign links stay"
-ln -s "$REPO/pi/workflows" "$H/.pi/agent/workflows"
-go; expect_status 0 retiredworkflows
-[ ! -L "$H/.pi/agent/workflows" ] || fail 'retired workflow repo link kept'
-mkdir "$H/.pi/agent/workflows"; echo mine > "$H/.pi/agent/workflows/custom.js"
-go; expect_status 0 realworkflows
-[ -f "$H/.pi/agent/workflows/custom.js" ] || fail 'removed real workflows'
-rm "$H/.pi/agent/workflows/custom.js"; rmdir "$H/.pi/agent/workflows"
-ln -s /nowhere/else "$H/.pi/agent/workflows"
-go; expect_status 0 foreignworkflows
-[ -L "$H/.pi/agent/workflows" ] || fail 'removed foreign workflows link'
-rm "$H/.pi/agent/workflows"
-
-echo "7c3. retired agent config link goes; foreign links and real files stay"
-ln -s "$REPO/pi/herdr.json" "$H/.pi/agent/herdr.json"
-go; expect_status 0 retiredagentconfig
-[ ! -L "$H/.pi/agent/herdr.json" ] || fail 'retired repo config link kept'
-echo mine > "$H/.pi/agent/herdr.json"
-go; expect_status 0 realagentconfig
-[ "$(cat "$H/.pi/agent/herdr.json")" = mine ] || fail 'removed real config'
-rm "$H/.pi/agent/herdr.json"
-ln -s /nowhere/else "$H/.pi/agent/herdr.json"
-go; expect_status 0 foreignagentconfig
-[ -L "$H/.pi/agent/herdr.json" ] || fail 'removed foreign config link'
-rm "$H/.pi/agent/herdr.json"
-
-echo "7c4. archived delegation links go; runtime state and unrelated files stay"
-mkdir -p "$H/.pi/agent/pi-herdsman/mailboxes-v5"
-echo runtime > "$H/.pi/agent/pi-herdsman/mailboxes-v5/record"
-for p in agents pi-herdsman/config.json skills/orchestrate; do
-  ln -s "$REPO/pi/$p" "$H/.pi/agent/$p"
-done
-go; expect_status 0 runtimestate
-all_links
-[ "$(cat "$H/.pi/agent/pi-herdsman/mailboxes-v5/record")" = runtime ] || fail 'runtime state changed'
-for p in agents pi-herdsman/config.json skills/orchestrate; do
-  ln -s /nowhere/foreign "$H/.pi/agent/$p"
-done
-go; expect_status 0 foreignretired
-for p in agents pi-herdsman/config.json skills/orchestrate; do
-  [ -L "$H/.pi/agent/$p" ] || fail "removed foreign link: $p"
-  rm "$H/.pi/agent/$p"
-done
-mkdir -p "$H/.pi/agent/agents" "$H/.pi/agent/skills/orchestrate"
-echo mine > "$H/.pi/agent/agents/custom.md"
-echo mine > "$H/.pi/agent/pi-herdsman/config.json"
-echo mine > "$H/.pi/agent/skills/orchestrate/SKILL.md"
-go; expect_status 0 realretired
-for p in agents/custom.md pi-herdsman/config.json skills/orchestrate/SKILL.md; do
-  [ "$(cat "$H/.pi/agent/$p")" = mine ] || fail "changed real file: $p"
-done
 
 echo "7d. both supported platforms select their tracked settings"
 mkdir -p "$WORK/bin"

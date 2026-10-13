@@ -68,21 +68,6 @@ integration owner. Worktrees separate edits, not operating-system permissions.
 The former setup is preserved in [`archive/pi-delegation/`](archive/pi-delegation/README.md),
 outside active resource discovery. Herdr remains an optional terminal workspace.
 
-After pulling this cleanup onto another machine, remove the old installed
-packages (if present), drop the retired BB user skills, then relink:
-
-```sh
-pi remove npm:pi-herdsman@0.23.0
-pi remove npm:pi-intercom
-pi remove git:github.com/earendil-works/pi-review
-rm -rf ~/.bb/skills/bb-pi-control ~/.bb/skills/bb-pi-health
-rm -rf ~/.pi/agent/{pi-herdsman,intercom,missions,pi-blackhole}
-./link.sh
-```
-
-Then restore the BB user skills (see [`bb/README.md`](bb/README.md#bb-skills-in-user-scope))
-and use fresh Pi/BB sessions.
-
 ## Project memory
 
 The shared [`agents/AGENTS.md`](agents/AGENTS.md#project-memory) defines the policy:
@@ -118,9 +103,7 @@ For each `source -> destination`:
 Also: Claude entries are skipped if `~/.claude` is missing, Codex entries if `~/.codex` is
 missing, and `config/` links run only on macOS. Broken links into this repo in
 `~/.claude/skills`, `~/.pi/agent/skills` and `~/.codex/agents` are removed (deleted or
-renamed skills and agents), as are
-retired repo links such as `~/.pi/agent/herdr.json`, `~/.pi/agent/subagents.json`,
-and `~/.pi/agent/open-tui.json`. Links
+renamed skills and agents). Links
 are made under a temporary name and renamed over the destination with Python's `os.replace`,
 so concurrent runs never see a half-made link. Each run also sets this clone's
 `filter.pi-settings.clean` git config (see Platform settings).
