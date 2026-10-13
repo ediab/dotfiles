@@ -14,7 +14,7 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 
 ## Browser automation
 
-* Use pi-web-access, when available, for ordinary search and reading; otherwise use the client's search/fetch tools.
+* Use the client's search/fetch tools for ordinary search and reading (pi-web-access in Pi).
 * Use Lightpanda MCP, when available, for JavaScript-dependent pages and website interaction.
 * Prefer compact page structure and targeted extraction over full HTML.
 * Refresh page structure after navigation or substantial changes; use fresh element references or node IDs.
