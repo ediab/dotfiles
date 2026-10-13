@@ -71,7 +71,7 @@ case "$platform" in
   *) echo "Unsupported platform: $platform" >&2; exit 1 ;;
 esac
 
-for f in settings web-search pi-btw mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
+for f in settings web-search pi-btw mcp pi-fff; do link "pi/$f.json" "$H/.pi/agent/$f.json"; done
 link pi/pi-herdsman/config.json "$H/.pi/agent/pi-herdsman/config.json"   # link config only, never runtime state
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in agents extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
