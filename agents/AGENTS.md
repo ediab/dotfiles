@@ -31,12 +31,12 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 ## Delegation and orchestration
 
 * Launch agents or reviewers only when the user requests delegation or explicitly invokes a workflow that authorizes it. An ordinary review request stays inline; having the tools is not permission.
-* Delegated workers never delegate or invoke `orchestrate`; they return requests to their owner. One orchestrator at a time.
-* Delegate through the host's own mechanism (BB child threads inside BB, pi-herdsman in standalone Pi) unless the user names another runner. The main agent checks delegated results against the sources.
+* Delegated workers return requests to their owner rather than delegating further. One orchestrator at a time.
+* Inside BB, use BB child threads for authorized delegation and BB messaging for coordination. Standalone Pi stays single-agent, including reviews; it does not spawn or coordinate other agents. Other standalone clients use their native mechanism. The main agent checks delegated results against the sources.
 
 ## Jev — Pi only
 
-In Pi, when codemode exposes `models.classify()`, use Jev for non-obvious bounded judgments: choosing among eligible agents/models, filtering candidate search results, or classifying ambiguous failures. Skip it when deterministic code or an obvious decision suffices.
+In Pi, when codemode exposes `models.classify()`, use Jev for non-obvious bounded judgments: filtering candidate search results, or classifying ambiguous failures. Skip it when deterministic code or an obvious decision suffices.
 
 Discover available Jev models with `await models.getAvailableOfType("classifier")`; prefer an available free Jev variant unless another is explicitly requested. Use `await models.classify(model, { state, questions })`. Questions support `choice`, `bool`, and `score`. Batch independent questions over the same state and send only the relevant, non-sensitive context.
 

@@ -26,12 +26,9 @@
     "npm:@ff-labs/pi-fff",
     "npm:pi-code-previews",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "git:github.com/earendil-works/pi-review",
     "npm:@narumitw/pi-btw",
     "npm:pi-powerline-footer",
-    "npm:pi-title",
-    "npm:pi-herdsman@0.23.0",
-    "npm:pi-intercom"
+    "npm:pi-title"
   ],
   "powerline": {
     "preset": "default",

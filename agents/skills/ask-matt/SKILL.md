@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Ask Matt
 
-Use this router only when you explicitly ask which skill or workflow fits. Refer to skills by name; the current agent client determines how to invoke them.
+Use this router only when you explicitly ask which skill or workflow fits. Refer to skills by name; the current agent client determines how to invoke them. Delegation follows `personal-workflow`; standalone Pi uses the inline options.
 
 A **flow** is a path through skills. Most work follows the main idea-to-delivery flow; bugs and large efforts are on-ramps. Other skills stand alone or supply shared vocabulary.
 

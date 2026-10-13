@@ -164,7 +164,7 @@ End with a compact summary in this shape:
 - Build a throwaway prototype instead when the design question is still
   "what should this look like": that is the `prototype` skill's job, and
   its answer feeds back into this one as the confirmed direction.
-- Hand the rendered page to `code-review` or `diff-review` once the work
+- Hand the rendered page to `diff-review` once the work
   is a code change with a base to compare against; design craft and code
   review are different passes.
 - Run the project's defined lint/a11y/check cycle at the end of the

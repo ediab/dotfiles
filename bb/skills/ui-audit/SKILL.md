@@ -145,7 +145,7 @@ applicable, and the findings/coverage report emitted.
 
 - Building or restyling the UI rather than auditing it: `web-design`. Audit
   after the change, not instead of it.
-- Logic, architecture, or security in the same diff: `diff-review` or
-  `code-review`; this skill judges the interface layer only.
+- Logic, architecture, or security in the same diff: `diff-review`; this
+  skill judges the interface layer only.
 - A finding that needs visual confirmation: rendered browser verification is
   the follow-up — name it in the report as unverified rather than claiming it.

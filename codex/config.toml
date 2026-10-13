@@ -79,6 +79,9 @@ trust_level = "trusted"
 [projects."/Users/eliasdiab/Dev/dotfiles"]
 trust_level = "trusted"
 
+[projects."/Users/eliasdiab/.bb/plugins/environment-personal-workspace/host-data/workspaces/thr_zp2hei3c35"]
+trust_level = "trusted"
+
 
 [features]
 hooks = true

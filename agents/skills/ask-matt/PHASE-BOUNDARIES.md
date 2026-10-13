@@ -14,7 +14,7 @@ A **phase** is a meaningful chunk of work, such as exploration, implementation, 
 
 ## The decision tree
 
-Work top to bottom at the boundary. The first **yes** wins.
+Work top to bottom at the boundary. The first **yes** wins. Delegation is available only under `personal-workflow` authorization and host rules; standalone Pi skips that option and works inline.
 
 **1. Can you continue in this context?** Continue when the next phase needs the current reasoning as a primary source, or comfortably fits in the remaining context. For example, implementation often benefits from the exploration and decisions that came before it. Continuing costs nothing and loses nothing, so rule it out before other options.
 

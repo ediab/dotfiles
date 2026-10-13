@@ -41,4 +41,11 @@ Commit only when explicitly requested or included in an explicitly invoked imple
 
 ## Extra agents
 
-Use them only when the user requests delegation or explicitly invokes a workflow that authorizes it; read [DELEGATION.md](DELEGATION.md) first. An ordinary review request stays inline. Higher risk calls for stronger verification, not more implementers. For hard-to-reverse changes, offer an independent review; the user decides.
+Authorization and routing follow the delegation rules in `AGENTS.md`. When authorized:
+
+* Default to one helper, at most two. Add one only for independent work with a checkable result.
+* Inside BB, create a child thread with `--parent-self` (read `bb-cli` first) and a self-contained brief: goal, baseline, owned paths, exclusions, checks, and "report only, no further delegation" where it applies.
+* The main agent stays the owner: it integrates, verifies findings against the source, and runs the final checks. Report-only reviewers may share the checkout; concurrent writers need separate worktrees.
+* Yield to completion notifications instead of polling.
+
+Higher risk calls for stronger verification, not more implementers. For hard-to-reverse changes, offer an independent review; the user decides.

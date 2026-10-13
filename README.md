@@ -12,9 +12,8 @@ its settings use explicit snapshot/restore commands rather than live symlinks.
 agents/AGENTS.md       -> ~/.pi/agent/AGENTS.md, ~/.codex/AGENTS.md, ~/.claude/CLAUDE.md
 agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
-pi/skills/<name>/      -> ~/.pi/agent/skills/<name> (Pi-only: code-review, explicit-only orchestrate)
-pi/{agents,extensions,themes}/ -> ~/.pi/agent/<same>
-pi/pi-herdsman/config.json -> ~/.pi/agent/pi-herdsman/config.json (config only; runtime state stays local)
+pi/{extensions,themes}/ -> ~/.pi/agent/<same>
+archive/               retired Pi delegation setup and Pi memory extension (not linked)
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
 pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
@@ -23,7 +22,7 @@ scripts/agent-hook.sh   optional session integrations, guarded when not installe
 config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 bb/                    explicit install/update and portable preference snapshot/restore (not linked)
 .env.example           names of the secrets ~/.env should hold (not linked)
-tests/                 link, deploy, settings, Herdsman agents, title-border and BB checks
+tests/                 link, deploy, settings, title-border and BB checks
 ```
 
 ## Pi installation
@@ -42,70 +41,37 @@ and sessions remain in `~/.pi/agent`. Credentials stay machine-local and untrack
 use `pi auth check --provider deepseek` and `pi auth check --provider openai`
 to check readiness without printing secrets.
 
-## Pi Herdsman
+## Pi and BB orchestration
 
-`pi/settings.json` pins `npm:pi-herdsman@0.23.0`. It requires Node >=22.19.0,
-Pi >=1.1.0 and Herdr >=0.9.3. Install the package separately from linking:
+Standalone Pi stays single-agent, including reviews. Inside BB, authorized
+helpers and agent messaging use BB child threads. One agent is the default;
+independent reviews and parallel workers are opt-in. Read-only reviewers can
+share a stable checkout; concurrent writers need separate worktrees and one
+integration owner. Worktrees separate edits, not operating-system permissions.
+
+The former setup is preserved in [`archive/pi-delegation/`](archive/pi-delegation/README.md),
+outside active resource discovery. Herdr remains an optional terminal workspace.
+
+After pulling this cleanup onto another machine, remove the old installed
+packages (if present), drop the retired BB user skills, then relink:
 
 ```sh
+pi remove npm:pi-herdsman@0.23.0
+pi remove npm:pi-intercom
+pi remove git:github.com/earendil-works/pi-review
+rm -rf ~/.bb/skills/bb-pi-control ~/.bb/skills/bb-pi-health
+rm -rf ~/.pi/agent/{pi-herdsman,intercom,missions,pi-blackhole}
 ./link.sh
-pi install npm:pi-herdsman@0.23.0
-herdr integration install pi
 ```
 
-Start a fresh Pi session inside Herdr; `/herdsman` manages Agents and definitions
-(`/agents` is an equivalent alias, and `/lead` picks the ordinary execution mode).
-The shipped release uses verb-first coordination tools — `delegate_agent`,
-`list_agents`, `steer_agent`, `interrupt_agent`, `reply_agent`, and
-`continue_agent`; results arrive automatically. Use its installed documentation,
-not tool names from another version.
+Then restore the BB user skills (see [`bb/README.md`](bb/README.md#bb-skills-in-user-scope))
+and use fresh Pi/BB sessions.
 
-Custom `implementer`, `researcher`, `reviewer`, and `tester` profiles retain their
-roles and tools, inherit project/global policy and skills, and are leaves
-(`agents: []`, `excludeTools: ["agent", ...]`). Use bundled `scout` and `generalist`
-instead of the retired `explorer` and `general-purpose` profiles. Both bundled
-roles disable normal skill/extension discovery; `generalist` permits delegation
-to `scout` and `researcher`. Delegation still requires explicit authorization.
-The orchestration workflow caps active workers at four; this is owner-enforced
-policy, not a runtime semaphore.
-Herdsman has no matching concurrency/depth settings or JavaScript workflow runner.
-Ordinary `delegate_agent` runs in its caller's cwd, so the orchestration skill
-sequences writers and parallelizes read-only work. Branch-isolated parallel
-writers require the separate native Manager workflow and an explicitly configured
-managed-Lead policy; the skill does not activate that or relax the no-nesting rule.
+## Pi project memory (retired)
 
-Only `config.json` is linked under `~/.pi/agent/pi-herdsman/`; mailboxes, result
-artifacts, and sessions remain machine-local. Placement stays `split`, and Manager
-activation is explicit. Existing sessions need restarting or `/reload` for the
-new extension; do not disrupt other sessions or delete their histories.
-
-## Pi intercom
-
-`pi/settings.json` enables `npm:pi-intercom` for session-to-session messaging.
-It is enabled by default; the local broker starts automatically when Pi connects,
-so no separate service or tracked intercom config is needed. Use `/alias <name>`
-to name a session and the `intercom` tool's `status` or `list` action to check connectivity.
-
-After pulling dotfiles on another machine, run `./link.sh` and
-`pi install npm:pi-intercom` to install the package. Restart existing Pi sessions
-or run `/reload` to load it. Each machine has its own local broker;
-pulling settings does not itself enable cross-machine messaging.
-
-## Pi project memory
-
-[`pi/extensions/memory/`](pi/extensions/memory/README.md) is a local extension package,
-loaded automatically through the existing personal extensions link. New Pi sessions
-recall the current checkout's root `MEMORY.md` and its private notes; existing sessions
-need `/reload` or a restart. Automatic recall has also been checked in a real BB Pi thread.
-
-Project memory is shareable; private notes and named task handoffs stay untracked under
-`~/.pi/agent/memory/`, isolated by checkout and machine. Nothing is committed automatically.
-Ask Pi to check memory status, save a verified lesson, select another project, or resume
-a named handoff. Files are created lazily; no empty memories are seeded across `~/Dev`.
-Private content still enters model context: this is not a secret vault.
-
-See [`docs/pi-memory/DESIGN.md`](docs/pi-memory/DESIGN.md) for agreed boundaries and
-[`VALIDATION.md`](docs/pi-memory/VALIDATION.md) for test results and limitations.
+The Pi memory extension is archived in [`archive/pi-memory/`](archive/pi-memory/README.md)
+and no longer loads. Existing private notes stay untouched in `~/.pi/agent/memory/`.
+Use BB memory (`bb memory`) or a project's own docs instead.
 
 ## BB
 
@@ -221,11 +187,8 @@ This is a deliberate operation, never an automatic overwrite.
 ```sh
 bash tests/test-link.sh            # link.sh against a fake HOME (never the real one)
 bash tests/test-app-deploy.sh
-python3 tests/test-researcher.py   # researcher scope and its web-tool provider
-python3 tests/test-herdsman.py     # pinned package, strict agent schema, leaf policy and config
 python3 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
 node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
-node --test tests/test-memory.mjs   # memory store, extension hooks and installed-SDK compaction
 python3 -m unittest discover -s tests -p test_bb.py # BB preference boundaries
 ```
 

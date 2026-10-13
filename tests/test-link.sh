@@ -13,15 +13,12 @@ if [ "$DARWIN" = 1 ]; then CLAUDE_SETTINGS=settings.json; CODEX_CONFIG=config.to
 mkrepo() {
   rm -rf "$REPO"; mkdir -p "$REPO"
   cp "$ROOT/link.sh" "$REPO/"
-  mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{agents,extensions,themes,skills/code-review,skills/orchestrate} \
+  mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{extensions,themes} \
     "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,herdr-auto-title,vscode}
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
-  echo review > "$REPO/pi/skills/code-review/SKILL.md"
-  echo orchestrate > "$REPO/pi/skills/orchestrate/SKILL.md"
-  echo agent > "$REPO/pi/agents/implementer.md"; echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
+  echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
   for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json, no retired subagents.json on purpose
-  mkdir -p "$REPO/pi/pi-herdsman"; echo '{"spawnPlacement":"split"}' > "$REPO/pi/pi-herdsman/config.json"
   echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
@@ -42,11 +39,10 @@ go() { rc=0; out="$(run 2>&1)" || rc=$?; }
 all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
   for f in web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
-  points "$H/.pi/agent/pi-herdsman/config.json" pi/pi-herdsman/config.json
-  [ ! -L "$H/.pi/agent/pi-herdsman" ] || fail 'runtime state directory must not be linked'
-  for d in agents extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
-  points "$H/.pi/agent/skills/code-review" pi/skills/code-review
-  points "$H/.pi/agent/skills/orchestrate" pi/skills/orchestrate
+  for d in extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
+  for p in agents pi-herdsman/config.json skills/orchestrate; do
+    [ ! -L "$H/.pi/agent/$p" ] || fail "retired link kept: $p"
+  done
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
   points "$H/.agents/skills" agents/skills
   points "$H/.claude/CLAUDE.md" agents/AGENTS.md; points "$H/.codex/AGENTS.md" agents/AGENTS.md
@@ -109,7 +105,7 @@ mkhome; rmdir "$H/.claude" "$H/.codex"; go; expect_status 0 noclients
 points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md; points "$H/.agents/skills" agents/skills
 
 echo "7. broken-link cleanup"
-mkhome; go; expect_status 0 setup
+mkhome; go; expect_status 0 setup; mkdir -p "$H/.pi/agent/skills"
 ln -s "$REPO/agents/skills/gone" "$H/.claude/skills/gone"; ln -s "$REPO/pi/skills/gone" "$H/.pi/agent/skills/gone"
 ln -s "$REPO/codex/agents/gone.toml" "$H/.codex/agents/gone.toml"
 ln -s /nowhere/else "$H/.claude/skills/foreign-broken"; mkdir "$H/.claude/skills/synced"; echo x > "$H/.claude/skills/synced/f"
@@ -168,11 +164,31 @@ go; expect_status 0 foreignagentconfig
 [ -L "$H/.pi/agent/herdr.json" ] || fail 'removed foreign config link'
 rm "$H/.pi/agent/herdr.json"
 
-echo "7c4. linking config preserves machine-local runtime state"
+echo "7c4. archived delegation links go; runtime state and unrelated files stay"
 mkdir -p "$H/.pi/agent/pi-herdsman/mailboxes-v5"
 echo runtime > "$H/.pi/agent/pi-herdsman/mailboxes-v5/record"
+for p in agents pi-herdsman/config.json skills/orchestrate; do
+  ln -s "$REPO/pi/$p" "$H/.pi/agent/$p"
+done
 go; expect_status 0 runtimestate
+all_links
 [ "$(cat "$H/.pi/agent/pi-herdsman/mailboxes-v5/record")" = runtime ] || fail 'runtime state changed'
+for p in agents pi-herdsman/config.json skills/orchestrate; do
+  ln -s /nowhere/foreign "$H/.pi/agent/$p"
+done
+go; expect_status 0 foreignretired
+for p in agents pi-herdsman/config.json skills/orchestrate; do
+  [ -L "$H/.pi/agent/$p" ] || fail "removed foreign link: $p"
+  rm "$H/.pi/agent/$p"
+done
+mkdir -p "$H/.pi/agent/agents" "$H/.pi/agent/skills/orchestrate"
+echo mine > "$H/.pi/agent/agents/custom.md"
+echo mine > "$H/.pi/agent/pi-herdsman/config.json"
+echo mine > "$H/.pi/agent/skills/orchestrate/SKILL.md"
+go; expect_status 0 realretired
+for p in agents/custom.md pi-herdsman/config.json skills/orchestrate/SKILL.md; do
+  [ "$(cat "$H/.pi/agent/$p")" = mine ] || fail "changed real file: $p"
+done
 
 echo "7d. both supported platforms select their tracked settings"
 mkdir -p "$WORK/bin"
@@ -228,9 +244,6 @@ mkrepo; mkhome; mkdir -p "$H/.pi/agent"; cp -R "$REPO/pi/themes" "$H/.pi/agent/t
 go; chmod 755 "$H/.pi/agent"; expect_status 1 unmovable
 echo "$out" | grep -Fq "FAIL $H/.pi/agent/themes (could not move it aside)" || fail "no FAIL for unmovable folder: $out"
 
-echo "10c. every pi/skills folder gets a Pi link"
-mkdir -p "$REPO/pi/skills/delta"; echo delta > "$REPO/pi/skills/delta/SKILL.md"; go; expect_status 0 piskill
-points "$H/.pi/agent/skills/delta" pi/skills/delta
 
 echo "11. in a git clone, Pi's machine-local keys do not dirty pi/settings.json; real edits do"
 mkrepo; cp "$ROOT/.gitattributes" "$REPO/"; mkhome

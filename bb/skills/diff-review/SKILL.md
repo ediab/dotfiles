@@ -16,9 +16,7 @@ exact diff command the way the user stated it: for a branch it is usually
 `git diff <fixed-point>...HEAD` (three dots, merge-base), for stacked lines
 `git log --oneline <fixed-point>..HEAD` and `git diff HEAD~1` per commit.
 
-Keep the review in this thread. Do not spawn sub-agents for the axes, and do
-not re-refer the user to `code-review`; the two skills answer different
-questions and a user asking for "a ranked list of what to fix" means this one.
+Keep the review in this thread. Do not spawn sub-agents.
 
 ## Steps
 
@@ -106,15 +104,13 @@ carries priority and the file/line already carries location.
 
 ## Related
 
-- `code-review` covers the two-axis standards+spec framing with a smell
-  baseline; use that instead when the user asks about standards or spec com-
-  pliance rather than a ranked fix list.
 - `tdd` for turning P1/P2 findings into failing tests instead of descriptions.
 
 ## Pivot rules
 
-- If the user asks for a standards/spec two-axis review, defer to the
-  `code-review` skill instead of forcing this structure.
+- If the user asks for standards or spec compliance, check against the
+  repo's documented standards or the originating spec and still rank the
+  findings through steps 3–5.
 - If the user supplies their own checklist, use it in place of step 2 and
   still rank and report through steps 3–5.
 - If the repo has no runnable checks, say so under "Checks run" and skip to
