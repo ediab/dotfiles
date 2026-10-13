@@ -7,6 +7,11 @@
       },
       "exposure": "codemode"
     },
+    "fastmail": {
+      "url": "https://api.fastmail.com/mcp",
+      "exposure": "codemode",
+      "description": "Access Fastmail email, calendars, and contacts with OAuth-authorized permissions."
+    },
     "lightpanda": {
       "command": "~/.local/bin/lightpanda",
       "args": ["mcp", "--obey-robots"],

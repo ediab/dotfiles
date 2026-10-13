@@ -28,11 +28,8 @@
     "npm:@juicesharp/rpiv-ask-user-question",
     "git:github.com/earendil-works/pi-review",
     "npm:@narumitw/pi-btw",
-    "npm:@saccolabs/pi-claude-cli",
-    "npm:pi-extmgr",
     "npm:pi-powerline-footer",
     "npm:pi-title",
-    "npm:@dietrichgebert/ponytail",
     "npm:pi-herdsman@0.23.0",
     "npm:pi-intercom"
   ],
