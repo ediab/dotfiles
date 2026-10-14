@@ -31,6 +31,8 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 
 ## Changes
 
+* Write the simplest code that does the job; no speculative abstractions, config or dependencies.
+* Prefer existing checks; add a test only for a real regression risk or tricky logic, kept small with no new frameworks or mocking scaffolding.
 * Preserve unrelated user changes; do not overwrite or revert them.
 * Run the relevant check before reporting done; report checks that could not be run.
 * A passing test suite is not proof a live service works.
