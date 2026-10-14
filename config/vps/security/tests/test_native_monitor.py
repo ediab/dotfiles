@@ -208,6 +208,19 @@ class NativeInventoryTests(unittest.TestCase):
             self.assertIn(("pkg", "4.5.6"), inventory.expected_packages)
             self.assertNotIn(b"must-not-run", inventory.input_bytes)
 
+            lock = json.loads((release / "package-lock.json").read_text())
+            for suffix, version in (("pkg/node_modules/pkg", "4.5.6"),
+                                    ("pkg/node_modules/pkg/node_modules/pkg", "7.8.9")):
+                nested = modules / suffix
+                nested.mkdir(parents=True)
+                (nested / "package.json").write_text(json.dumps({"name": "pkg", "version": version}))
+                lock["packages"]["node_modules/" + suffix] = {"version": version}
+            (release / "package-lock.json").write_text(json.dumps(lock))
+            inventory = collect_inventory(target, unit_runner=unit_runner)
+            self.assertTrue(inventory.binding["coverage_complete"])
+            self.assertEqual(inventory.package_count, 3)
+            self.assertEqual(inventory.expected_packages, (("pkg", "4.5.6"), ("pkg", "7.8.9")))
+
     def test_tfl_wrong_systemd_binding_fails_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -386,6 +399,18 @@ class TrivyFilesystemTests(unittest.TestCase):
                           {**base, "ArtifactType": "filesystem", "Results": [{"Target": "x"}]}):
             with self.subTest(malformed=malformed), self.assertRaises(MonitorError):
                 _validate_trivy(malformed, self.inventory(), expected_artifact="scan")
+
+    def test_package_only_trivy_metadata_may_be_omitted_but_not_malformed(self):
+        report = {"SchemaVersion": 2, "ArtifactName": "/private/stage",
+                  "ArtifactType": "filesystem", "Results": [{
+                      "Target": "requirements.txt", "Class": "lang-pkgs", "Type": "pip",
+                      "Packages": [{"Name": "demo", "Version": "1.2.3"}]}]}
+        self.assertEqual(_validate_trivy(report, self.inventory(),
+                                        expected_artifact="/private/stage"), [])
+        for metadata in (None, [], "invalid"):
+            with self.subTest(metadata=metadata), self.assertRaises(MonitorError):
+                _validate_trivy({**report, "Metadata": metadata}, self.inventory(),
+                                expected_artifact="/private/stage")
 
     def test_db_freshness_and_five_gib_hard_floor(self):
         now = 1_800_000_000

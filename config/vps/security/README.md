@@ -86,6 +86,11 @@ Housekeeping: a 5 GiB hard floor, per-target and overall timeouts, 25% CPU and
 existing xbot transport with delivery-aware dedup; native Healthchecks URLs are
 separate from app/disk/image URLs and disabled until separately provisioned.
 
+The user units use NoNewPrivileges, syscall restrictions and resource bounds.
+They do not claim filesystem or account isolation: this host disables the
+unprivileged user namespaces needed by systemd filesystem/device sandboxes.
+The live launch test must pass before timers are enabled.
+
 ### Native installation (explicit operator action)
 
 1. Copy `native_scanner.py`, `native_watchdog.py` and

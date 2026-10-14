@@ -808,7 +808,9 @@ def collect_inventory(target: Target, *, unit_runner=subprocess.run) -> Inventor
         binding["coverage_note"] = ("installed-npm-name-version-matches-active-release-lock"
                                      if complete else "installed-runtime-not-fully-bound-to-lock")
         input_name = "package-lock.json"
-        expected_packages = tuple(sorted(installed.values()))
+        # Trivy reports each name/version once even when nested copies exist.
+        # The manifest/fingerprint still binds every installed path and version.
+        expected_packages = tuple(sorted(set(installed.values())))
         expected_type = "npm"
     elif target.manager == "python":
         if not target.environment:
@@ -884,7 +886,8 @@ def _validate_trivy(report: Any, inventory: Inventory, *, expected_artifact: str
             or not isinstance(report.get("ArtifactName"), str) or not report["ArtifactName"]
             or report["ArtifactName"] != expected_artifact
             or report.get("ArtifactType") != "filesystem"
-            or not isinstance(report.get("Metadata"), dict)
+            # Trivy omits zero-valued Metadata for package-only filesystems.
+            or ("Metadata" in report and not isinstance(report["Metadata"], dict))
             or not isinstance(report.get("Results"), list) or not report["Results"]
             or not inventory.expected_packages or not inventory.expected_type):
         raise MonitorError("trivy-filesystem-report-invalid")
