@@ -31,7 +31,7 @@ After two unsuccessful fixes or a disproved assumption, gather new evidence and 
 
 ## Testing
 
-Use focused checks while iterating, then broader checks where project requirements or affected scope warrant them. Reuse passing results only while source, dependencies and environment remain unchanged; rerun what later changes invalidate.
+Use focused checks while iterating, then broader checks where project requirements, affected scope or risk warrant them: shared contracts, callers, dependencies, configuration, authorization or data. Risk, not diff size, sets the breadth. Reuse passing results only while source, dependencies and environment remain unchanged; rerun what later changes invalidate.
 
 For bugs, reproduce with a failing check first when practical. Test behaviour and real failure cases, not styling or internals. Expected values come from requirements, not from the code's output. Use TDD only when requested directly or through an explicitly invoked workflow that includes it.
 

@@ -22,12 +22,12 @@ unless an unresolved decision needs their input.
    if present, consult `domain-modeling` when sharpening terminology, and
    respect any ADRs in the area you're touching.
 
-2. Sketch out the seams at which you're going to test the feature. Existing
-   seams should be preferred to new ones. Use the highest seam possible. If new
-   seams are needed, propose them at the highest point you can. The fewer seams
-   across the codebase, the better — the ideal number is one.
-
-   Check with the user that these seams match their expectations.
+2. Identify the seams where you'll test the feature. Prefer existing public
+   boundaries that meaningfully exercise the behavior, at the highest level
+   that works. Fewer seams are better, but persistence, authorization,
+   concurrency or external integrations may need more than one. Ask the user
+   only when the testing approach entails a material scope, architecture, cost
+   or access decision.
 
 3. Write the spec using the template below, then show it to the user. Offer to
    save it to the project's `docs/specs/YYYY-MM-DD-description.md` (or the
@@ -47,17 +47,9 @@ The problem that the user is facing, from the user's perspective.
 
 The solution to the problem, from the user's perspective.
 
-## User Stories
+## Acceptance Criteria
 
-A LONG, numbered list of user stories. Each user story should be in the format of:
-
-1. As an <actor>, I want a <feature>, so that <benefit>
-
-<user-story-example>
-1. As a mobile bank customer, I want to see balance on my accounts, so that I can make better informed decisions about my spending
-</user-story-example>
-
-This list of user stories should be extremely extensive and cover all aspects of the feature.
+A numbered list of concrete, checkable criteria that together cover the agreed scope, including important failure cases. Completeness means no important requirement is missing, not length. Add user stories (`As an <actor>, I want <feature>, so that <benefit>`) only when they clarify distinct user needs.
 
 ## Implementation Decisions
 
@@ -96,8 +88,9 @@ Any further notes about the feature.
 
 Right-size the spec: small, clear work gets a short spec (problem, solution,
 decisions, out of scope); use the full template only for genuinely complex
-work. Every non-trivial spec carries 2–3 concrete, checkable success examples
-drafted by you from what the user already said — never ask the user to define
-success as an open question. Propose them; the user confirms or edits them, and
-they become the acceptance criteria for both the implementer and any reviewer.
+work. Every non-trivial spec carries acceptance criteria drafted by you from
+what the user already said — at least 2–3 concrete, checkable examples, more
+for riskier work. Never ask the user to define success as an open question.
+Propose them; the user confirms or edits them, and they become the acceptance
+criteria for both the implementer and any reviewer.
 Clear small fixes skip this: the request itself is the criterion.
