@@ -14,7 +14,7 @@ agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
 pi/{extensions,themes}/ -> ~/.pi/agent/<same>
 archive/               retired Pi delegation setup and Pi memory extension (not linked)
-pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, pi-btw, mcp)
+pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, mcp)
 pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
 codex/                 -> ~/.codex/ (platform config, shared hooks.json, personal agents)
@@ -43,7 +43,7 @@ to check readiness without printing secrets.
 
 ## Pi packages and host-specific UI
 
-`pi/settings.json` pins the seven direct package versions. After linking on another
+`pi/settings.json` pins the five direct package versions. After linking on another
 machine, run `pi update --extensions` to reconcile the installed packages to those
 pins. To upgrade, change the version in settings, reconcile, and run the checks below.
 These are direct-package pins, not a lockfile for their transitive dependencies.

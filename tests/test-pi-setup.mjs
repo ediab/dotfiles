@@ -56,8 +56,8 @@ function registrations(result) {
   };
 }
 
-test("all seven direct packages are pinned to installed versions", () => {
-  assert.equal(settings.packages.length, 7);
+test("all five direct packages are pinned to installed versions", () => {
+  assert.equal(settings.packages.length, 5);
   for (const entry of settings.packages) {
     const source = sourceOf(entry);
     assert.match(source, /^npm:(?:@[^/]+\/)?[^@]+@\d+\.\d+\.\d+$/);

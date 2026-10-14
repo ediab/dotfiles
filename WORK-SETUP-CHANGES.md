@@ -84,7 +84,8 @@ Short policy, loaded every turn. Procedures live in skills — open the matching
 
 **Packages**
 - Removed **`pi-herdsman`**, **`pi-intercom`** and **`pi-review`** (multi-agent and review packages). Earlier today I also removed **`pi-extmgr`**, **`ponytail`** and **`@saccolabs/pi-claude-cli`**.
-- Seven packages remain, **pinned to exact versions** in `settings.json`: `pi-web-access`, `@ff-labs/pi-fff`, `pi-code-previews`, `@juicesharp/rpiv-ask-user-question`, `@narumitw/pi-btw`, `pi-powerline-footer` and `pi-title`. The pins cover direct packages only, not their dependencies.
+- Five packages remain, **pinned to exact versions** in `settings.json`: `pi-web-access`, `pi-code-previews`, `@juicesharp/rpiv-ask-user-question`, `pi-powerline-footer` and `pi-title`. The pins cover direct packages only, not their dependencies. (`@ff-labs/pi-fff` and `@narumitw/pi-btw` were later removed too.)
+- `@narumitw/pi-btw` removed: its `/btw` side-question config `pi-btw.json` was deleted and `@narumitw/pi-tui-kit` (its only dependency) was pruned.
 
 **Question and title packages load only outside BB**, because BB owns questions and thread titles. Their autoload is disabled in `settings.json` with `{"source": "npm:<pkg>@<ver>", "extensions": []}`, and a small extension `extensions/standalone-ui.ts` loads them only when `BB_THREAD_ID` is unset:
 
@@ -106,7 +107,6 @@ export default async function standaloneUI(pi: ExtensionAPI): Promise<void> {
 - **context7** is unchanged.
 
 **Other**
-- `pi-fff.json`: `{"enableHomeDirScanning": false}`.
 - Archived the custom **Pi memory extension** and replaced it with the `MEMORY.md` rule. I moved the old notes into each repo's `MEMORY.md` and committed them.
 - Archived the orchestration skill and agent profiles (implementer, researcher, reviewer, tester).
 

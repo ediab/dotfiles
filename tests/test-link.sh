@@ -18,7 +18,7 @@ mkrepo() {
   echo policy > "$REPO/agents/AGENTS.md"
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
-  for f in settings web-search pi-btw; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json on purpose
+  for f in settings web-search; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json on purpose
   echo '{"platform":"mac"}' > "$REPO/claude/settings.json"
   echo '{"platform":"linux"}' > "$REPO/claude/settings.linux.json"
   echo '#!/bin/sh' > "$REPO/claude/statusline-command.sh"
@@ -38,7 +38,7 @@ expect_status() { # expect_status <code> <message>; uses $out and $rc from the l
 go() { rc=0; out="$(run 2>&1)" || rc=$?; }
 all_links() {
   points "$H/.pi/agent/settings.json" pi/settings.json
-  for f in web-search pi-btw; do points "$H/.pi/agent/$f.json" pi/$f.json; done
+  for f in web-search; do points "$H/.pi/agent/$f.json" pi/$f.json; done
   for d in extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
   points "$H/.agents/skills" agents/skills
@@ -151,7 +151,7 @@ for i in $(seq 1 "${ROUNDS:-5}"); do
   mkhome; mkdir -p "$H/.pi/agent" "$H/.claude/skills"
   cp -R "$REPO/pi/themes" "$H/.pi/agent/themes"           # identical folder
   ln -s /nowhere "$H/.pi/agent/settings.json"              # other symlink
-  cp "$REPO/pi/pi-btw.json" "$H/.pi/agent/pi-btw.json"       # identical file
+  cp "$REPO/pi/web-search.json" "$H/.pi/agent/web-search.json"       # identical file
   ( run > "$WORK/a.out" 2>&1; echo $? > "$WORK/a.rc" ) &
   ( run > "$WORK/b.out" 2>&1; echo $? > "$WORK/b.rc" ) &
   wait

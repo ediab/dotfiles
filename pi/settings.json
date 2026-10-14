@@ -28,7 +28,6 @@
       "source": "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
       "extensions": []
     },
-    "npm:@narumitw/pi-btw@0.61.1",
     "npm:pi-powerline-footer@0.20.1",
     {
       "source": "npm:pi-title@0.1.8",
