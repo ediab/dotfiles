@@ -136,7 +136,7 @@ screen_reader_detection_done = true
 [tui.model_availability_nux]
 "gpt-5.3-codex-spark" = 4
 "gpt-5.5" = 4
-"gpt-6.1-sol" = 1
+"gpt-6.1-sol" = 2
 
 
 [notice.model_migrations]
@@ -158,6 +158,154 @@ enabled = false
 
 [[skills.config]]
 path = "/Users/eliasdiab/.codex/skills/hatch-pet/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/Dev/dotfiles/agents/skills/ask-matt/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/google-drive/0.1.20/skills/google-docs/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/google-drive/0.1.20/skills/google-drive/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/google-drive/0.1.20/skills/google-drive-comments/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/google-drive/0.1.20/skills/google-sheets/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/google-drive/0.1.20/skills/google-slides/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-analytics-dashboard/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-business-review/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-design-report/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-experiment-analysis/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-financial-budget/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-investment-committee-memo/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-legal-memorandum/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-market-trends-report/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-minimal-letterhead/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-operating-calendar/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-operating-review/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-project-kickoff/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-project-tracker/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-sales-pipeline/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-dark-mode/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-simple-light-mode/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-strategy-memorandum/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-system-design/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-team-alignment/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/openai-templates/0.1.1/skills/artifact-template-three-statement-forecast/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/pages/0.1.23/skills/maintain-space/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/pages/0.1.23/skills/manage-schedules/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/pages/0.1.23/skills/organize-space/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/pages/0.1.23/skills/write-page/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/Dev/dotfiles/agents/skills/personal-workflow/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-primary-runtime/presentations/26.1011.11113/skills/presentations/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/product-design/0.1.56/skills/audit/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/product-design/0.1.56/skills/design-qa/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/work-pets/0.1.6/skills/create-pet/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/work-pets/0.1.6/skills/pets/SKILL.md"
+enabled = false
+
+[[skills.config]]
+path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/work-pets/0.1.6/skills/update-pet/SKILL.md"
 enabled = false
 
 [marketplaces.openai-bundled]

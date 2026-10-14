@@ -3,6 +3,7 @@
   "permissions": {
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "SessionStart": [
       {
@@ -94,13 +95,23 @@
       }
     }
   },
+  "sandbox": {
+    "network": {
+      "allowedDomains": [
+        "api.gitguardian.com"
+      ],
+      "allowMachLookup": [
+        "com.apple.trustd.agent"
+      ]
+    }
+  },
   "effortLevel": "high",
   "modelSettings": {
     "claude-sonnet-5": {
       "effortLevel": "medium"
     },
     "claude-opus-5-5": {
-      "effortLevel": "medium"
+      "effortLevel": "high"
     },
     "claude-sonnet-5-5": {
       "effortLevel": "high"
@@ -111,15 +122,5 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "sandbox": {
-    "network": {
-      "allowedDomains": [
-        "api.gitguardian.com"
-      ],
-      "allowMachLookup": [
-        "com.apple.trustd.agent"
-      ]
-    }
-  }
+  "skipAutoPermissionPrompt": true
 }
