@@ -161,10 +161,6 @@ path = "/Users/eliasdiab/.codex/skills/hatch-pet/SKILL.md"
 enabled = false
 
 [[skills.config]]
-path = "/Users/eliasdiab/Dev/dotfiles/agents/skills/ask-matt/SKILL.md"
-enabled = false
-
-[[skills.config]]
 path = "/Users/eliasdiab/.codex/plugins/cache/openai-curated-remote/google-drive/0.1.20/skills/google-docs/SKILL.md"
 enabled = false
 
