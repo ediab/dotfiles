@@ -1,0 +1,30 @@
+[Unit]
+Description=Sequential native dependency vulnerability scan
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/diab/ops/vps-security/libexec/native_healthcheck_wrapper.py --component native --config /home/diab/.config/vps-security-scan/native.json -- /usr/bin/python3 /home/diab/ops/vps-security/libexec/native_scanner.py --config /home/diab/.config/vps-security-scan/native.json
+TimeoutStartSec=26min
+UMask=0077
+Environment=PYTHONDONTWRITEBYTECODE=1
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadOnlyPaths=/var/lib/tfl/current /var/lib/tfl/releases /home/diab/apps/morning-brief /home/diab/apps/el-machine /home/diab/apps/houses /home/diab/Dev/xbot
+ReadWritePaths=/home/diab/.local/state/vps-security-scan /home/diab/.cache/trivy
+NoExecPaths=/var/lib/tfl/current /var/lib/tfl/releases /home/diab/apps /home/diab/Dev/xbot
+Nice=10
+CPUQuota=25%
+MemoryMax=1G
+IOWeight=50
+TasksMax=128

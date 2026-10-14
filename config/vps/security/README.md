@@ -22,8 +22,8 @@ Private configuration belongs at `~/.config/vps-security-scan/config.json`
   rechecks the runtime inventory. Errors, missing containers and incomplete
   inventory verification are not clean scans. Findings are reported separately
   from scan execution health; a successful scan may contain vulnerabilities.
-- Native applications are explicitly excluded from this daily image coverage;
-  lockfile review and native dependency CI must cover them separately.
+- Native applications are excluded from daily image coverage and checked by the
+  separate weekly native scan described below.
 - Changed findings, scan errors/recovery, and missing/stale/failed scan
   heartbeats use the existing xbot email transport with delivery-aware dedup.
   An hourly watchdog returns failure while the scanner is unhealthy.
@@ -41,6 +41,73 @@ hard floor** for scanning already-local images when capacity is temporarily
 below the target. This does not authorize image pulls, cleanup, data deletion,
 or ignoring the 10 GiB operating target. A DB refresh can require temporary
 space: inspect current capacity and keep the hard floor throughout maintenance.
+
+## Native dependency monitoring
+
+
+The native scan is a separate, opt-in job that never runs package managers,
+never executes application or installer scripts, never reads app `.env` files
+and never pulls images. It writes `artifact_type: filesystem` reports under
+`native-scan-*.json`, distinct from image reports, and shares the same
+`state_dir/scan.lock` as the image scanner.
+
+Fixed targets (configuration cannot add arbitrary paths):
+
+| Application | Active runtime | Coverage claim |
+|---|---|---|
+| TFL | `/var/lib/tfl/current` under `/var/lib/tfl/releases` | verifies `tfl.service` `WorkingDirectory`/`User`/npm argv, inventories installed `node_modules` name/version and binds them to the release `package-lock.json` |
+| xbot | `/home/diab/Dev/xbot/.venv` | installed metadata against hash-pinned `requirements.lock` |
+| morning-brief | `/home/diab/apps/morning-brief/.venv` | installed metadata against `requirements-lock.txt` |
+| el-machine | `/home/diab/apps/el-machine/.venv` | installed metadata against `uv.lock` (legitimate uv cache hardlinks allowed) |
+| houses | `/home/diab/apps/houses/pipeline/.venv` | verifies `houses-health.service` (user unit) working directory, installed metadata against `uv.lock` |
+
+Inputs are sanitized to package name/version only; `direct_url`, source paths,
+package bodies and environment files never enter the scratch manifest or report.
+Trivy runs `fs --scanners vuln --list-all-pkgs --offline-scan --skip-db-update`,
+and a report is accepted only when the exact artifact path, ecosystem and full
+package set match the inventory. A partial or failed run is an error, never
+"clean", and never advances the previous finding baseline or claims RESOLVED.
+
+Ownership/writability policy for installed metadata: files and directories must
+be world-write free. Group-write is permitted only when nobody outside the file
+owner, root and the scanner user is in the owning group, considering both the
+primary group (via passwd) and explicit supplementary members (via group); a
+shared-group or foreign-owner entry is refused, and `package-metadata-owner-unsupported`
+is reported explicitly with the inventory failure detail. Ancestor checks are
+bounded to the application root, and the scanner never chmods or modifies a live
+file. TFL's generated `node_modules/.package-lock.json` regular file is the only
+hidden npm entry skipped; symlinks or unknown hidden entries still refuse.
+Targets may declare an authoritative `owner` uid for runtimes that later migrate
+to a dedicated user; until then a foreign owner is refused, not silently trusted.
+
+Housekeeping: a 5 GiB hard floor, per-target and overall timeouts, 25% CPU and
+1 GiB memory in the unit, sequential execution, private reports (24 files /
+45 days / 256 MiB) and a 24-hour scratch sweep. Changes are emailed through the
+existing xbot transport with delivery-aware dedup; native Healthchecks URLs are
+separate from app/disk/image URLs and disabled until separately provisioned.
+
+### Native installation (explicit operator action)
+
+1. Copy `native_scanner.py`, `native_watchdog.py` and
+   `native_healthcheck_wrapper.py` beside the existing `core.py` in
+   `~/ops/vps-security/libexec/` (do not replace existing files).
+2. Copy `examples/native.json` to
+   `~/.config/vps-security-scan/native.json` with mode 0600. Healthchecks stays
+   disabled pending parent account setup.
+3. Copy the four `systemd/vps-native-scan*.{service,timer}` files to
+   `~/.config/systemd/user/`, run `systemd-analyze --user verify`, and confirm
+   the existing app/disk/image timers stay enabled.
+4. Start the weekly scan once by hand, inspect its private report and resource
+   properties, then enable the hourly native watchdog. Keep image and native
+   scans sharing the nonblocking lock.
+
+### Native rollback
+
+Disable only `vps-native-scan.timer` and `vps-native-scan-watchdog.timer`, remove
+only the four new units and the three native modules/config if approved, then
+daemon-reload. Preserve native reports and notification state. Existing
+app-health, disk, image-scan and credential-reminder timers and the xbot email
+transport stay untouched.
 
 ## Installation (explicit operator action)
 

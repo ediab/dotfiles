@@ -1,0 +1,26 @@
+[Unit]
+Description=Alert when the native dependency scan is failed or stale
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/diab/ops/vps-security/libexec/native_healthcheck_wrapper.py --component native-watchdog --config /home/diab/.config/vps-security-scan/native.json -- /usr/bin/python3 /home/diab/ops/vps-security/libexec/native_watchdog.py --config /home/diab/.config/vps-security-scan/native.json
+TimeoutStartSec=40s
+UMask=0077
+Environment=PYTHONDONTWRITEBYTECODE=1
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+ReadOnlyPaths=/home/diab/.local/state/vps-security-scan
+ReadWritePaths=/home/diab/.local/state/vps-security-scan
+Nice=15
+CPUQuota=10%
+MemoryMax=256M
+TasksMax=32
