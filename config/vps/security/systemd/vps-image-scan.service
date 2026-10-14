@@ -1,0 +1,15 @@
+[Unit]
+Description=Sequential vulnerability scan of exact running container images
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/Dev/xbot/.venv/bin/python %h/ops/vps-security/libexec/healthcheck_wrapper.py --component scan --config %h/.config/vps-security-scan/config.json -- %h/Dev/xbot/.venv/bin/python %h/ops/vps-security/libexec/scanner.py --config %h/.config/vps-security-scan/config.json
+TimeoutStartSec=2h
+UMask=0077
+NoNewPrivileges=yes
+Nice=10
+CPUQuota=50%
+MemoryMax=2G
+IOWeight=100

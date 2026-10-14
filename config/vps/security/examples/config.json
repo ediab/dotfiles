@@ -1,0 +1,20 @@
+{
+  "report_dir": "/home/diab/.local/state/vps-security-scan/reports",
+  "state_dir": "/home/diab/.local/state/vps-security-scan",
+  "email_transport_root": "/home/diab/Dev/xbot",
+  "native_apps_not_scanned": ["tfl", "xbot"],
+  "min_free_bytes": 10737418240,
+  "min_containers": 1,
+  "max_containers": 40,
+  "scan_timeout_seconds": 1200,
+  "overall_timeout_seconds": 6600,
+  "max_report_bytes": 33554432,
+  "max_total_report_bytes": 536870912,
+  "max_retained_reports": 30,
+  "retention_days": 30,
+  "max_heartbeat_age_seconds": 115200,
+  "healthchecks": {
+    "enabled": false,
+    "monitor_ping_urls": {}
+  }
+}

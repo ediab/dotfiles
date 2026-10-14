@@ -1,0 +1,11 @@
+[Unit]
+Description=Run daily exact-running-image vulnerability scan
+
+[Timer]
+OnCalendar=*-*-* 12:00:00 Europe/London
+RandomizedDelaySec=5m
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
