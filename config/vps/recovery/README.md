@@ -49,6 +49,10 @@ revision.
   exactly `readback_file_count` / `object_count` objects with integer sizes;
   `morning-brief` state/config use `rclone size` and require count and bytes
   ≥ 1. The same precise identity is re-checked after cleanup.
+* **Separate note-sx identities.** A receipt filename must match its local
+  `capture_id`. Its verified `remote_prefix` names the remote recovery point;
+  the producer assigns these IDs independently. Age and protection use the
+  remote point's timestamp.
 * **Local space policy unchanged.** Only `note-sx` capture duplicates under
   `/var/backups/note-sx/current-coolify-captures` and `houses` points under
   `/home/diab/ops/r2-recovery/points/houses` are removed locally, and only when

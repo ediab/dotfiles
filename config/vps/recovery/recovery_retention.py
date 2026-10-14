@@ -284,7 +284,11 @@ def load_note_sx() -> dict[str, VerifiedPoint]:
     for path in paths:
         data = document(path)
         child = _family_child(data.get("remote_prefix"), NOTE_SX)
-        if data.get("capture_id") != child:
+        # The producer assigns separate local-capture and remote-point IDs.
+        # Bind the receipt to its capture; retain/delete by its verified remote ID.
+        capture = data.get("capture_id")
+        if (parse_point_timestamp(capture) is None
+                or path.name != f"note-sx-state-{capture}.json"):
             raise Refusal("note-sx receipt identity mismatch")
         timestamp = parse_point_timestamp(child)
         if timestamp is None:

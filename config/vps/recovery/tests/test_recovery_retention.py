@@ -261,6 +261,27 @@ class ReceiptLoaderTests(unittest.TestCase):
         with self.assertRaisesRegex(rr.Refusal, "newest receipt proof missing"):
             rr.load_note_sx()
 
+    def test_note_sx_capture_and_remote_point_have_independent_identities(self):
+        point = stamp(NOW - DAY, "remote")
+        capture = stamp(NOW - DAY + 1, "capture")
+        self.write(self.base, f"note-sx-state-{capture}.json", {
+            "schema": "note-sx-r2-recovery/v1", "app": "note-sx",
+            "capture_id": capture, "remote_prefix": f"{rr.NOTE_SX}/{point}",
+            "readback": "exact-set-and-sha256-pass", "restore": "pass",
+            "database_check": "pass", "consumer": {"recovered_html": "pass"},
+            "readback_file_count": 3})
+        verified = rr.load_note_sx()
+        self.assertEqual(list(verified), [point])
+        self.assertEqual(verified[point].timestamp, NOW - DAY)
+
+    def test_note_sx_receipt_filename_must_bind_its_capture(self):
+        point = stamp(NOW - DAY, "capture")
+        self.note(point)
+        (self.base / f"note-sx-state-{point}.json").rename(
+            self.base / f"note-sx-state-{stamp(NOW, 'wrong')}.json")
+        with self.assertRaisesRegex(rr.Refusal, "identity mismatch"):
+            rr.load_note_sx()
+
     def test_note_sx_missing_inventory_refuses(self):
         with self.assertRaisesRegex(rr.Refusal, "receipt inventory missing"):
             rr.load_note_sx()

@@ -1,6 +1,6 @@
 {
-  "recovery_retention_sha256": "315d1cb7c028172e958fb57ea7c166b115e38e095b37d09531af1b5d77370561",
+  "recovery_retention_sha256": "f963088d91cee66473d2f6fa0e25349ac56e32cf0120d9b948851cf5a19ee73f",
   "recovered_from_thread": "thr_wgnaa9bg2w",
   "method": "complete recorded rewrite and identifiable recorded revisions",
-  "checks": "45 recovery tests passed on Linux Python 3.12; added executable/config permission regression"
+  "checks": "47 recovery tests passed on Linux Python 3.12; executable/config permissions, distinct note capture/remote IDs and receipt filename binding covered"
 }
