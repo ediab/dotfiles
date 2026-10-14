@@ -23,7 +23,6 @@
   "showCacheMissNotices": true,
   "packages": [
     "npm:pi-web-access@0.39.0",
-    "npm:@ff-labs/pi-fff@0.11.0",
     "npm:pi-code-previews@0.1.36",
     {
       "source": "npm:@juicesharp/rpiv-ask-user-question@2.13.8",

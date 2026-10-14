@@ -80,8 +80,7 @@ and BB-wide operational knowledge, avoiding duplicate repository memory stores.
 Restore that file explicitly as described in [`bb/README.md`](bb/README.md#bb-user-instructions).
 
 The old Pi extension is archived in [`archive/pi-memory/`](archive/pi-memory/README.md)
-and no longer loads. `~/.pi/agent/memory/` keeps only the unmigrated security-audit
-notes (that folder is not a git repo); nothing loads them.
+and no longer loads. Its machine-local `~/.pi/agent/memory/` store has been removed.
 
 ## BB
 
