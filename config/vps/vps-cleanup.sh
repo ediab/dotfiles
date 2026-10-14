@@ -13,13 +13,9 @@
 #     to bound anything). Never wiped: the app stacks rebuild locally on every push
 #     (mp3podcasts, redact_pdf, cratch, onyx, greek_embassy_bot), so a cold
 #     cache makes every deploy slow.
-#   * Images no container uses (running or stopped), except the protected build bases
-#     below: greek_embassy_bot is built FROM the Playwright image and re-pulling it costs
-#     ~3.4GB, so it is kept even with no container attached to it. Images are grouped by
-#     ID first — `docker rmi <id>` drops every tag of that image, so a per-tag decision
-#     could remove a protected tag via its unprotected sibling.
+#   * Images are retained: unused images can be release candidates or rollback artifacts.
 #   * Superseded GitHub runner versions and its downloaded update tarballs, the npm cache,
-#     apt cache and autoremovable packages, and a journal cap.
+#     apt cache, and a journal cap.
 #
 # Never touched: ~/apps contents, Docker volumes, running containers, ~/.pi, node_modules,
 # /swapfile. Idempotent — a second run reports nothing to do. Exits non-zero if any step
@@ -34,10 +30,6 @@ LOG="$LOG_DIR/vps-cleanup.log"
 RUNNER_DIR="$HOME/actions-runner"
 LOCK_FILE="$HOME/.cache/vps-deploy.lock"   # shared with ~/bin/vps-deploy.sh
 FAILURES=0
-
-# Build bases to keep even when no container is attached. Keep this list short and explain
-# each entry, or images people rely on will silently vanish.
-PROTECTED_RE='^(mcr\.microsoft\.com/playwright|node|alpine|ubuntu|debian|buildpack-deps)'
 
 DRY_RUN=0
 LOCKED=0
@@ -93,36 +85,15 @@ if command -v docker >/dev/null 2>&1; then
   if docker builder prune --help 2>&1 | grep -q -- "--max-used-space"; then
     attempt docker builder prune -f --max-used-space "$CACHE_CEILING"
   else
-    echo "  (this docker predates --max-used-space; falling back to a full cache prune)"
-    attempt docker builder prune -a -f
+    echo "  bounded cache prune unavailable; leaving build cache in place"
+    FAILURES=$((FAILURES + 1))
   fi
 
-  echo "--- docker images not used by any container ---"
-  # Full IDs on both sides: `docker images` prints 12-char ids by default while
-  # `docker inspect` prints sha256:..., so compare with --no-trunc or every image looks
-  # unused. Containers are resolved to their image id, not their tag.
-  in_use="$(docker ps -aq | xargs -r docker inspect --format '{{.Image}}' 2>/dev/null | sort -u)"
-  echo "  in-use image ids: $(printf '%s\n' "$in_use" | grep -c .)"
+  # Release candidates and rollback images may have no container attached.
+  # Their lifecycle belongs to the release/recovery owner, so routine upkeep
+  # preserves every image reference.
+  echo "--- docker images: retained for release and recovery ---"
 
-  declare -A tags_of
-  while read -r id ref; do
-    [ -n "${id:-}" ] || continue
-    tags_of["$id"]="${tags_of[$id]:-}${tags_of[$id]:+, }$ref"
-  done < <(docker images --no-trunc --format '{{.ID}} {{.Repository}}:{{.Tag}}')
-
-  for id in $(printf '%s\n' "${!tags_of[@]}" | sort); do
-    refs="${tags_of[$id]}"
-    if printf '%s\n' "$in_use" | grep -qxF "$id"; then
-      continue
-    fi
-    if printf '%s\n' "$refs" | tr ', ' '\n\n' | grep -qE "$PROTECTED_RE"; then
-      echo "  protected: $refs"
-      continue
-    fi
-    echo "  removing: $refs"
-    attempt docker rmi "$id"
-  done
-  unset tags_of
 else
   echo "--- docker not present, skipping ---"
 fi
@@ -148,7 +119,6 @@ if command -v npm >/dev/null 2>&1; then
 fi
 if sudo -n true 2>/dev/null; then
   attempt sudo -n apt-get clean
-  attempt sudo -n apt-get -y autoremove --purge
   # --vacuum-size leaves the active journal file alone, so this is a soft cap.
   attempt sudo -n journalctl --vacuum-size="$JOURNAL_CEILING"
 else

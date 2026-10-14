@@ -1,0 +1,13 @@
+{
+  "dependency": "rclone",
+  "version_first_line": "rclone v1.75.2",
+  "official_url": "https://downloads.rclone.org/v1.75.2/rclone-v1.75.2-linux-amd64.zip",
+  "zip_sha256": "349ac8fba6ff65d6247043f1750cdcb518ec5d500ef91463a10d37c0ccdf3702",
+  "binary_sha256": "ed7ab1f17876bb006c3df3949a3044959671afd9112362dacaa5dd1647735bc1",
+  "live_installed_sha256": "ed7ab1f17876bb006c3df3949a3044959671afd9112362dacaa5dd1647735bc1",
+  "verified_at": "2026-10-14",
+  "verification": "Downloaded the official 1.75.2 linux-amd64 zip on the audit workstation, matched the published SHA256SUMS, hashed the extracted binary, and compared it to the live diab-owned binary hashed read-only over ssh. Both are identical.",
+  "live_risk": "The live job executes /home/diab/.config/vps-backups/bin/rclone as root; that path is diab-owned mode 0700 and user-writable.",
+  "planned_trusted_path": "/usr/local/libexec/vps-recovery/bin/rclone",
+  "note": "install_rclone_trusted.py verifies an existing local artifact against these hashes and copies it to the root-owned path. It never downloads from the network."
+}

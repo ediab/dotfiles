@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily cleanup of recovery copies older than the rolling week
+
+[Timer]
+OnCalendar=*-*-* 05:00:00 UTC
+Persistent=true
+RandomizedDelaySec=30s
+Unit=lean-recovery-retention.service
+
+[Install]
+WantedBy=timers.target

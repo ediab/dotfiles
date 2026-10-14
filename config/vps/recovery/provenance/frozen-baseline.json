@@ -1,0 +1,11 @@
+{
+  "artifact": "config/vps/recovery/baseline/lean-recovery-retention.frozen.py",
+  "installed_path": "/usr/local/libexec/vps-recovery/lean-recovery-retention.py",
+  "sha256": "dbcada01236b45c97faec60d0348f953520ebec23bf70a3a1f7d3439d56385ef",
+  "bytes": 9969,
+  "captured_from": "host-security/fresh-audit-recovery-policy.txt (first ### FILE section)",
+  "captured_at": "2026-10-14",
+  "live_metadata_observed": "root:root 0755, 9969 bytes (ssh read-only, 2026-10-14)",
+  "canonical_source_finding": "No versioned source for this script exists in ediab/dotfiles at 788b00d or 9d7f5ac; this frozen capture is the adoption baseline.",
+  "note": "Parent must confirm the live sha256 as root before running the installer. The installer refuses any live content whose sha256 is not this baseline or the reviewed new revision."
+}

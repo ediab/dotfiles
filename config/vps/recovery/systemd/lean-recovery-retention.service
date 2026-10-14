@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep a rolling week of verified encrypted recovery points
+
+[Service]
+Type=oneshot
+UMask=0077
+TimeoutStartSec=10min
+TimeoutStopSec=30s
+KillMode=control-group
+ExecStart=/usr/bin/sudo -n /usr/bin/python3 /usr/local/libexec/vps-recovery/lean-recovery-retention.py --apply
