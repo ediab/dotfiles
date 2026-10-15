@@ -24,9 +24,14 @@ Private configuration belongs at `~/.config/vps-security-scan/config.json`
   from scan execution health; a successful scan may contain vulnerabilities.
 - Native applications are excluded from daily image coverage and checked by the
   separate weekly native scan described below.
-- Changed findings, scan errors/recovery, and missing/stale/failed scan
-  heartbeats use the existing xbot email transport with delivery-aware dedup.
-  An hourly watchdog returns failure while the scanner is unhealthy.
+- New/changed findings, scan errors, and missing/stale/failed scan heartbeats
+  use the existing xbot email transport with delivery-aware dedup. Local scanner
+  and watchdog recoveries, including all findings clearing, advance notification
+  state quietly without email. A successful scan that still has findings after an
+  error is a problem notification, **not** a quiet recovery. Failed problem-email
+  delivery must not advance notification state. An hourly watchdog returns failure
+  while the scanner is unhealthy. Original app/disk mail and independent hosted
+  Healthchecks notifications are unchanged.
 
 ## Bounds
 
@@ -77,13 +82,18 @@ is reported explicitly with the inventory failure detail. Ancestor checks are
 bounded to the application root, and the scanner never chmods or modifies a live
 file. TFL's generated `node_modules/.package-lock.json` regular file is the only
 hidden npm entry skipped; symlinks or unknown hidden entries still refuse.
-Targets may declare an authoritative `owner` uid for runtimes that later migrate
-to a dedicated user; until then a foreign owner is refused, not silently trusted.
+Default targets resolve authoritative metadata owners from `xbot-app`,
+`morning-brief-app` and `el-machine-app`. xbot and el-machine additionally verify
+system-unit working directory, user, executable and complete argv, like TFL;
+checking an npm executable substring is insufficient for Python units. Missing
+owner accounts do not allow arbitrary foreign metadata owners. Group/world-write
+and path-containment refusal checks remain unchanged.
 
 Housekeeping: a 5 GiB hard floor, per-target and overall timeouts, 25% CPU and
 1 GiB memory in the unit, sequential execution, private reports (24 files /
-45 days / 256 MiB) and a 24-hour scratch sweep. Changes are emailed through the
-existing xbot transport with delivery-aware dedup; native Healthchecks URLs are
+45 days / 256 MiB) and a 24-hour scratch sweep. Problem changes are emailed through the
+root-owned xbot transport snapshot at `/usr/local/lib/vps-monitor-transport`
+with delivery-aware dedup; local recoveries remain quiet. Native Healthchecks URLs are
 separate from app/disk/image URLs and disabled until separately provisioned.
 
 The user units use NoNewPrivileges, syscall restrictions and resource bounds.

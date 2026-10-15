@@ -11,9 +11,10 @@ from types import SimpleNamespace
 import unittest
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
-from core import MonitorError, atomic_json, locked
+from core import MonitorError, atomic_json, locked, read_private_json
 from native_healthcheck_wrapper import run_wrapped
 from native_scanner import (
     Inventory,
@@ -154,6 +155,43 @@ class NativeInventoryTests(unittest.TestCase):
         self.assertEqual(targets["tfl"].unit, "tfl.service")
         self.assertEqual(targets["tfl"].unit_working_directory, "/var/lib/tfl/current")
         self.assertEqual(targets["tfl"].unit_user, "tfl")
+
+    def test_dedicated_runtime_owners_and_unit_bindings_are_explicit(self):
+        owners = {"xbot-app": 2101, "morning-brief-app": 2102, "el-machine-app": 2103}
+        with mock.patch("native_scanner.pwd.getpwnam",
+                        side_effect=lambda name: SimpleNamespace(pw_uid=owners[name])):
+            targets = {target.application: target for target in default_targets()}
+        for app, account in (("xbot", "xbot-app"), ("morning-brief", "morning-brief-app"),
+                             ("el-machine", "el-machine-app")):
+            self.assertEqual(targets[app].owner, owners[account])
+        self.assertEqual(targets["xbot"].unit, "xbot-timeline.service")
+        self.assertEqual(targets["xbot"].unit_user, "xbot-app")
+        self.assertEqual(targets["el-machine"].unit, "el-machine-web.service")
+        self.assertEqual(targets["el-machine"].unit_user, "el-machine-app")
+        with mock.patch("native_scanner.pwd.getpwnam", side_effect=KeyError):
+            missing = {target.application: target for target in default_targets()}
+        self.assertTrue(all(missing[app].owner is None for app in ("xbot", "morning-brief", "el-machine")))
+        self.assertEqual(missing["xbot"].unit_user, "xbot-app")
+
+    def test_native_and_npm_unit_bindings_require_exact_executable_and_argv(self):
+        targets = {target.application: target for target in default_targets()}
+        for app in ("xbot", "el-machine", "tfl"):
+            target = targets[app]
+            values = {"WorkingDirectory": target.unit_working_directory, "User": target.unit_user,
+                      "ExecStart": "{ path=" + target.unit_exec_argv[0] + " ; argv[]="
+                                   + " ".join(target.unit_exec_argv) + " ; }"}
+            def runner(command, **_kwargs):
+                return subprocess.CompletedProcess(command, 0,
+                    stdout=values[command[2].split("=", 1)[1]], stderr="")
+            with self.subTest(app=app):
+                self.assertEqual(_unit_binding(target, runner), "systemd-unit-verified")
+                valid = values["ExecStart"]
+                values["ExecStart"] = valid.replace("path=" + target.unit_exec_argv[0], "path=/wrong/executable")
+                with self.assertRaisesRegex(MonitorError, "service-binding-mismatch"):
+                    _unit_binding(target, runner)
+                values["ExecStart"] = valid.replace(" ; }", " --unexpected ; }")
+                with self.assertRaisesRegex(MonitorError, "service-binding-mismatch"):
+                    _unit_binding(target, runner)
 
     def test_el_machine_metadata_hardlinks_are_read_bounded_and_contained(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -562,8 +600,34 @@ class NativeScanTests(unittest.TestCase):
             self.assertNotIn(str(root), sent[0])
             self.run_with(root, target, self.runner(),
                           send_email=lambda body: sent.append(body) or True)
+            self.assertEqual(len(sent), 1)
+            state = read_private_json(root / "state/native-notifications.json")
+            self.assertEqual((state["status"], state["findings"]), ("clean", []))
+            self.assertEqual(state["delivered_event"], "findings_cleared")
+            self.run_with(root, target, self.runner(finding=finding),
+                          send_email=lambda body: sent.append(body) or True)
             self.assertEqual(len(sent), 2)
-            self.assertIn("findings cleared", sent[1])
+            self.assertIn("CVE-2026-1234", sent[1])
+
+    def test_error_followed_by_findings_is_delivered_not_silenced(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = self.target(root / "app")
+            sent = []
+            sender = lambda body: sent.append(body) or True
+            report, status = self.run_with(root, target, self.runner("container_image"), send_email=sender)
+            self.assertEqual((report["status"], status), ("error", 1))
+            finding = {"VulnerabilityID": "CVE-2026-1234", "PkgName": "demo",
+                       "InstalledVersion": "1.2.3", "FixedVersion": "1.2.4", "Severity": "HIGH"}
+            with self.assertRaisesRegex(MonitorError, "delivery failed"):
+                self.run_with(root, target, self.runner(finding=finding), send_email=lambda _body: False)
+            self.assertEqual(read_private_json(root / "state/native-notifications.json")["status"], "error")
+            report, status = self.run_with(root, target, self.runner(finding=finding), send_email=sender)
+            self.assertEqual((report["status"], status), ("findings", 0))
+            self.assertEqual(len(sent), 2)
+            self.assertIn("CVE-2026-1234", sent[-1])
+            self.assertIn("findings changed", sent[-1])
+            self.assertNotIn("recovered", sent[-1])
 
     def test_error_summary_still_reports_new_findings_without_paths(self):
         report = {"status": "error", "errors": [{"code": "coverage-incomplete"}],
@@ -629,10 +693,18 @@ class NativeScanTests(unittest.TestCase):
                     with locked(config["state_dir"] / "scan.lock"):
                         pass
 
+    def test_example_config_binds_the_root_owned_transport(self):
+        raw = json.loads((ROOT / "examples/native.json").read_text())
+        config = validate_config(raw)
+        self.assertEqual(config["email_transport_root"], Path("/usr/local/lib/vps-monitor-transport"))
+        raw["email_transport_root"] = str(HOME / "Dev/xbot")
+        with self.assertRaisesRegex(MonitorError, "native-scan-path-config-refused"):
+            validate_config(raw)
+
     def test_config_rejects_lower_floor_and_enabled_missing_healthchecks(self):
         raw = {"state_dir": str(HOME / ".local/state/vps-security-scan"),
                "report_dir": str(HOME / ".local/state/vps-security-scan/reports"),
-               "email_transport_root": str(HOME / "Dev/xbot"),
+               "email_transport_root": "/usr/local/lib/vps-monitor-transport",
                "trivy_cache_dir": str(HOME / ".cache/trivy"),
                "min_free_bytes": MIN_FREE_BYTES - 1}
         with self.assertRaisesRegex(MonitorError, "bounds"):
@@ -668,6 +740,21 @@ class WatchdogAndHealthcheckTests(unittest.TestCase):
             self.assertEqual(run_watchdog(config, now=101, inspect=inspect,
                                           send=lambda body: sent.append(body) or True), 1)
             self.assertEqual(len(sent), 1)
+
+    def test_watchdog_recovery_is_quiet_and_next_failure_still_alerts(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp)
+            config = {"state_dir": state}
+            sent = []
+            issues = ["native:failed-run"]
+            sender = lambda body: sent.append(body) or True
+            self.assertEqual(run_watchdog(config, now=100, inspect=lambda *_a, **_k: issues, send=sender), 1)
+            self.assertEqual(run_watchdog(config, now=101, inspect=lambda *_a, **_k: [],
+                                          send=lambda _body: self.fail("recovery attempted email")), 0)
+            self.assertEqual(len(sent), 1)
+            self.assertEqual(read_private_json(state / "native-watchdog-notifications.json")["issues"], [])
+            self.assertEqual(run_watchdog(config, now=102, inspect=lambda *_a, **_k: issues, send=sender), 1)
+            self.assertEqual(len(sent), 2)
 
     def test_corrupt_watchdog_state_and_symlink_heartbeat_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:

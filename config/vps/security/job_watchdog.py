@@ -93,7 +93,8 @@ def run_watchdog(config: dict, *, now: int | None = None,
         return 1 if issues else 0
     if send is None:
         send = _email_sender(config)
-    if not send(body):
+    # Email only about problems; a recovery just advances the state silently.
+    if event != "recovered" and not send(body):
         raise MonitorError("watchdog email failed; notification state not advanced")
     atomic_json(state_path, {"issues": sorted(issues), "sent_at": now, "event": event})
     return 1 if issues else 0

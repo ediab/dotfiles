@@ -94,17 +94,36 @@ class Inventory:
 
 def default_targets(home: Path = HOME) -> tuple[Target, ...]:
     apps, dev = home / "apps", home / "Dev"
+    try:
+        xbot_owner = pwd.getpwnam("xbot-app").pw_uid
+    except KeyError:
+        xbot_owner = None  # foreign metadata still refuses; the unit binding also fails
+    try:
+        morning_owner = pwd.getpwnam("morning-brief-app").pw_uid
+    except KeyError:
+        morning_owner = None
+    try:
+        el_owner = pwd.getpwnam("el-machine-app").pw_uid
+    except KeyError:
+        el_owner = None
     return (
         Target("tfl", "npm", Path("/var/lib/tfl/current"), Path("/var/lib/tfl/releases"),
                "package-lock.json", "node_modules", "npm", "active-release-runtime",
                False, "tfl.service", "/var/lib/tfl/current", "tfl",
                ("/usr/bin/npm", "start", "--", "-H", "127.0.0.1", "-p", "8084")),
         Target("xbot", "python", dev / "xbot", dev, "requirements.lock", ".venv", "requirements",
-               "installed-python-environment", True),
+               "installed-python-environment", True, "xbot-timeline.service", str(dev / "xbot"),
+               "xbot-app", (str(dev / "xbot/.venv/bin/python"), str(dev / "xbot/scrape_timeline.py"),
+                            "--output", "data/live_tweets.jsonl", "--state-dir", "state/live", "watch",
+                            "--hours", "48", "--interval", "60", "--retention-hours", "48"),
+               owner=xbot_owner),
         Target("morning-brief", "python", apps / "morning-brief", apps, "requirements-lock.txt",
-               ".venv", "requirements", "installed-python-environment"),
+               ".venv", "requirements", "installed-python-environment", owner=morning_owner),
         Target("el-machine", "python", apps / "el-machine", apps, "uv.lock", ".venv", "uv",
-               "installed-python-environment"),
+               "installed-python-environment", False, "el-machine-web.service", str(apps / "el-machine"),
+               "el-machine-app", (str(apps / "el-machine/.venv/bin/python"), "-m", "el_machine.web",
+                                  "serve", "--data-root", str(home / "data/el-machine"), "--port", "8790"),
+               owner=el_owner),
         Target("houses", "python", apps / "houses" / "pipeline", apps / "houses", "uv.lock",
                ".venv", "uv", "installed-python-environment", False,
                "houses-health.service", str(apps / "houses" / "pipeline"), None, (), "user"),
@@ -330,7 +349,9 @@ def _unit_binding(target: Target, runner=subprocess.run) -> str:
         actual_argv = tuple(shlex.split(match.group(1))) if match else ()
     except ValueError:
         actual_argv = ()
-    if (result.returncode != 0 or not actual or "path=/usr/bin/npm" not in actual
+    executable = re.match(r"^\{\s*path=([^ ;]+)\s*;", actual)
+    if (result.returncode != 0 or executable is None
+            or executable.group(1) != target.unit_exec_argv[0]
             or actual_argv != target.unit_exec_argv):
         raise MonitorError("service-binding-mismatch")
     return "systemd-unit-verified"
@@ -1057,7 +1078,7 @@ def _summary(report: dict[str, Any], previous: dict[str, Any], scan_id: str) -> 
             if len(added) > 25:
                 lines.append(f"Additional new findings omitted: {len(added) - 25}.")
         return "scan_error", "\n".join(lines)
-    if old_status == "error":
+    if old_status == "error" and status != "findings":
         return "recovered", f"VPS native dependency scan recovered; status={status}; findings={len(report['findings'])}; scan_id={scan_id}."
     if status == "findings":
         old = {json.dumps(item, sort_keys=True) for item in old_findings}
@@ -1284,7 +1305,7 @@ def validate_config(value: Any) -> dict[str, Any]:
     expected_paths = {
         "state_dir": HOME / ".local/state/vps-security-scan",
         "report_dir": HOME / ".local/state/vps-security-scan/reports",
-        "email_transport_root": HOME / "Dev/xbot",
+        "email_transport_root": Path("/usr/local/lib/vps-monitor-transport"),
         "trivy_cache_dir": HOME / ".cache/trivy",
     }
     if any(paths[key] != expected for key, expected in expected_paths.items()):
