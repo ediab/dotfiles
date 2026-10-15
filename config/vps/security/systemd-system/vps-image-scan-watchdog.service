@@ -1,0 +1,26 @@
+[Unit]
+Description=Protected vps-image-scan-watchdog
+After=network-online.target vps-monitor-status.socket
+Wants=network-online.target vps-monitor-status.socket
+
+[Service]
+Type=oneshot
+User=vps-native-scan
+Group=vps-native-scan
+SupplementaryGroups=vps-monitor-status
+WorkingDirectory=/var/lib/vps-security-scan/native
+Environment=HOME=/var/lib/vps-security-scan/native
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/healthcheck_wrapper.py --component watchdog --config /etc/vps-security-scan/image-watchdog.json -- /usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/job_watchdog.py --config /etc/vps-security-scan/image-watchdog.json
+TimeoutStartSec=40s
+UMask=0077
+NoNewPrivileges=yes
+LockPersonality=yes
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=yes
+ReadWritePaths=/var/lib/vps-security-scan/native
+Nice=10
+CPUQuota=10%
+MemoryMax=256M
+TasksMax=32

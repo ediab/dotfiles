@@ -1,7 +1,7 @@
 {
   "report_dir": "/home/diab/.local/state/vps-security-scan/reports",
   "state_dir": "/home/diab/.local/state/vps-security-scan",
-  "email_transport_root": "/home/diab/Dev/xbot",
+  "email_transport_root": "/usr/local/lib/vps-monitor-transport",
   "native_apps_not_scanned": ["tfl", "xbot"],
   "min_free_bytes": 10737418240,
   "min_containers": 1,

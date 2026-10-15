@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from core import MonitorError, read_private_json
+from core import MonitorError, read_monitor_config
 from native_scanner import MAX_CONFIG_BYTES, ping, validate_config
 
 
@@ -37,7 +37,7 @@ def run_wrapped(component: str, command: list[str], *, config_path: Path,
     timeout = COMPONENT_TIMEOUTS.get(component)
     if timeout is None:
         raise MonitorError("native-wrapper-component-invalid")
-    value = validate_config(read_private_json(config_path, max_bytes=MAX_CONFIG_BYTES))
+    value = validate_config(read_monitor_config(config_path, max_bytes=MAX_CONFIG_BYTES))
     hc = value["healthchecks"]
     base = hc.get("native_ping_url" if component == "native" else "watchdog_ping_url") if hc.get("enabled") else None
     start_ok = ping_fn(base, "start") if base else True

@@ -1,0 +1,7 @@
+d /run/vps-security-scan 0755 root root -
+f /run/vps-security-scan/scan.lock 0660 root vps-security-lock -
+d /var/lib/vps-security-scan 0755 root root -
+d /var/lib/vps-security-scan/image 0700 vps-image-scan vps-image-scan -
+d /var/lib/vps-security-scan/native 0700 vps-native-scan vps-native-scan -
+d /var/lib/vps-security-scan/native/image-watchdog 0700 vps-native-scan vps-native-scan -
+d /var/cache/vps-security-scan 0755 root root -

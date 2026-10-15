@@ -6,6 +6,59 @@ do not install these jobs. Source modules are copied to
 Private configuration belongs at `~/.config/vps-security-scan/config.json`
 (mode 0600), never in this repository.
 
+## Protected system profile — source-only until migration acceptance
+
+`systemd-system/` and the three `examples/*-system.json` files are the opt-in
+replacement profile. They are **not installed by publishing this source**, and
+must not be enabled by copying the units alone. A reviewed, receipt-bound
+installer, preserved private configuration/state, filesystem ACLs, rollback and
+real launch acceptance are prerequisites. The legacy user profile below remains
+operational until the replacement is accepted; never run both timer sets.
+
+- Root-owned code under `/usr/local/libexec/vps-security-scan` and exact private
+  configs under `/etc/vps-security-scan` are required. Configs must be root-owned
+  mode0640 with the appropriate role group, not unreadable root0600 or public0644.
+  The containing directories and all imported code must be root-owned and
+  non-writable by either role. Python uses `-E -s -B`; `-I` would hide local imports.
+- Image scan uses `vps-image-scan`; native scan and both watchdogs use the distinct
+  `vps-native-scan`. Neither account may have global Docker or `diab` membership.
+  Only the image scan **unit** receives Docker supplementary membership. This
+  scanner still has root-equivalent Docker capability while executing; it is not
+  a Docker isolation boundary. Protect every transitive executable/import input.
+- Separate private state lives under `/var/lib/vps-security-scan/{image,native}`.
+  Both jobs lock the existing root-owned0660 `/run/vps-security-scan/scan.lock`;
+  they must not create/chmod it as a scan user. The Trivy database is image-owned
+  at `/var/cache/vps-security-scan/trivy`, with native read-only ACLs only on the
+  database files and required traversals. Image updates refresh those ACLs.
+  Native filesystem scanning uses the memory cache and `--skip-db-update`.
+  A bounded real native scan against this read-only cache is mandatory before
+  enabling its timer. The existing1.5GiB DB must move on the same filesystem into
+  an absent destination, not be duplicated; migration/ACL preimages need receipts.
+- Native access must be restricted to active venvs, manifests and traversal.
+  Three live app roots otherwise deny the new UID. Do not add the broad `diab`
+  group, recursively grant app-root access, inherit default ACLs, or expose app
+  `.env`/data/database directories. Future release hooks must renew narrow ACLs.
+- A root socket-activated fixed read-only broker exposes sanitized scan/unit
+  metadata and one Houses user-unit binding query. It does not expose a general
+  sudo command, Docker API, arbitrary path/argv or the user's D-Bus. The Houses
+  query drops UID/groups before executing its fixed systemctl command. Clients
+  check root peer identity, the socket/ancestors, schema and freshness. Raw
+  findings, requests, secret configuration and command output are not returned.
+- Both mail senders validate the complete accessible root-owned transport tree,
+  including transitive modules/bytecode, before importing it. Runtime read ACLs
+  are still required; ownership validation does not grant access.
+- The system units use filesystem protection, NoNewPrivileges, restricted
+  capabilities/address families and resource bounds. Unlike the legacy user
+  units, the new prototype does **not** yet use a SystemCallFilter. Do not infer
+  syscall confinement or successful live launch from a passing mocked unit test.
+- Keep the existing Healthchecks identities, calendar schedules and notification
+  state. Never fabricate LastTrigger or a scheduled success using a manual scan.
+  Local recovery stays quiet; broker outages are deduplicated problem alerts.
+
+The accepted capacity outcome is roughly7GiB free with a **5GiB hard floor**.
+The previous10GiB aspiration does not authorize protected-data deletion or paid
+expansion. Existing app/disk alerting and recovery retention stay in force.
+
 ## Coverage and alert meanings
 
 - The Healthchecks wrapper sends empty-body POST `/start`, `/0`, and `/1`
@@ -165,5 +218,5 @@ or app deployment settings are managed here.
 
 The unit suite mocks Docker, Trivy, systemd and email. Live systemd controls,
 exact-image scans, mailbox receipt and a full schedule cycle require separate
-operational evidence. Existing xbot code/environment is a runtime dependency
-for all local mail; upgrades must preserve that transport.
+operational evidence. The protected root-owned xbot transport snapshot and its private environment
+are runtime dependencies for local mail; upgrades must preserve that transport.

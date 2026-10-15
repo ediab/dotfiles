@@ -13,7 +13,7 @@ import sys
 import time
 from typing import Callable
 
-from core import MonitorError, atomic_json, deliver_transition, read_private_json
+from core import MonitorError, atomic_json, deliver_transition, read_monitor_config, read_private_json
 from native_scanner import _email_sender, validate_config
 
 
@@ -21,7 +21,8 @@ MAX_HEARTBEAT_AGE = 8 * 24 * 3600
 
 
 def inspect_native_job(state_dir: Path, *, now: int, max_age: int = MAX_HEARTBEAT_AGE,
-                       run: Callable[..., subprocess.CompletedProcess] = subprocess.run) -> list[str]:
+                       run: Callable[..., subprocess.CompletedProcess] = subprocess.run,
+                       unit_scope: str = "user") -> list[str]:
     issues: list[str] = []
     path = state_dir / "native-run.json"
     try:
@@ -46,7 +47,10 @@ def inspect_native_job(state_dir: Path, *, now: int, max_age: int = MAX_HEARTBEA
         issues.append("native:missing-heartbeat")
     except (OSError, MonitorError):
         issues.append("native:invalid-heartbeat")
-    timer = run(["/usr/bin/systemctl", "--user", "is-active", "vps-native-scan.timer"],
+    if unit_scope not in ("user", "system"):
+        raise MonitorError("native-watchdog-unit-scope-invalid")
+    timer = run(["/usr/bin/systemctl", *(["--user"] if unit_scope == "user" else []),
+                 "is-active", "vps-native-scan.timer"],
                 capture_output=True, timeout=5, check=False)
     if timer.returncode != 0:
         issues.append("native:timer-inactive")
@@ -77,8 +81,9 @@ def run_watchdog(config: dict, *, now: int | None = None,
                  send: Callable[[str], bool] | None = None,
                  run: Callable[..., subprocess.CompletedProcess] = subprocess.run) -> int:
     now = int(time.time()) if now is None else now
+    scope = {"unit_scope": config["unit_scope"]} if config.get("unit_scope") == "system" else {}
     issues = sorted(inspect(config["state_dir"], now=now,
-                            max_age=config.get("max_heartbeat_age_seconds", MAX_HEARTBEAT_AGE), run=run))
+                            max_age=config.get("max_heartbeat_age_seconds", MAX_HEARTBEAT_AGE), run=run, **scope))
     state_path = config["state_dir"] / "native-watchdog-notifications.json"
     state = _state(state_path)
     previous = sorted(state.get("issues", []))
@@ -107,14 +112,14 @@ def main() -> int:
                         default=Path.home() / ".config/vps-security-scan/native.json")
     args = parser.parse_args()
     try:
-        raw = read_private_json(args.config, max_bytes=32 * 1024)
+        raw = read_monitor_config(args.config, max_bytes=32 * 1024)
         config = validate_config(raw)
         age = raw.get("max_heartbeat_age_seconds", MAX_HEARTBEAT_AGE)
         if type(age) is not int or not 7 * 24 * 3600 <= age <= MAX_HEARTBEAT_AGE:
             raise MonitorError("native-watchdog-age-invalid")
         return run_watchdog({"state_dir": config["state_dir"],
                              "email_transport_root": str(config["email_transport_root"]),
-                             "max_heartbeat_age_seconds": age}, now=int(time.time()))
+                             "unit_scope": config["unit_scope"], "max_heartbeat_age_seconds": age}, now=int(time.time()))
     except (MonitorError, OSError, subprocess.TimeoutExpired) as exc:
         print(f"native watchdog could not complete: {type(exc).__name__}", file=sys.stderr)
         return 2

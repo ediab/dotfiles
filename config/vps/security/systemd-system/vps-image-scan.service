@@ -1,0 +1,27 @@
+[Unit]
+Description=Protected vps-image-scan
+After=network-online.target vps-monitor-status.socket
+Wants=network-online.target vps-monitor-status.socket
+
+[Service]
+Type=oneshot
+User=vps-image-scan
+Group=vps-image-scan
+SupplementaryGroups=docker vps-security-lock
+WorkingDirectory=/var/lib/vps-security-scan/image
+Environment=HOME=/var/lib/vps-security-scan/image
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+Environment=TRIVY_CACHE_DIR=/var/cache/vps-security-scan/trivy
+ExecStart=/usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/healthcheck_wrapper.py --component scan --config /etc/vps-security-scan/config.json -- /usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/scanner.py --config /etc/vps-security-scan/config.json
+TimeoutStartSec=2h
+UMask=0077
+NoNewPrivileges=yes
+LockPersonality=yes
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=yes
+ReadWritePaths=/var/lib/vps-security-scan/image /var/cache/vps-security-scan/trivy /run/vps-security-scan/scan.lock
+Nice=10
+CPUQuota=50%
+MemoryMax=2G
+TasksMax=256
