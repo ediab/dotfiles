@@ -419,14 +419,17 @@ class LocalCleanupTests(unittest.TestCase):
     def test_local_policy_keeps_newer_and_ambiguous_and_removes_superseded(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "captures"
-            root.mkdir()
+            root.mkdir(mode=0o700)
+            os.chmod(root, 0o700)
             old = root / stamp(NOW - 30 * DAY, "old")
             newest = root / stamp(NOW - DAY, "newest")
             inprogress = root / stamp(NOW + 60, "inprogress")
             junk = root / "not-a-stamp"
             for path in (old, newest, inprogress, junk):
                 path.mkdir()
-            removed = rr.local_cleanup(root, NOW - DAY)
+            removed = rr.local_cleanup(root, NOW - DAY, anchor=Path(tmp),
+                                        anchor_uid=os.getuid(),
+                                        allowed_owners=(os.getuid(),))
             self.assertIn(old.name, removed)
             self.assertIn(newest.name, removed)
             self.assertTrue(inprogress.exists())
@@ -435,10 +438,13 @@ class LocalCleanupTests(unittest.TestCase):
     def test_local_cleanup_without_verified_point_removes_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "captures"
-            root.mkdir()
+            root.mkdir(mode=0o700)
+            os.chmod(root, 0o700)
             child = root / stamp(NOW - 30 * DAY, "old")
             child.mkdir()
-            self.assertEqual(rr.local_cleanup(root, None), [])
+            self.assertEqual(rr.local_cleanup(root, None, anchor=Path(tmp),
+                                              anchor_uid=os.getuid(),
+                                              allowed_owners=(os.getuid(),)), [])
             self.assertTrue(child.exists())
 
 
@@ -647,6 +653,68 @@ class RcloneTrustedInstallTests(unittest.TestCase):
                                        self.payload_sha, "--verify-only"])
 
 
+class GitLineageGuardTests(unittest.TestCase):
+    """Root must refuse before any Git launch; the unprivileged path is unchanged."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="retention-git-guard-")
+        self.root = Path(self.temp.name)
+        self.relpath = "config/vps/recovery/recovery_retention.py"
+        source = self.root / self.relpath
+        source.parent.mkdir(mode=0o700, parents=True)
+        source.write_text("# reviewed\n")
+        import hashlib
+        self.digest = hashlib.sha256(source.read_bytes()).hexdigest()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    class _OsShim:
+        def __init__(self, euid):
+            self._euid = euid
+
+        def geteuid(self):
+            return self._euid
+
+        def __getattr__(self, name):
+            return getattr(os, name)
+
+    class _SubprocessShim:
+        def __init__(self):
+            self.calls = []
+
+        def run(self, argv, **kwargs):
+            self.calls.append(argv)
+
+            class Result:
+                returncode = 0
+                stdout = "" if "status" in argv else "deadbeef"
+
+            return Result()
+
+    def test_root_refuses_before_any_git_launch(self):
+        subprocess_shim = self._SubprocessShim()
+        original_os, original_subprocess = installer.os, installer.subprocess
+        installer.os, installer.subprocess = self._OsShim(0), subprocess_shim
+        try:
+            with self.assertRaises(installer.InstallRefusal) as caught:
+                installer.assert_git_lineage(self.root, self.relpath, self.digest)
+        finally:
+            installer.os, installer.subprocess = original_os, original_subprocess
+        self.assertIn("unprivileged", str(caught.exception))
+        self.assertEqual(subprocess_shim.calls, [], "root must not launch git at all")
+
+    def test_unprivileged_lineage_check_is_unchanged(self):
+        subprocess_shim = self._SubprocessShim()
+        original_os, original_subprocess = installer.os, installer.subprocess
+        installer.os, installer.subprocess = self._OsShim(1000), subprocess_shim
+        try:
+            installer.assert_git_lineage(self.root, self.relpath, self.digest)
+        finally:
+            installer.os, installer.subprocess = original_os, original_subprocess
+        self.assertEqual(len(subprocess_shim.calls), 3)
+
+
 if __name__ == "__main__":
     unittest.main()
 
@@ -668,6 +736,8 @@ class EndToEndPlanTests(unittest.TestCase):
             rr.MORNING_STATE: [stamp(NOW - DAY, "state-new"), stamp(NOW - 30 * DAY, "state-old")],
             rr.MORNING_CONFIG: [stamp(NOW - DAY, "conf-new") + ".tar",
                                 stamp(NOW - 30 * DAY, "conf-old") + ".tar"],
+            rr.HOUSES_DAILY: [stamp(NOW - DAY, "houses-new"),
+                              stamp(NOW - 30 * DAY, "houses-old")],
         }
         self._write_receipts()
 
@@ -698,6 +768,16 @@ class EndToEndPlanTests(unittest.TestCase):
                     "r2_prefix": f"{family}/{point}", "object_count": 3,
                     "proof": {"fresh_exact_set_readback": True,
                               "schema_row_sequence_closure": True}})
+        for point in self.points[rr.HOUSES_DAILY]:
+            self.write(self.base, f"houses-daily-{point}.json", {
+                "backup_id": point, "remote": f"{rr.HOUSES_DAILY}/{point}",
+                "status": "complete", "object_count": 3,
+                **{key: True for key in (
+                    "conditional_create", "independent_download_verified",
+                    "all_file_hashes_match", "manual_table_digests_equal",
+                    "sequences_verified", "container_cleanup")},
+                "files": [{"path": name, "bytes": 1, "sha256": "0" * 64}
+                          for name in ("manifest.json", "notebook.dump", "rows.json")]})
         for index, _ in enumerate(("new", "old")):
             state = self.points[rr.MORNING_STATE][index]
             config = self.points[rr.MORNING_CONFIG][index]
@@ -726,13 +806,27 @@ class EndToEndPlanTests(unittest.TestCase):
             return json.dumps([{"Path": "file", "Size": 1} for _ in range(3)]).encode()
         raise AssertionError("unexpected command " + str(args))
 
-    def test_full_plan_and_apply_over_all_six_families(self):
+    def test_houses_latest_receipt_must_have_complete_typed_proof(self):
+        point = self.points[rr.HOUSES_DAILY][0]
+        path = self.base / f"houses-daily-{point}.json"
+        original = json.loads(path.read_text())
+        bad_files = [{"path": "../outside", "bytes": 1, "sha256": "0" * 64}] * 3
+        for change in ({"status": "failed"}, {"all_file_hashes_match": False},
+                       {"object_count": True}, {"files": bad_files}):
+            with self.subTest(change=tuple(change)):
+                self.write(self.base, path.name, {**original, **change})
+                with self.assertRaises(rr.Refusal):
+                    rr.load_houses_daily()
+        self.write(self.base, path.name, original)
+        self.assertEqual(len(rr.load_houses_daily()), 2)
+
+    def test_full_plan_and_apply_over_all_seven_families(self):
         self.purged = []
         with mock.patch.object(rr, "command", side_effect=self.fake_command), \
              mock.patch.object(rr, "local_cleanup", lambda *a, **k: []), \
              mock.patch.object(rr, "observe_cron", lambda: None):
             manifest = rr.build_plan(now=NOW)
-            self.assertEqual(manifest["summary"]["families"], 6)
+            self.assertEqual(manifest["summary"]["families"], 7)
             expected = {name for family in self.points.values() for name in family if "old" in name}
             deleted = {name for names in rr.delete_sets(manifest).values() for name in names}
             self.assertEqual(deleted, expected)

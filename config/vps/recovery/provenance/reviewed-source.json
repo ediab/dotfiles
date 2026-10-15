@@ -1,6 +1,17 @@
 {
-  "recovery_retention_sha256": "f963088d91cee66473d2f6fa0e25349ac56e32cf0120d9b948851cf5a19ee73f",
-  "recovered_from_thread": "thr_wgnaa9bg2w",
-  "method": "complete recorded rewrite and identifiable recorded revisions",
-  "checks": "47 recovery tests passed on Linux Python 3.12; executable/config permissions, distinct note capture/remote IDs and receipt filename binding covered"
+  "schema": "vps-recovery-retention-review/v2",
+  "recovery_retention_sha256": "8913c3f9841b27384eecbf3697270ecef5ca2c29d83db121c7013641788d19bb",
+  "captured_live_sha256": "e9b2ff9e2bc507eaa82cb0d5b9e20f37051f37158267226f9433f1ebe3a71322",
+  "captured_live_hash_rechecked_unprivileged": true,
+  "method": "Adopt the exact captured seven-family live program with reviewed descriptor-bound lock/status and bounded cleanup repairs; retain typed Houses daily, root morning receipts, recursive listing counts and system timer observation.",
+  "checks": "Parent integration: 68 tests pass locally and on Linux in hash-verified unprivileged disposable scratch, including seven-family plan/apply, typed Houses proof refusal and shipped-artifact undefined-global checks. Independent cleanup containment regression passes.",
+  "status": "published-source-only; not installed or runtime accepted",
+  "installation_gates": [
+    "reconcile historical installer adoption pin without an unknown-live bypass",
+    "immutable root staging and complete interpreter/helper/config/mutex/receipt path trust",
+    "receipt-bound rollback, real recovery and runtime acceptance",
+    "preserve actual installed system timer and calendar"
+  ],
+  "original_recovered_from_thread": "thr_wgnaa9bg2w",
+  "original_reviewed_source_sha256": "f963088d91cee66473d2f6fa0e25349ac56e32cf0120d9b948851cf5a19ee73f"
 }

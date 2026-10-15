@@ -1,7 +1,8 @@
 # VPS off-host recovery retention (rolling seven days)
 
-Reviewed source for the root retention job. `deploy-vps.sh` and `link.sh` do
-not install this. Parent owns every privileged, live mutation.
+Reviewed **source-only** successor for the root retention job. `deploy-vps.sh`
+and `link.sh` do not install this. No activation, grant or production change is
+implied by publication; parent owns every privileged, live mutation.
 
 ## Canonical authority
 
@@ -16,9 +17,15 @@ baseline**:
   `provenance/reviewed-source.json`.
 
 `recovery_retention.py` is the reviewed successor. The installer requires the
-operator's exact reviewed source hash (and optionally a clean committed Git
-blob) and refuses any live file that is neither the pinned baseline nor that
-revision.
+operator's exact reviewed source hash (and optionally an unprivileged clean
+committed Git diagnostic). Its historical adoption pin accepts only the frozen
+baseline or the requested revision: it deliberately refuses the newer live
+revision until the installation gate below is reconciled.
+
+This successor incorporates the separately captured seven-family live program,
+including Houses daily typed proofs, root morning receipts, recursive listing
+counts and system-timer observation. Its exact source hash and captured live
+hash are recorded in `provenance/reviewed-source.json`.
 
 ## Policy
 
@@ -48,7 +55,11 @@ revision.
 * **Receipt-bound set shape.** `note-sx` and the app state points must list
   exactly `readback_file_count` / `object_count` objects with integer sizes;
   `morning-brief` state/config use `rclone size` and require count and bytes
-  ≥ 1. The same precise identity is re-checked after cleanup.
+  ≥ 1. Houses daily additionally requires its typed conditional-create,
+  independent-download, hash, table/sequence and cleanup proofs, a bounded
+  unique file manifest containing `manifest.json` and `notebook.dump`, and an
+  exact recursive remote listing count. The same precise identity is re-checked
+  after cleanup.
 * **Separate note-sx identities.** A receipt filename must match its local
   `capture_id`. Its verified `remote_prefix` names the remote recovery point;
   the producer assigns these IDs independently. Age and protection use the
@@ -58,6 +69,12 @@ revision.
   `/home/diab/ops/r2-recovery/points/houses` are removed locally, and only when
   they are at or older than the newest verified point. No seven local snapshots
   are retained.
+* **Cleanup containment.** Every cleanup path component is opened relative to
+  a retained directory descriptor with `O_NOFOLLOW`, starting at a trusted
+  root-owned anchor. A missing root is a no-op. Recursive deletion is bounded
+  to depth 64 and 200,000 entries; symlinks cannot redirect it outside the
+  opened tree. Lock/status writes similarly bind their actual directory and
+  file identities. These are component safeguards, not whole-service acceptance.
 * Timestamps come from the point's own `YYYYMMDDThhmmss[frac]Z[-.]` identity,
   parsed strictly (`strptime`), never from mtime or lexicographic ordering.
 * Root-only invocation, `RCLONE_*` environment refusal, pinned rclone client
@@ -92,28 +109,23 @@ parent reviews the first exact dry-run manifest, then the timer runs plain
 `--apply`. For extra safety an operator may pass `--manifest <reviewed>.json`;
 `--apply` then refuses unless the freshly recomputed delete set equals it.
 
-## Deployment (parent-owned, ordered)
+## Deployment gates (parent-owned; not activation instructions)
 
-1. Confirm the live sha256 as root:
-   `sha256sum /usr/local/libexec/vps-recovery/lean-recovery-retention.py` and
-   compare with `provenance/frozen-baseline.json`.
-2. Create the root-owned config snapshot securely (parent only), e.g.
-   `/etc/vps-recovery` mode 0755 root:root and
-   `/etc/vps-recovery/rclone.conf` mode 0600 root:root.
-3. Trusted dependency (no network, no download):
-   `python3 config/vps/recovery/install_rclone_trusted.py --artifact /home/diab/.config/vps-backups/bin/rclone`
-   for the dry verification, then `--apply --operator-quiesced` as root. The
-   artifact bytes are read once with `O_NOFOLLOW`, hashed and installed; the
-   installed target is re-hashed before `rclone version` runs.
-4. Code adoption:
-   `sudo python3 config/vps/recovery/install_recovery_retention.py --expected-source-sha256 <reviewed> --verify-only`
-   then `--apply --operator-quiesced` (add `--source-repo /path/to/dotfiles` to
-   require a clean committed Git blob). The installer validates trusted
-   ancestors, refuses symlinks/dangling links, backs up the current live file
-   under `/var/backups/vps-recovery/`, writes atomically and re-hashes.
-5. Units are user units: copy `systemd/lean-recovery-retention.{service,timer}`
-   to `~/.config/systemd/user/`, `systemctl --user daemon-reload`, run a
-   dry-run manifest, then enable the timer.
+1. Publish and verify clean committed source unprivileged. Root must never run
+   Git in an operator-writable checkout: filters and fsmonitor can execute code.
+2. Reconcile the installer's historical frozen adoption pin with the freshly
+   observed live revision, backed by the exact captured bytes and rollback
+   receipt. Do not bypass its unknown-live refusal or use test-only overrides.
+3. Stage fresh hash-verified copies under root-owned, non-writable ancestors;
+   do not execute these installers directly from a user-writable checkout.
+4. Complete transitive interpreter/helper/config, shared-mutex and receipt-path
+   trust review and exact rollback/preimage acceptance. The legacy mutex under
+   `~/ops` remains an integration gate, not a claimed root trust boundary.
+5. Preserve the actually installed system timer/calendar and its observations;
+   the historical user-unit templates below are not a migration recipe.
+6. Require genuine recovery and failure-path/runtime acceptance before any
+   activation or privilege removal. This publication meets none of those live
+   gates by itself.
 
 ## Rollback
 
@@ -136,7 +148,8 @@ Covers: seven-day boundary, protected old latest, timestamp/fraction ties,
 malformed names, failed/new/in-progress and unverified points, mixed
 timestamps, missing mandatory proof, no premature deletes, protected-point
 drift with zero purge, candidate revalidation, receipt-bound set shape, an
-end-to-end six-family plan/apply, and installer guards (tampered source,
+end-to-end seven-family plan/apply, malformed Houses daily proof refusal,
+shipped-artifact callback/undefined-global checks, descriptor-bound cleanup, and installer guards (tampered source,
 symlink/dangling live, unknown live content, rollback drift/tamper, test-path
 isolation, quiescence, Git lineage, read-once rclone payload, ownership).
 Tests use no rclone, no sudo and no VPS.
@@ -144,6 +157,6 @@ Tests use no rclone, no sudo and no VPS.
 ## Open decisions for parent
 
 * Confirm the live retention sha256 before adoption.
-* Confirm the morning linked-receipt `verified` key (observed read-only on
-  2026-10-14; subreceipts carry `verified`/`stamp`/`completed`).
+* Recheck the actual system timer and root morning receipt paths against the
+  captured live program before any activation.
 * Approve the first exact dry-run manifest.

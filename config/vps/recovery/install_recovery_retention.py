@@ -173,6 +173,16 @@ def rollback(*, live: Path, rollback_dir: Path, enforce_trust: bool, owner: int 
 
 
 def assert_git_lineage(repo: Path, relpath: str, expected_sha: str) -> None:
+    """Refused under root before any Git launch.
+
+    Repository-level Git features (`core.fsmonitor`, `.gitattributes`
+    clean/process filters, `core.hooksPath`) execute when Git runs, so root
+    must not launch Git in an agent-writable checkout. Run this lineage check
+    unprivileged and install Root-staged bytes against the reviewed
+    ``--expected-source-sha256``; ``--source-repo`` is optional.
+    """
+    if os.geteuid() == 0:
+        raise InstallRefusal("git lineage check must run unprivileged")
     def git(*args: str) -> str:
         result = subprocess.run(["/usr/bin/git", "-C", str(repo), *args],
                                 capture_output=True, text=True, timeout=15, check=False)
