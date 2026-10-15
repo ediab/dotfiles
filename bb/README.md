@@ -23,15 +23,18 @@ bash bb/install.sh 0.45.0      # install a specific stable release
 
 The default location is `~/apps/bb-runtime`; override with `BB_RUNTIME_DIR`. Runtime packages and lockfiles stay there, **outside this repo**. The script does not start/stop services, create enrollment credentials, update the desktop app, or change `~/.bb`.
 
-On the VPS, the existing `bb.service` uses `/home/diab/apps/bb-runtime`, and `~/bin/bb` invokes its CLI. After an approved update, restart explicitly:
+The VPS's `~/apps/bb-runtime` and `bb.service` are legacy. **Keep `bb.service` disabled and inactive**: starting it would compete with the active server for its port. Do not use this install script to update the active server.
+
+The active VPS server uses `~/.bb-machines/diab.getbb.app` and the user unit
+`bb-host-daemon-diab-getbb-app-host_23vgpbtjh7.service`. Inspect it with:
 
 ```sh
-systemctl --user restart bb.service
-systemctl --user status bb.service
-~/bin/bb machine list --json
+systemctl --user status bb-host-daemon-diab-getbb-app-host_23vgpbtjh7.service
+bb status
+bb machine list --json
 ```
 
-Check a real task after updating; an active service alone is not proof an agent works. The Mac desktop app is a separate installation: update it through its supported app update mechanism, not this npm script. No automatic updater is scheduled by this folder.
+Use BB's supported update mechanism for the active installation. Check a real task after updating; an active service alone is not proof an agent works. The Mac desktop app is a separate installation: update it through its supported app update mechanism, not this npm script. This folder schedules no automatic updates.
 
 ## BB user instructions
 
@@ -116,11 +119,12 @@ bb plugin list --json | jq '{plugins: [.plugins[] | select(.source | startswith(
 
 ## Current server arrangement
 
-- The Mac server, with the plugins and preferences originally captured here.
-- A separate VPS server set up with a persistent `bb.service`.
-- A machine was subsequently enrolled into the Mac server by the user. Enrollment adds a worker; it does not migrate the server or reassign its address. At the October 2026 refresh (BB 0.45.0), `machine list` shows both machines `connected` on the Mac server.
+- The server for `diab.getbb.app` moved from the Mac to the VPS on 2026-10-14.
+- Its data directory is `~/.bb-machines/diab.getbb.app` on the VPS, managed by the user unit listed above.
+- The Mac is an execution machine, not the active server. The old VPS `bb.service` remains disabled and inactive.
+- The preferences in this folder were originally captured from the Mac-hosted server; restoring them does not migrate a server or select its data directory.
 
-In the Mac desktop app, use **macOS menu bar → Window → Server** to choose a server. A Mac-hosted server must stay running for its workers to receive tasks. Settings captured here do not decide which server owns your data.
+In the Mac desktop app, use **macOS menu bar → Window → Server** to choose a server. Settings captured here do not decide which server owns your data.
 
 ## Checks
 
