@@ -86,6 +86,9 @@ def locked(path: Path):
     return Lock()
 
 
+QUIET_EVENTS = frozenset({"recovered", "findings_cleared"})
+
+
 def deliver_transition(
     state_path: Path,
     fingerprint: str,
@@ -110,7 +113,8 @@ def deliver_transition(
         old = value
     if old.get("delivered_fingerprint") == fingerprint:
         return False
-    if not send(summary):
+    # Email only about problems; recoveries just advance the state silently.
+    if event not in QUIET_EVENTS and not send(summary):
         raise MonitorError("notification delivery failed; state not advanced")
     updated = dict(old)
     updated.update({

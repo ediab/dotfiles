@@ -24,15 +24,12 @@
   "packages": [
     "npm:pi-web-access@0.39.0",
     "npm:pi-code-previews@0.1.36",
-    {
-      "source": "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
-      "extensions": []
-    },
     "npm:pi-powerline-footer@0.20.1",
     {
       "source": "npm:pi-title@0.1.8",
       "extensions": []
-    }
+    },
+    "git:github.com/michael-denyer/pstack-claude@1dba27e50e8f18f146bb80f137f0690f8d773c2e"
   ],
   "powerline": {
     "preset": "default",

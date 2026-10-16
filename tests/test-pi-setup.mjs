@@ -19,11 +19,12 @@ const { DefaultResourceLoader, SettingsManager } = await import(
 const { loadExtensions, clearExtensionCache } = await import(
   pathToFileURL(join(packageRoot, "dist/core/extensions/loader.js")).href
 );
-const { loadSkills, formatSkillsForPrompt } = await import(
+const { loadSkills } = await import(
   pathToFileURL(join(packageRoot, "dist/core/skills.js")).href
 );
 const settings = JSON.parse(readFileSync(join(root, "pi/settings.json"), "utf8"));
-const guardedNames = ["@juicesharp/rpiv-ask-user-question", "pi-title"];
+const guardedNames = ["pi-title"];
+const pstackRoot = join(agentDir, "git/github.com/michael-denyer/pstack-claude");
 const extensionPath = join(root, "pi/extensions/standalone-ui.ts");
 const sourceOf = entry => typeof entry === "string" ? entry : entry.source;
 const nameOf = entry => sourceOf(entry).slice(4, sourceOf(entry).lastIndexOf("@"));
@@ -56,9 +57,9 @@ function registrations(result) {
   };
 }
 
-test("all five direct packages are pinned to installed versions", () => {
+test("npm packages and pstack are pinned to installed versions", () => {
   assert.equal(settings.packages.length, 5);
-  for (const entry of settings.packages) {
+  for (const entry of settings.packages.filter(e => sourceOf(e).startsWith("npm:"))) {
     const source = sourceOf(entry);
     assert.match(source, /^npm:(?:@[^/]+\/)?[^@]+@\d+\.\d+\.\d+$/);
     const installed = JSON.parse(readFileSync(
@@ -66,6 +67,12 @@ test("all five direct packages are pinned to installed versions", () => {
     ));
     assert.equal(source, `npm:${installed.name}@${installed.version}`);
   }
+  const pstack = settings.packages.find(e => sourceOf(e).startsWith("git:"));
+  assert.match(sourceOf(pstack), /^git:github\.com\/michael-denyer\/pstack-claude@[a-f0-9]{40}$/);
+  const { execFileSync } = process.getBuiltinModule("node:child_process");
+  assert.equal(execFileSync("git", ["-C", pstackRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
+    sourceOf(pstack).split("@")[1]);
+  assert.ok(!settings.packages.some(e => sourceOf(e).includes("rpiv-ask-user-question")));
   for (const name of guardedNames) {
     const entry = settings.packages.find(e => nameOf(e) === name);
     assert.deepEqual(entry.extensions, [], `${name} must not also autoload`);
@@ -97,7 +104,7 @@ for (const bb of [false, true]) {
     for (let reload = 0; reload < 2; reload++) {
       await loader.reload();
       const actual = registrations(loader.getExtensions());
-      assert.deepEqual(actual.tools, bb ? [] : ["ask_user_question"]);
+      assert.deepEqual(actual.tools, []);
       assert.deepEqual(actual.commands, bb ? [] : ["title"]);
       if (bb) assert.deepEqual(actual.hooks, []);
       else {
@@ -108,7 +115,46 @@ for (const bb of [false, true]) {
   });
 }
 
-test("personal pi-handoff coexists with BB's automatically discoverable handoff", t => {
+for (const bb of [false, true]) {
+  test(`${bb ? "BB" : "standalone"}: pstack stays available without automatic routing or collisions`, async t => {
+    const temp = fixture(t, bb);
+    for (const dir of ["npm", "git"]) symlinkSync(join(agentDir, dir), join(temp, dir), "dir");
+    symlinkSync(join(root, "pi/pstack-models.md"), join(temp, "pstack-models.md"));
+    const loader = new DefaultResourceLoader({
+      cwd: temp,
+      agentDir: temp,
+      settingsManager: SettingsManager.inMemory({
+        packages: settings.packages.filter(e => sourceOf(e).startsWith("git:") || guardedNames.includes(nameOf(e))),
+        extensions: [extensionPath],
+      }),
+      noThemes: true,
+      noPromptTemplates: true,
+      noContextFiles: true,
+    });
+    for (let reload = 0; reload < 2; reload++) {
+      await loader.reload();
+      const actual = registrations(loader.getExtensions());
+      assert.deepEqual([...actual.tools].sort(), [
+        "agent", "ask_user_question", "list_agents", "schedule_wakeup", "send_message", "stop_agent",
+      ]);
+      assert.deepEqual([...actual.commands].sort(), bb ? ["loop"] : ["loop", "title"]);
+      const extension = loader.getExtensions().extensions.find(e => e.path.endsWith("pstack/pi/index.ts"));
+      assert.ok(extension);
+      const event = { systemPromptOptions: { sections: {} } };
+      for (const handler of extension.handlers.get("before_agent_start") ?? []) await handler(event, {});
+      assert.equal(event.systemPromptOptions.sections["pstack-session-start"], undefined);
+      assert.match(event.systemPromptOptions.sections["pstack-models"], /^session hook: off$/m);
+      const { skills, diagnostics } = loader.getSkills();
+      assert.deepEqual(diagnostics, []);
+      const upstream = skills.filter(s => s.filePath.includes("pstack-claude/plugins/pstack/skills/"));
+      assert.equal(upstream.length, 63);
+      assert.equal(new Set(skills.map(s => s.name)).size, skills.length);
+      for (const name of ["poteto-mode", "bro", "unslop"]) assert.ok(upstream.some(s => s.name === name));
+    }
+  });
+}
+
+test("personal skills and BB handoff have no retired copies or upstream name collisions", t => {
   const temp = fixture(t, true);
   const bbSkills = join(temp, "skills/handoff");
   mkdirSync(bbSkills, { recursive: true });
@@ -116,14 +162,12 @@ test("personal pi-handoff coexists with BB's automatically discoverable handoff"
     "---\nname: handoff\ndescription: Transfer BB sessions between providers.\n---\nUse BB handoff.\n");
   const loaded = loadSkills({
     cwd: temp, agentDir: temp, includeDefaults: false,
-    skillPaths: [join(root, "agents/skills"), join(temp, "skills")],
+    skillPaths: [join(root, "agents/skills"), join(pstackRoot, "plugins/pstack/skills"), join(temp, "skills")],
   });
   assert.deepEqual(loaded.diagnostics, []);
-  assert.equal(loaded.skills.find(s => s.name === "pi-handoff")?.disableModelInvocation, true);
-  assert.equal(loaded.skills.find(s => s.name === "handoff")?.disableModelInvocation, false);
-  const prompt = formatSkillsForPrompt(loaded.skills);
-  assert.match(prompt, /<name>handoff<\/name>/);
-  assert.doesNotMatch(prompt, /<name>pi-handoff<\/name>/);
-  assert.match(readFileSync(join(root, "agents/skills/pi-handoff/agents/openai.yaml"), "utf8"),
-    /allow_implicit_invocation: false/);
+  const names = new Set(loaded.skills.map(s => s.name));
+  for (const retired of ["grilling", "grill-me", "grill-with-docs", "to-spec", "to-tickets", "implement",
+    "diagnosing-bugs", "domain-modeling", "prototype", "retro", "wayfinder", "writing-for-agents",
+    "pi-handoff", "personal-workflow"]) assert.ok(!names.has(retired), retired);
+  assert.ok(names.has("handoff"));
 });

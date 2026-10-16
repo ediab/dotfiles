@@ -1,5 +1,9 @@
 # Work setup: what changed today (2026-10-13)
 
+Historical checklist: the pstack migration supersedes the skill inventory and
+single-agent/workflow rules below. Use the root README and `agents/AGENTS.md`
+for the active setup; do not restore retired skills from this checklist.
+
 Temporary; delete once the work setup is updated. Personal dotfiles commits `25db045` → `faa433f`. Use as a checklist to mirror at work.
 
 ## Target model

@@ -562,8 +562,7 @@ class NativeScanTests(unittest.TestCase):
             self.assertNotIn(str(root), sent[0])
             self.run_with(root, target, self.runner(),
                           send_email=lambda body: sent.append(body) or True)
-            self.assertEqual(len(sent), 2)
-            self.assertIn("findings cleared", sent[1])
+            self.assertEqual(len(sent), 1)  # Clearing findings is silent.
 
     def test_error_summary_still_reports_new_findings_without_paths(self):
         report = {"status": "error", "errors": [{"code": "coverage-incomplete"}],

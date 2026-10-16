@@ -16,6 +16,7 @@ mkrepo() {
   mkdir -p "$REPO"/agents/skills/{alpha,beta} "$REPO"/pi/{extensions,themes} \
     "$REPO"/claude "$REPO"/codex "$REPO"/config/{ghostty,herdr,herdr-auto-title,vscode}
   echo policy > "$REPO/agents/AGENTS.md"
+  for client in pi claude codex; do echo 'session hook: off' > "$REPO/$client/pstack-models.md"; done
   echo alpha > "$REPO/agents/skills/alpha/SKILL.md"; echo beta > "$REPO/agents/skills/beta/SKILL.md"
   echo ext > "$REPO/pi/extensions/example.ts"; echo theme > "$REPO/pi/themes/t.json"
   for f in settings web-search; do echo "{\"$f\":1}" > "$REPO/pi/$f.json"; done  # no mcp.json on purpose
@@ -41,11 +42,14 @@ all_links() {
   for f in web-search; do points "$H/.pi/agent/$f.json" pi/$f.json; done
   for d in extensions themes; do points "$H/.pi/agent/$d" pi/$d; done
   points "$H/.pi/agent/AGENTS.md" agents/AGENTS.md
+  points "$H/.pi/agent/pstack-models.md" pi/pstack-models.md
   points "$H/.agents/skills" agents/skills
   points "$H/.claude/CLAUDE.md" agents/AGENTS.md; points "$H/.codex/AGENTS.md" agents/AGENTS.md
   points "$H/.claude/settings.json" "claude/$CLAUDE_SETTINGS"
+  points "$H/.claude/pstack-models.md" claude/pstack-models.md
   points "$H/.claude/statusline-command.sh" claude/statusline-command.sh
   points "$H/.codex/config.toml" "codex/$CODEX_CONFIG"; points "$H/.codex/hooks.json" codex/hooks.json
+  points "$H/.codex/pstack-models.md" codex/pstack-models.md
   points "$H/.codex/agents/reviewer.toml" codex/agents/reviewer.toml
   for s in alpha beta; do points "$H/.claude/skills/$s" agents/skills/$s; done
   if [ "$DARWIN" = 1 ]; then

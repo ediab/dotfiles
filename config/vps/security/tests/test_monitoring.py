@@ -279,9 +279,10 @@ class ScannerTests(unittest.TestCase):
             self.assertEqual((error["status"], code), ("error", 1))
             self.assertNotIn("PRIVATE_OUTPUT_MARKER", json.dumps(error))
             self.assertNotIn("PRIVATE_OUTPUT_MARKER", emails[-1])
+            before = len(emails)
             recovered, code = run_scan(cfg, run=self.response(), send_email=sender, now=400)
             self.assertEqual((recovered["status"], code), ("clean", 0))
-            self.assertIn("recovered", emails[-1])
+            self.assertEqual(len(emails), before)  # Recoveries are silent.
 
     def test_failed_delivery_does_not_acknowledge_finding_state(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -375,7 +376,8 @@ class WatchdogTests(unittest.TestCase):
             self.assertIn("failed", messages[-1])
             run_watchdog(config, now=32 * 3600 + 3, inspect=lambda *_a, **_k: [],
                          send=lambda body: messages.append(body) or True)
-            self.assertIn("recovered", messages[-1])
+            self.assertEqual(len(messages), 1)  # Recoveries are silent.
+            self.assertEqual(read_private_json(root / "watchdog-notifications.json")["event"], "recovered")
 
     def test_fresh_failed_heartbeat_is_unhealthy_even_when_notification_is_deduplicated(self):
         with tempfile.TemporaryDirectory() as tmp:

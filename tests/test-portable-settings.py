@@ -75,6 +75,27 @@ class PortableSettingsTests(unittest.TestCase):
         for prefix in ['/Users/', '/opt/homebrew/', '/Applications/']:
             self.assertNotIn(prefix, text)
 
+    def test_pstack_is_enabled_and_pinned_in_each_harness_on_both_platforms(self):
+        pi = json.loads((ROOT / 'pi/settings.json').read_text())
+        source = next(p for p in pi['packages'] if isinstance(p, str) and 'pstack-claude@' in p)
+        revision = source.rsplit('@', 1)[1]
+        self.assertRegex(revision, r'^[a-f0-9]{40}$')
+        for client in ['claude', 'codex', 'pi']:
+            sheet = (ROOT / client / 'pstack-models.md').read_text()
+            self.assertEqual([line for line in sheet.splitlines() if line and not line.startswith('#')],
+                             ['session hook: off'])
+        for name in ['settings.json', 'settings.linux.json']:
+            claude = json.loads((ROOT / 'claude' / name).read_text())
+            self.assertTrue(claude['enabledPlugins']['pstack@pstack-claude'])
+            marketplace = claude['extraKnownMarketplaces']['pstack-claude']['source']
+            self.assertEqual(marketplace['repo'], 'michael-denyer/pstack-claude')
+            self.assertEqual(marketplace['ref'], 'v0.9.86')
+        for name in ['config.toml', 'config.linux.toml']:
+            codex = tomllib.loads((ROOT / 'codex' / name).read_text())
+            self.assertTrue(codex['plugins']['pstack@pstack-claude']['enabled'])
+            self.assertEqual(codex['marketplaces']['pstack-claude']['ref'], revision)
+            self.assertTrue(codex['features']['multi_agent'])
+
     def test_context7_header_helper_reads_host_env_not_fixed_home(self):
         linux = tomllib.loads((ROOT / 'codex/config.linux.toml').read_text())
         self.env['PATH'] = '/usr/bin:/bin'

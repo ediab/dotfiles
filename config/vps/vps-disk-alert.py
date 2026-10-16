@@ -53,14 +53,15 @@ def main():
         "Inspect df -h /, docker system df, and project/caches usage.\n"
         "No data has been deleted by this alert. Reminders are sent daily.\n"
     )
-    if not send_alert_email(recipient, f"VPS disk {label}", body):
+    # Email only about problems; a recovery just clears the state silently.
+    if level and not send_alert_email(recipient, f"VPS disk {label}", body):
         raise RuntimeError("Disk alert delivery failed; state unchanged for retry")
     state_path.parent.mkdir(parents=True, exist_ok=True)
     temporary = state_path.with_suffix(".tmp")
     temporary.write_text(json.dumps({"level": level, "sent_at": now}) + "\n")
     temporary.chmod(0o600)
     temporary.replace(state_path)
-    print(f"Sent disk {label} email")
+    print(f"Sent disk {label} email" if level else "Disk recovered; no email sent")
     return 0
 
 

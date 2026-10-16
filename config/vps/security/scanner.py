@@ -365,7 +365,7 @@ def run_scan(config: dict[str, Any], *, run=_run, send_email: Callable[[str], bo
             event = "scan_error"
             codes = sorted({item.get("code", "unknown") for item in report["errors"]})
             summary_lines.append(f"Daily running-image scan failed; scan_id={scan_id}; errors={','.join(codes)}.")
-        elif previous_status == "error":
+        elif previous_status == "error" and report["status"] != "findings":
             event = "recovered"
             summary_lines.append(f"Daily running-image scan recovered; status={report['status']}; findings={len(report['findings'])}; scan_id={scan_id}.")
         elif report["status"] == "findings":

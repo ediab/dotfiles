@@ -66,7 +66,8 @@
     "commit-commands@claude-plugins-official": true,
     "context7@claude-plugins-official": false,
     "pyright-lsp@claude-plugins-official": true,
-    "ralph-loop@claude-plugins-official": true
+    "ralph-loop@claude-plugins-official": true,
+    "pstack@pstack-claude": true
   },
   "extraKnownMarketplaces": {
     "claude-code-plugins": {
@@ -91,6 +92,13 @@
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "pstack-claude": {
+      "source": {
+        "source": "github",
+        "repo": "michael-denyer/pstack-claude",
+        "ref": "v0.9.86"
       }
     }
   },

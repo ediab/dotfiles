@@ -1057,7 +1057,7 @@ def _summary(report: dict[str, Any], previous: dict[str, Any], scan_id: str) -> 
             if len(added) > 25:
                 lines.append(f"Additional new findings omitted: {len(added) - 25}.")
         return "scan_error", "\n".join(lines)
-    if old_status == "error":
+    if old_status == "error" and status != "findings":
         return "recovered", f"VPS native dependency scan recovered; status={status}; findings={len(report['findings'])}; scan_id={scan_id}."
     if status == "findings":
         old = {json.dumps(item, sort_keys=True) for item in old_findings}

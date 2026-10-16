@@ -1,91 +1,42 @@
-# Borrowed skills — provenance
+# Third-party skills — provenance
 
-Some skills in `agents/skills/` are adapted from third-party repos. This file
-records where each one came from, which upstream commit it was last reviewed
-against, and what was deliberately changed locally. When checking for upstream
-updates, diff the borrowed paths below between the pinned SHA and upstream HEAD.
+## pstack
 
-Each source's license is recorded below; license files are not bundled with the skills, except where the license requires it (Apache-2.0 `frontend-design/LICENSE.txt`). Upstream `agents/openai.yaml` files are not imported; locally maintained metadata is added only where needed to preserve Codex invocation policy.
-
-## mattpocock/skills
-
-- Upstream: https://github.com/mattpocock/skills
-- Reviewed upstream SHA: `24fe0ef7737efae15c87225755e9f6f5965e4888` (2026-10-04). Reviewed all borrowed paths against the previous pin `c55ee46`; selectively adopted glossary naming and explicit retrospective routing, preserving local adaptations. Use this revision as the baseline for the next upstream comparison.
-- License: MIT, Copyright (c) 2026 Matt Pocock
-
-| Local skill | Upstream path | Local adaptations |
-|---|---|---|
-| `grilling/` | `skills/productivity/grilling/SKILL.md` | Fact-finding no longer dispatches a sub-agent unconditionally; the agent looks facts up itself and delegates only where the host's delegation rules allow. |
-| `grill-me/` | `skills/productivity/grill-me/SKILL.md` | Body reads `Read and follow ../grilling/SKILL.md` instead of upstream's `Call the Skill tool with "grilling"`; the sibling read works across shared skill directories. |
-| `pi-handoff/` | `skills/productivity/handoff/SKILL.md` | Renamed locally to avoid the BB handoff plugin's skill name. Save location hardcoded to `/tmp` (macOS `os.tmpdir()` returns a per-user `/var/folders/...` path); "suggested skills" worded as "which suggests skills that the agent should invoke" instead of "naming which skills the next agent should call the Skill tool for" (same reason as above). `argument-hint` frontmatter kept as upstream. |
-| `diagnosing-bugs/` | `skills/engineering/diagnosing-bugs/SKILL.md`, `skills/engineering/diagnosing-bugs/scripts/hitl-loop.template.sh` | Added a "Light or full path" section at the top of `SKILL.md`: a clear low-risk fix takes a light path, the full phased process is for hard/recurring/intermittent/performance bugs. Script is verbatim. Upstream's secret-redaction section already incorporated. Adopted glossary naming while reading established project glossary filenames. |
-| `writing-for-agents/` | `skills/productivity/writing-for-agents/SKILL.md`, `skills/productivity/writing-for-agents/SKILL-MECHANICS.md` | None — verbatim copies. |
-| `to-spec/` | `skills/engineering/to-spec/SKILL.md` | Upstream's issue-tracker publishing replaced with: show spec to user, offer to save under the project's docs (`docs/specs/YYYY-MM-DD-description.md`), with date/request/branch preamble. Kept local right-sizing and 2–3 checkable success examples from the earlier local `plan` skill (now deleted). Aligned glossary references with `domain-modeling` while preserving established project filenames. User-story list replaced with acceptance criteria (user stories optional); seam step no longer requires user confirmation and allows more than one seam where the behavior needs it. |
-| `to-tickets/` | `skills/engineering/to-tickets/SKILL.md` | Local-files mode only: removed the issue-tracker publishing branch, `setup-matt-pocock-skills` dependency, and issue templates; ticket files go to `.scratch/<feature-slug>/issues/` with `Status: ready`. Aligned glossary references with `domain-modeling` while preserving established project filenames. |
-| `implement/` | `skills/engineering/implement/SKILL.md` | Skill-tool reference replaced with a relative read of `../tdd/SKILL.md`; review and Git guidance now follows the host client's and project's rules without requiring Pi-only skills, profiles, or commands. Fixed typecheck/test cadence replaced with acceptance-criteria verification under the normal validation workflow. |
-| `tdd/` | `skills/engineering/tdd/SKILL.md`, `tests.md`, `mocking.md` | Removed references to unbundled `codebase-design` and `code-review`; consult project architecture records and host review rules instead. Adopted glossary naming while reading established project glossary filenames. |
-| `domain-modeling/` | `skills/engineering/domain-modeling/SKILL.md`, `ADR-FORMAT.md`, `GLOSSARY-FORMAT.md` | Adopted upstream glossary naming. Preserve established project glossary/map filenames (including `CONTEXT.md` / `CONTEXT-MAP.md`) and ask when competing glossaries have unclear authority; new projects use `GLOSSARY.md` / `GLOSSARY-MAP.md`. ADR format remains verbatim; `SKILL.md` points to its ADR gate instead of repeating it. |
-| `grill-with-docs/` | `skills/engineering/grill-with-docs/SKILL.md` | Upstream's two Skill-tool calls replaced with relative reads of `../grilling/SKILL.md` and `../domain-modeling/SKILL.md` (same adaptation as `grill-me`). Aligned glossary references with `domain-modeling` while preserving established project filenames. |
-| `wayfinder/` | `skills/engineering/wayfinder/SKILL.md` | Local-markdown tracker only: map at `.scratch/<feature-slug>/map.md`, tickets as files under `tickets/` with `Status:`/`Blocked by:` front matter replacing tracker issues/labels/assignees; `setup-matt-pocock-skills` dependency removed; Skill-tool calls → relative reads or host-client research/delegation with inline fallback; `disable-model-invocation: true` and matching Codex policy metadata preserve user-only invocation. |
-| `prototype/` | `skills/engineering/prototype/SKILL.md`, `LOGIC.md`, `UI.md` | Commit guidance now follows project contribution rules instead of depending on Pi-only `personal-workflow`. |
-| `retro/` | `skills/engineering/retro/SKILL.md` | Imported in local commit `0f44e28`; upstream body unchanged at the reviewed revision. Local `39f0dbb` replaces Skill-tool invocation with a direct skill read, locates Pi/BB session logs, and snapshots the log before reading to avoid chasing its live tail. |
+- Upstream port: https://github.com/michael-denyer/pstack-claude
+- Original: https://github.com/cursor/plugins/tree/main/pstack, by Lauren Tan.
+- Installed release: `0.9.86`, tag `v0.9.86`, commit `1dba27e50e8f18f146bb80f137f0690f8d773c2e`.
+- License: MIT, with imported material and notices supplied by the upstream package.
+- Installed through the native Claude Code plugin, Codex plugin and Pi package. No pstack skill files are copied into `agents/skills/` or modified locally.
+- Host, BB delegation and safety overrides live in `agents/AGENTS.md`, not upstream files. See the root README for installation and updates.
 
 ## anthropics/skills
 
 - Upstream: https://github.com/anthropics/skills
-- Imported in local commit `0c6cdc4` from an earlier upstream revision; latest upstream commit touching the path: `41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f` (2026-09-03). Use it as the baseline for the next comparison.
-- License: Apache-2.0; `LICENSE.txt` bundled in the skill folder (byte-identical to upstream).
+- Imported in local commit `0c6cdc4`; latest reviewed upstream commit touching the path: `41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f` (2026-09-03).
+- License: Apache-2.0; `LICENSE.txt` remains bundled in the skill folder.
 
 | Local skill | Upstream path | Local adaptations |
 |---|---|---|
-| `frontend-design/` | `skills/frontend-design/SKILL.md`, `LICENSE.txt` | `disable-model-invocation: true` with Codex policy metadata; `license` field shortened to `Apache-2.0`; brief clarification asks the user instead of inventing the subject; hero, typography, structure, motion and complexity sections rewritten. |
-
-## cursor/plugins (pstack)
-
-- Upstream: https://github.com/cursor/plugins
-- Pinned SHA: `fae2c6ed95821bd85f614a73e4842e13229fa5e5`
-- License: MIT, Copyright (c) 2026 Lauren Tan.
-- New commands are user-invoked with locally maintained Codex policy metadata. Existing `tdd` and `diagnosing-bugs` retain their invocation policies. No Cursor model configuration or whole-plugin installation is imported.
-
-| Local skill | Upstream path (under `pstack/`) | Local adaptations |
-|---|---|---|
-| `blast-radius/` | `skills/blast-radius/SKILL.md` | Preserves evidence ladder, downstream investigation, and proof of safety assumptions; allows several assumptions, qualitative risk, and isolated checks. Removes required companion skills and automatic multi-model review. |
-| `create-verification-skill/` | `skills/create-verification-skill/SKILL.md`, `skills/create-verification-skill/references/feature-map-example/`; `skills/maintain-verification-skill/SKILL.md` | Portable project-local output, repo-native harnesses, explicit mutation/ownership boundaries, and honest mapped-versus-executed coverage. Maintenance is a referenced branch; changed means a local diff, not an automatic PR. Examples use an illustrative CLI, not an imaginary control tool. |
-| `why/` | `skills/why/SKILL.md`, `skills/why/references/epistemics.md` | Retains historical anchoring and calibrated confidence; narrows to available relevant sources, removes fixed MCP roster and mandatory delegated synthesis, and preserves material unknowns. |
-| `unslop/` | `skills/unslop/SKILL.md` | Explicit editing scope and natural prose; preserves technical facts and uncertainty. Drops always-on wording, rigid punctuation/style bans, and blanket jargon blacklist. |
-| `tdd/` | `skills/tdd/SKILL.md` | Selective additions to the existing Matt Pocock-derived skill: behavioral red verification, impractical-regression-check fallback, and before/after reporting. Retains feature TDD, agreed seams, and existing test-quality references. Does not import assertion blacklist. |
-| `diagnosing-bugs/` | `skills/poteto-mode/playbooks/hillclimb.md`, `skills/principle-attack-the-premise/SKILL.md` | Adds disclosed `PERFORMANCE.md` with stable repeated measurement and correctness gating, plus a general premise-check after failed fixes. Retains diagnosis and correct-seam checks; shares cadence with tdd. Omits iteration quota, actor-imbalance recipe, mandatory delegation, decision-log skill, automatic Git/PR actions. |
-
-The existing Matt Pocock entries above remain the provenance of the base skills.
-
-## luchasarie/bro-skill
-
-- Upstream: https://github.com/luchasarie/bro-skill
-- Pinned SHA: `3aa8c40b1241111f73ab5360e770f7512193a20e`
-- License: MIT, Copyright (c) 2026 Hermes Agent + Luka
-
-| Local skill | Upstream path | Local adaptations |
-|---|---|---|
-| `bro/` | `SKILL.md` | Verbatim upstream `SKILL.md`; imported revision recorded above. |
+| `frontend-design/` | `skills/frontend-design/SKILL.md`, `LICENSE.txt` | User-invoked with Codex policy metadata; brief clarification asks rather than invents the subject; visual guidance rewritten locally. |
 
 ## humanlayer/skills
 
 - Upstream: https://github.com/humanlayer/skills
-- Pinned SHA: `bba9d13ab34f0a87f1cc33df4dd196372393ddfc` (last commit touching `show-me`, 2026-09-12; copied 2026-10-01)
-- License: MIT, Copyright (c) 2026 HumanLayer
+- Pinned SHA: `bba9d13ab34f0a87f1cc33df4dd196372393ddfc` (2026-09-12).
+- License: MIT, Copyright (c) 2026 HumanLayer.
 
 | Local skill | Upstream path | Local adaptations |
 |---|---|---|
-| `show-me/` | `plugins/show-me/skills/show-me/SKILL.md` | None — verbatim copy of upstream `main`. Its `disable-model-invocation: true` keeps it user-invoked. |
+| `show-me/` | `plugins/show-me/skills/show-me/SKILL.md` | Verbatim; user-invoked. |
 
-## excel (retired)
+## Global policy references
 
-The local skill has been removed. This section preserves its provenance; the skill and
-bundled licenses remain in Git history under `home/skills/excel/` (the pre-restructure layout). Paths below describe
-that historical layout, not current source or installed content.
+The concise assumption/tradeoff, scoped-edit and checkable-outcome guidance in
+`AGENTS.md` was informed by [Karpathy's original observations](https://x.com/karpathy/status/2015883857489522876)
+and the [community-written Karpathy-inspired guidelines](https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md).
+The latter is not Karpathy's own instruction file. No additional skill or plugin
+is installed, and the full checklist is not copied into the global policy.
 
-- Upstream sources (pinned):
-  - https://github.com/openai/skills @ `7b548893` — `skills/.curated/spreadsheet/` (Apache-2.0; later removed upstream by commit `fdf90d6`). Bundled license: `excel/LICENSE.openai-skills.txt`.
-  - https://github.com/openai/role-specific-plugins @ `ebf5795` — `plugins/data-analytics/skills/spreadsheets/` (MIT). Bundled license: `excel/LICENSE.openai-role-specific-plugins.txt`.
-- Local: `excel/` — original skill, not a copy. Conventions adapted from the pinned sources: formulas for derived values, restrained professional formatting, sources/attribution, charts, bounded edits, QA loops. Nothing from the unavailable `@oai/artifact-tool` tooling or plugin routing is used; commands are `asp` (agent-spreadsheet) and local `openpyxl`/`xlwings` scripts.
-- **No Anthropic material**: Anthropic's public `skills/xlsx` was reviewed for comparison only; its license prohibits derivatives, and no text, scripts, assets, or structure from it were copied.
+## Retired copies
+
+All Matt Pocock-derived skills have been removed from active discovery, along with the local `personal-workflow`, adapted Cursor pstack skills and the luchasarie `bro` copy. Their prior attribution and adaptations remain in Git history. The local spreadsheet skill and its bundled license files are also retired and remain in Git history.

@@ -75,16 +75,19 @@ for f in settings web-search mcp; do link "pi/$f.json" "$H/.pi/agent/$f.json"; d
 link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the loop above
 for d in extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link agents/AGENTS.md "$H/.pi/agent/AGENTS.md"
+link pi/pstack-models.md "$H/.pi/agent/pstack-models.md"
 link agents/skills "$H/.agents/skills"   # Pi and Codex read this
 if [ -d "$H/.claude" ]; then
   link agents/AGENTS.md "$H/.claude/CLAUDE.md"
   link "claude/$claude_settings" "$H/.claude/settings.json"
+  link claude/pstack-models.md "$H/.claude/pstack-models.md"
   link claude/statusline-command.sh "$H/.claude/statusline-command.sh"
   for d in "$REPO"/agents/skills/*/; do d="$(basename "$d")"; link "agents/skills/$d" "$H/.claude/skills/$d"; done
 fi
 if [ -d "$H/.codex" ]; then
   link agents/AGENTS.md "$H/.codex/AGENTS.md"
   link "codex/$codex_config" "$H/.codex/config.toml"
+  link codex/pstack-models.md "$H/.codex/pstack-models.md"
   link codex/hooks.json "$H/.codex/hooks.json"
   link codex/agents/reviewer.toml "$H/.codex/agents/reviewer.toml"
 fi

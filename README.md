@@ -43,30 +43,73 @@ to check readiness without printing secrets.
 
 ## Pi packages and host-specific UI
 
-`pi/settings.json` pins the five direct package versions. After linking on another
+`pi/settings.json` pins four npm packages and the pstack Git revision. After linking on another
 machine, run `pi update --extensions` to reconcile the installed packages to those
 pins. To upgrade, change the version in settings, reconcile, and run the checks below.
 These are direct-package pins, not a lockfile for their transitive dependencies.
 
-`pi/extensions/standalone-ui.ts` loads the question and title packages only outside
-BB (`BB_THREAD_ID` absent). Their `extensions: []` settings suppress normal autoload,
-so BB gets neither Pi's duplicate question tool nor its automatic title requests.
-Keep those filters when changing versions; the guard imports the installed packages,
-not copies or patches of their code. Standalone Pi keeps both features.
+`pi/extensions/standalone-ui.ts` loads the title package only outside BB
+(`BB_THREAD_ID` absent). Its `extensions: []` setting suppresses normal autoload,
+so BB owns automatic titles. The guard imports the installed package, not a copy
+or patch. Pstack supplies Pi's question tool; the old question package is removed.
+Inside BB, prefer BB's own question tool.
 
-The personal summary skill is `/skill:pi-handoff`; BB's session-transfer plugin keeps
-`handoff`. Their distinct names prevent skill shadowing.
+## Pstack
 
-## Pi and BB orchestration
+[Pstack](https://github.com/michael-denyer/pstack-claude) provides on-demand
+engineering workflows in Claude Code, Codex and Pi. Routine tasks run directly;
+`poteto-mode` is reserved for explicit requests, typically large or complex projects. Release `0.9.86` is installed through each
+harness's native plugin/package mechanism, not copied into the shared personal
+skills directory. Claude uses tag `v0.9.86`; Codex and Pi use its commit
+`1dba27e50e8f18f146bb80f137f0690f8d773c2e`. Keep all three aligned when updating.
 
-Standalone Pi stays single-agent, including reviews. Inside BB, authorized
-helpers and agent messaging use BB child threads. One agent is the default;
-independent reviews and parallel workers are opt-in. Read-only reviewers can
-share a stable checkout; concurrent writers need separate worktrees and one
-integration owner. Worktrees separate edits, not operating-system permissions.
+After linking on a new machine with the CLIs installed, reconcile their installs:
 
-The former setup is preserved in [`archive/pi-delegation/`](archive/pi-delegation/README.md),
-outside active resource discovery. Herdr remains an optional terminal workspace.
+```sh
+claude plugin marketplace add michael-denyer/pstack-claude@v0.9.86
+claude plugin install pstack@pstack-claude --scope user
+codex plugin marketplace add michael-denyer/pstack-claude --ref 1dba27e50e8f18f146bb80f137f0690f8d773c2e
+codex plugin add pstack@pstack-claude
+pi update --extensions
+```
+
+The native SessionStart hooks remain installed, but routing is disabled by
+`session hook: off` in each harness's `pstack-models.md`. `link.sh` links the
+tracked `claude/`, `codex/` and `pi/` copies into the respective user directories.
+These sheets set routing only; upstream model and effort defaults are unchanged.
+Codex's Mac configuration retains the reviewed hook hash reported by `hooks/list`;
+if you later enable routing, inspect hook trust in `/hooks` on a new machine.
+
+Use `/pstack:poteto-mode <task>` in Claude Code, request `pstack:poteto-mode` in
+Codex, or use `/skill:poteto-mode <task>` in Pi. Specific skills such as `bro`,
+`how`, `architect` and `interrogate` remain directly available. Automatic routing
+is off in all three harnesses; BB inherits that through its native providers.
+Run the upstream `setup-pstack` skill when you want to choose models/effort.
+Keep routing off unless you intentionally change the opt-in policy.
+
+Matt Pocock's skills, the local pstack adaptations, the local `bro` copy and
+`personal-workflow` are retired. Unrelated personal skills remain under
+`agents/skills/`. Old names such as `to-spec`, `to-tickets`, `domain-modeling` and
+`pi-handoff` no longer exist; they are not compatibility aliases.
+
+### BB and delegation
+
+No separate BB installation is needed. BB uses the native harness installations
+on the thread's execution machine. Start a fresh thread/provider session after
+installation; existing conversation context can still advertise retired skills.
+Installing on the Mac does not install on the VPS or other enrolled machines.
+
+Explicitly invoked workflows authorize their prescribed helpers, including in
+standalone Pi; otherwise one agent is the default.
+Inside BB, the shared policy translates dispatch, messaging, listing and stopping
+to BB child threads and BB messaging. Upstream native tools may still be loaded;
+the host policy takes precedence. No BB plugin or forked pstack runtime is added.
+Read-only reviewers can share a stable checkout; concurrent writers need separate
+worktrees and one integration owner. Worktrees separate edits, not OS permissions.
+
+The earlier standalone single-agent setup is preserved in
+[`archive/pi-delegation/`](archive/pi-delegation/README.md), outside active discovery.
+Herdr remains an optional terminal workspace.
 
 ## Project memory
 
