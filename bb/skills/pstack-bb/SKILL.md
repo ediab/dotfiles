@@ -12,7 +12,7 @@ An explicitly requested pstack workflow authorizes the helpers it prescribes. Lo
 ## Resolve the environment and role
 
 1. Read `bb thread show --self --json` for the parent environment and its `hostId`. Read `bb guide threads` and `bb guide thread-messaging` for the current command contract.
-2. Find the installed pstack copy on that execution machine through its provider's plugin/package listing, such as `pi list` or `claude plugin list`. Do not assume the server and execution machine share paths. If required role files are missing, stop and report the missing installation.
+2. Find the installed pstack copy on that execution machine through its provider's plugin/package listing, such as `pi list` or `claude plugin list`. Resolve the **plugin root**, containing `.claude-plugin/plugin.json` and `skills/poteto-mode/SKILL.md`. Pi's Git package listing points to the repository root; its plugin root is `<package>/plugins/pstack`. A provider's plugin cache may already point to the plugin root. All role and skill paths below are relative to that plugin root. Do not assume the server and execution machine share paths. If required files are missing at the resolved plugin root, stop and report the missing installation.
 3. Read the requested role file and pass its absolute path to the worker. Also pass the absolute path of `skills/poteto-mode/SKILL.md` when the role requires it. Do not copy upstream role bodies into this skill.
 
 Map pstack agent types as follows:
