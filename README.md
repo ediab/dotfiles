@@ -13,7 +13,6 @@ agents/AGENTS.md       -> ~/.pi/agent/AGENTS.md, ~/.codex/AGENTS.md, ~/.claude/C
 agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
 agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
 pi/{extensions,themes}/ -> ~/.pi/agent/<same>
-archive/               retired Pi delegation setup and Pi memory extension (not linked)
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, mcp)
 pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
@@ -115,8 +114,8 @@ Install the adapter in the active BB server's user skill directory as described
 in [`bb/README.md`](bb/README.md#bb-skills-in-user-scope). `link.sh` does not install
 BB skills. Start a fresh provider session after installing or updating the adapter.
 
-The earlier standalone single-agent setup is preserved in
-[`archive/pi-delegation/`](archive/pi-delegation/README.md), outside active discovery.
+The earlier standalone single-agent setup was retired and removed from the tree in
+`23db841`; its files remain in Git history only.
 Herdr remains an optional terminal workspace.
 
 ## UI skills
@@ -164,7 +163,7 @@ file in every repo. Stage, commit and push only when authorized.
 and BB-wide operational knowledge, avoiding duplicate repository memory stores.
 Restore that file explicitly as described in [`bb/README.md`](bb/README.md#bb-user-instructions).
 
-The old Pi extension is archived in [`archive/pi-memory/`](archive/pi-memory/README.md)
+The old Pi memory extension was removed from the tree in `23db841` (Git history only)
 and no longer loads. Its machine-local `~/.pi/agent/memory/` store has been removed.
 
 ## BB
