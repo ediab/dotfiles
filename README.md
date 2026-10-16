@@ -111,6 +111,40 @@ The earlier standalone single-agent setup is preserved in
 [`archive/pi-delegation/`](archive/pi-delegation/README.md), outside active discovery.
 Herdr remains an optional terminal workspace.
 
+## UI skills
+
+[Impeccable](https://github.com/pbakaus/impeccable) **4.6.0** and
+[Interface Design](https://github.com/Dammyjay93/interface-design) are installed
+unchanged through their supported installers. Taste Skill is not installed.
+They retain upstream automatic skill selection; no additional routing policy is added.
+Name the skill explicitly when you want a particular workflow to lead.
+
+On another machine, install the native copies before verifying the setup:
+
+```sh
+npx --yes impeccable@4.6.0 install --providers=claude,codex,pi --scope=global --no-hooks --yes
+DISABLE_TELEMETRY=1 DO_NOT_TRACK=1 npx --yes skills@1.7.2 add https://github.com/Dammyjay93/interface-design/tree/2f9be3206855bcb2d1d0af262c8bae25cba6658d --skill interface-design --agent claude-code codex pi --global --yes
+bash link.sh
+```
+
+Impeccable's installer provides separate Claude, Codex and Pi builds, helper-agent
+profiles where supported, and engine **0.1.15**. Its Codex build lands in the linked
+`agents/skills/impeccable/`; Claude and Pi keep their native user-directory copies.
+`link.sh` deliberately leaves Claude's Impeccable copy alone, and Pi's `skills`
+setting excludes the shared Codex copy to avoid duplicate discovery. Engine
+binaries are machine-local and ignored by Git. Re-run the installer to provision
+native copies and binaries; the npm version pins the installer, not an immutable
+skill-download artifact.
+
+Interface Design lives in `agents/skills/interface-design/`, read by Codex/Pi and
+linked into Claude. Its core skill is shared; Claude plugin-only review commands
+are not installed by the skills installer.
+
+No Impeccable hooks are installed. Use its commands manually; do not run `init`
+in dotfiles just to install the skill. `init` creates project product/design
+context and belongs in an application checkout. Live mode and automatic hooks
+are separate opt-in actions, not part of this setup.
+
 ## Project memory
 
 The shared [`agents/AGENTS.md`](agents/AGENTS.md#project-memory) defines the policy:

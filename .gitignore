@@ -1,6 +1,9 @@
 # pi runtime dirs (local state — not canonical config)
 .pi/
 
+# Impeccable installs a platform-specific engine beside its portable skill sources.
+/agents/skills/impeccable/scripts/bin/
+
 # Python bytecode
 __pycache__/
 *.pyc

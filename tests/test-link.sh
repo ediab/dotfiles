@@ -140,6 +140,15 @@ mkdir "$H/.agents/skills/gamma"; echo gamma > "$H/.agents/skills/gamma/SKILL.md"
 go; expect_status 0 gamma; points "$H/.claude/skills/gamma" agents/skills/gamma
 cat "$H/.claude/skills/gamma/SKILL.md" | grep -q gamma || fail 'Claude link does not resolve'
 
+echo "8b. Impeccable keeps its native Claude build instead of linking the Codex build"
+mkdir -p "$REPO/agents/skills/impeccable" "$H/.claude/skills/impeccable"
+echo codex > "$REPO/agents/skills/impeccable/SKILL.md"
+echo claude > "$H/.claude/skills/impeccable/SKILL.md"
+go; expect_status 0 nativeimpeccable
+[ ! -L "$H/.claude/skills/impeccable" ] || fail 'native Impeccable was replaced by a link'
+grep -qx claude "$H/.claude/skills/impeccable/SKILL.md" || fail 'native Impeccable was changed'
+rm -rf "$REPO/agents/skills/impeccable"
+
 echo "9. a deleted skill loses its Claude link"
 rm -rf "$REPO/agents/skills/gamma"; go; expect_status 0 delete
 [ ! -L "$H/.claude/skills/gamma" ] || fail 'link to deleted skill kept'

@@ -9,6 +9,21 @@
 - Installed through the native Claude Code plugin, Codex plugin and Pi package. No pstack skill files are copied into `agents/skills/` or modified locally.
 - Host, BB delegation and safety overrides live in `agents/AGENTS.md`, not upstream files. See the root README for installation and updates.
 
+## pbakaus/impeccable
+
+- Upstream: https://github.com/pbakaus/impeccable
+- Installed skill release: `4.6.0`; engine `0.1.15`, using `npx impeccable@4.6.0 install --providers=claude,codex,pi --scope=global --no-hooks --yes`.
+- License: Apache-2.0; upstream `LICENSE` and `NOTICE.md` are bundled with the tracked Codex skill.
+- The supported installer supplies provider-specific builds. `agents/skills/impeccable/` is the Codex build, unchanged; Claude/Pi native copies and Claude helper profiles are installed outside this repo. Runtime binaries are ignored by Git.
+- No skill playbooks are patched. Pi excludes the shared duplicate, and the linker preserves Claude's native build. Automatic detector hooks are not installed.
+
+## Dammyjay93/interface-design
+
+- Upstream: https://github.com/Dammyjay93/interface-design
+- Installed revision: `2f9be3206855bcb2d1d0af262c8bae25cba6658d`.
+- License: MIT; upstream `LICENSE` is bundled in the skill folder.
+- Installed core skill and Codex metadata are unchanged, via `skills@1.7.2`. Shared by Claude Code, Codex and Pi through the existing skill locations/links. Claude plugin commands are not installed.
+
 ## anthropics/skills
 
 - Upstream: https://github.com/anthropics/skills

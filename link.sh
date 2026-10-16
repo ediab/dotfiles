@@ -82,7 +82,12 @@ if [ -d "$H/.claude" ]; then
   link "claude/$claude_settings" "$H/.claude/settings.json"
   link claude/pstack-models.md "$H/.claude/pstack-models.md"
   link claude/statusline-command.sh "$H/.claude/statusline-command.sh"
-  for d in "$REPO"/agents/skills/*/; do d="$(basename "$d")"; link "agents/skills/$d" "$H/.claude/skills/$d"; done
+  for d in "$REPO"/agents/skills/*/; do
+    d="$(basename "$d")"
+    # Impeccable installs different provider builds; leave Claude's native copy alone.
+    [ "$d" = impeccable ] && continue
+    link "agents/skills/$d" "$H/.claude/skills/$d"
+  done
 fi
 if [ -d "$H/.codex" ]; then
   link agents/AGENTS.md "$H/.codex/AGENTS.md"

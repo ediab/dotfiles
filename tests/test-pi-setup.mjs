@@ -154,6 +154,28 @@ for (const bb of [false, true]) {
   });
 }
 
+test("UI skills load once and Pi selects its native Impeccable build", async t => {
+  const temp = fixture(t, false);
+  const loader = new DefaultResourceLoader({
+    cwd: temp,
+    agentDir,
+    settingsManager: SettingsManager.inMemory({ skills: settings.skills }),
+    noExtensions: true,
+    noThemes: true,
+    noPromptTemplates: true,
+    noContextFiles: true,
+  });
+  await loader.reload();
+  const { skills, diagnostics } = loader.getSkills();
+  assert.deepEqual(diagnostics, []);
+  for (const name of ["impeccable", "interface-design"]) {
+    assert.equal(skills.filter(s => s.name === name).length, 1, name);
+  }
+  assert.equal(skills.find(s => s.name === "impeccable").filePath,
+    join(agentDir, "skills/impeccable/SKILL.md"));
+  assert.ok(!skills.some(s => s.name === "design-taste-frontend"));
+});
+
 test("personal skills and BB handoff have no retired copies or upstream name collisions", t => {
   const temp = fixture(t, true);
   const bbSkills = join(temp, "skills/handoff");

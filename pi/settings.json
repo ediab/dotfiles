@@ -8,7 +8,9 @@
   ],
   "tuiMode": "fullscreen",
   "externalEditor": "druk",
-  "skills": [],
+  "skills": [
+    "-~/.agents/skills/impeccable/SKILL.md"
+  ],
   "defaultProjectTrust": "ask",
   "enableInstallTelemetry": false,
   "steeringMode": "all",
