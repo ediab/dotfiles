@@ -183,9 +183,10 @@ The installed user units run the modules with `/usr/bin/python3`, not the xbot v
 
 1. Run `python3 -m unittest discover -s config/vps/security/tests -v`.
 2. Back up installed units/drop-ins and original monitor checksums privately.
-3. Copy these four Python files to `~/ops/vps-security/libexec/` (directory0700,
-   files0600). Keep the original `~/bin/vps-app-health.py` and
-   `~/bin/vps-disk-alert.py` untouched.
+3. Copy these five Python files — `core.py`, `system_runtime.py`,
+   `healthcheck_wrapper.py`, `scanner.py`, `job_watchdog.py` — to
+   `~/ops/vps-security/libexec/` (directory 0700, files 0600). Keep the original
+   `~/bin/vps-app-health.py` and `~/bin/vps-disk-alert.py` untouched.
 4. Populate private configuration from `examples/config.json`. Set private
    hosted ping URLs for app/disk/scan/watchdog and enable Healthchecks. Account
    API credentials stay off-host; the VPS receives only scoped ping URLs.
