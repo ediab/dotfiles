@@ -11,6 +11,7 @@ This folder records how to install/update BB and restore selected preferences. I
 - `apply.py`: preview or explicitly restore those preferences to a chosen server.
 - `plugins.json`: manually maintained plugin inventory with observed versions, sources, and monorepo subdirectories. It is documentation, not an automatic installer.
 - `common.py`: shared preference allowlists and CLI calls.
+- `skills/`: canonical BB user skills, including `pstack-bb` for pstack delegation.
 
 Requirements: Python 3.11+ for the repository's Python checks (commands below use `python3.11` explicitly), Node.js supported by BB (0.45.0 supports Node 22.19+, 24, or 26), npm, and a working `bb` CLI for snapshot/restore. The runtime install needs network access and runs the native dependency build scripts for `better-sqlite3`, `node-pty`, and `@parcel/watcher`.
 
@@ -42,13 +43,17 @@ Use BB's supported update mechanism for the active installation. Check a real ta
 (default `~/.bb/AGENTS.md`). It sets question-tool routing and the BB memory boundary;
 the shared `agents/AGENTS.md` remains the cross-client policy.
 
-On the machine running the target BB server, compare and merge any local differences
-before explicitly restoring (commands assume the default data directory):
+Run the following commands in `~/Dev/dotfiles` on the active server's machine.
+For `diab.getbb.app`, that machine is the VPS and its data directory is
+`~/.bb-machines/diab.getbb.app`, not the Mac's `~/.bb`. Use `bb status` to confirm
+the target. For another server, replace `bb_data_dir` with its actual data directory.
+Compare and merge any live differences before restoring:
 
 ```sh
-diff -u ~/.bb/AGENTS.md bb/AGENTS.md
-mkdir -p ~/.bb
-cp bb/AGENTS.md ~/.bb/AGENTS.md
+bb_data_dir="$HOME/.bb-machines/diab.getbb.app"
+diff -u "$bb_data_dir/AGENTS.md" bb/AGENTS.md
+mkdir -p "$bb_data_dir"
+cp bb/AGENTS.md "$bb_data_dir/AGENTS.md"
 ```
 
 For an intentional live edit, review the reverse diff and copy it back to the repo.
@@ -57,20 +62,64 @@ file; server preferences and agent instructions are separate restore steps.
 
 ## BB skills in user scope
 
-`bb skills` (bb-user scope) skills live in `~/.bb/skills/` — plain files owned by the BB CLI, editable in the app or via `bb skills` commands. They are separate from the tracked skills in `agents/` (linked via `link.sh`) and from skills shipped inside plugins (`plugins.json` covers those). `bb/skills/` is the canonical copy of `~/.bb/skills/` (`diff-review`, `ui-audit`): edit skills here, then restore. It is a plain copy, not a link; `link.sh` does not touch it.
+BB user skills live in `<dataDir>/skills/` on the active server. BB distributes
+runtime copies to execution machines, including the Mac. Do not edit generated
+`~/.bb/runtime/global-skills/` copies. These skills are separate from native
+skills in `agents/` and from plugin skills.
+
+`bb/skills/` is the canonical copy of `diff-review`, `ui-audit`, and `pstack-bb`.
+Edit this repo, sync it to the VPS through Git, then restore the intended skills
+into the server's data directory. These are plain copies, not links;
+`link.sh` and `apply.py` do not install them.
+
+Run from `~/Dev/dotfiles` on the VPS after reviewing any differences:
 
 ```sh
-# Compare first (run from the dotfiles root):
-diff -ru bb/skills ~/.bb/skills
+bb_data_dir="$HOME/.bb-machines/diab.getbb.app"
+diff -ru bb/skills "$bb_data_dir/skills"
 
-# Restore the repo copy onto a machine:
-rsync -a bb/skills/ ~/.bb/skills/
+# Restore only the skill you intend to change:
+mkdir -p "$bb_data_dir/skills/pstack-bb"
+cp bb/skills/pstack-bb/SKILL.md "$bb_data_dir/skills/pstack-bb/SKILL.md"
 
-# Capture only an edit made in the live copy that you want to keep, one skill at a time:
-cp ~/.bb/skills/<name>/SKILL.md bb/skills/<name>/SKILL.md
+# Confirm discovery, then start a fresh provider session:
+bb skill list --json
 ```
 
-Never capture the whole folder with `rsync --delete`: a stale live copy would silently revert repo edits. Agents may edit the live copy in place, so review the diff before restoring too. The installed BB release has no `skills export`/`skills import` command, so this folder is the portable copy.
+Repeat the copy for another reviewed skill. To restore all tracked skills after
+reviewing their live differences, use:
+
+```sh
+rsync -a bb/skills/ "$bb_data_dir/skills/"
+```
+
+Do not use `--delete`. Preserve unrelated live skills and merge differences first.
+
+To capture an intentional live edit, copy only that skill back into the repo
+and review the diff. `bb skill update` can edit an existing user skill;
+`bb skill install` installs a registry skill, not a local directory. A new local
+skill is installed by creating its directory and `SKILL.md` in the server's user
+skill root. There is no skill export/import command.
+
+### Pstack delegation
+
+The [`pstack-bb` skill](skills/pstack-bb/SKILL.md) adapts upstream pstack worker
+operations to BB child threads across Pi, Claude Code, and Codex. The shared
+[`agents/AGENTS.md`](../agents/AGENTS.md) requires it before delegation inside BB.
+Standalone sessions retain their native pstack tools. Keep upstream pstack
+installed on each execution machine and leave its files unchanged.
+
+Workers use the parent's machine. Readers can share the parent's environment;
+writers use managed worktrees from an explicit committed base. The adapter
+preserves pstack roles and review gates, validates model and effort choices
+against BB's catalog, and keeps integration with the parent. Reviewers' no-edit
+instructions are not a read-only sandbox. Do not archive a worktree until useful
+work is committed and preserved.
+
+After an adapter update, verify discovery in a fresh BB session. Run a small
+cross-provider review and an isolated-writing check. Inspect the child threads,
+target machines, requested model/effort, completion messages, and diffs. Confirm
+that no native subagent tools ran and that reviewers left the shared tree unchanged.
 
 ## Capture current preferences
 

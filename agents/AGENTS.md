@@ -26,7 +26,7 @@
 ## Delegation and orchestration
 
 * Explicitly invoked workflows authorize their prescribed helpers and independent reviews, including in standalone Pi. Otherwise use one agent and launch helpers only when requested. One orchestrator owns integration and checks delegated results against the sources; workers return requests rather than delegating further.
-* Inside BB, translate pstack agent dispatch, messaging, listing and stopping to BB child threads and BB messaging. Use BB's question tool when available. Outside BB, use the harness's native tools, including the pstack Pi extension.
+* Inside BB, read the `pstack-bb` skill before delegation and use BB child threads and BB messaging instead of native subagent tools. If the adapter is missing, report it before dispatching pstack workers. Use BB's question tool when available. Outside BB, use the harness's native tools, including the pstack Pi extension.
 
 ## Changes
 

@@ -102,11 +102,17 @@ Installing on the Mac does not install on the VPS or other enrolled machines.
 
 Explicitly invoked workflows authorize their prescribed helpers, including in
 standalone Pi; otherwise one agent is the default.
-Inside BB, the shared policy translates dispatch, messaging, listing and stopping
-to BB child threads and BB messaging. Upstream native tools may still be loaded;
-the host policy takes precedence. No BB plugin or forked pstack runtime is added.
-Read-only reviewers can share a stable checkout; concurrent writers need separate
-worktrees and one integration owner. Worktrees separate edits, not OS permissions.
+Inside BB, read the [`pstack-bb` adapter](bb/skills/pstack-bb/SKILL.md) before
+delegating. It routes workers through BB child threads, preserves pstack role
+instructions, and resolves models against the target machine's BB catalog.
+Reviewers can share a stable checkout with explicit no-edit instructions;
+concurrent writers use separate BB worktrees on the parent's machine. Worktrees
+separate edits, not OS permissions. Upstream native tools may still be loaded,
+but the BB adapter takes precedence. No BB plugin or forked pstack runtime is added.
+
+Install the adapter in the active BB server's user skill directory as described
+in [`bb/README.md`](bb/README.md#bb-skills-in-user-scope). `link.sh` does not install
+BB skills. Start a fresh provider session after installing or updating the adapter.
 
 The earlier standalone single-agent setup is preserved in
 [`archive/pi-delegation/`](archive/pi-delegation/README.md), outside active discovery.
