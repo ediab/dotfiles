@@ -73,7 +73,9 @@ free models. It defaults to `opencode/deepseek-v4.1-flash-free` and also exposes
 be used for training). Lightweight internal requests use DeepSeek Free too. These promotions can expire. No API key is stored in this repo.
 The GLM entry supplies metadata missing from OpenCode 1.19.2's bundled catalog,
 using the [official model definition](https://github.com/anomalyco/models.dev/blob/dev/providers/opencode/models/glm-5.3-flash-free.toml).
-Remove that override once the bundled catalog contains the model.
+Remove that override once the bundled catalog contains the model. The DeepSeek Free
+entry raises its declared limits from the advertised 200k context / 32k output to
+1M / 384k, matching the paid `deepseek-v4.1-flash` it serves.
 
 OpenCode discovers `~/.agents/skills` and `~/.claude/skills` itself. Its config also
 reads pstack skills from Pi's existing package checkout, so reconcile Pi packages
