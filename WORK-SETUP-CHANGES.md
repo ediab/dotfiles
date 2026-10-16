@@ -1,156 +1,82 @@
-# Work setup: what changed today (2026-10-13)
+# Work setup: what changed today (2026-10-16)
 
-Historical checklist: the pstack migration supersedes the skill inventory and
-single-agent/workflow rules below. Use the root README and `agents/AGENTS.md`
-for the active setup; do not restore retired skills from this checklist.
+Today's change was to replace the mixed collection of copied and locally adapted
+skills with one upstream pstack installation across Claude Code, Codex and Pi,
+while keeping everyday work lightweight and larger workflows explicitly opt-in.
 
-Temporary; delete once the work setup is updated. Personal dotfiles commits `25db045` → `faa433f`. Use as a checklist to mirror at work.
+## One upstream skill stack
 
-## Target model
+- Installed [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude)
+  **0.9.86** through each client's native mechanism: Claude Code and Codex plugins,
+  and a Pi Git package. Claude uses tag `v0.9.86`; Codex and Pi use commit
+  `1dba27e50e8f18f146bb80f137f0690f8d773c2e`.
+- Removed the Matt Pocock-derived skills and local pstack adaptations, including
+  the old planning/grilling workflows, `diagnosing-bugs`, `domain-modeling`,
+  `prototype`, `tdd`, `pi-handoff` and `writing-for-agents`.
+- Removed local copies of `bro`, `unslop`, `blast-radius`, `why` and
+  `create-verification-skill`. Upstream equivalents remain available without
+  duplicate discovery or local forks. Unrelated personal utilities were kept.
+- Removed `personal-workflow` rather than maintain another everyday playbook.
+  Its useful safeguards now live in the shared global policy.
+- Deleted the retired Pi delegation and memory-extension archives. Neither was
+  part of the active setup.
 
-- **BB is the multi-agent hub.** Delegation happens only inside BB, as child threads. Standalone Pi is a single agent: no subagents, no agent-to-agent messaging, reviews stay inline.
-- **One agent works end to end.** Extra agents only on request: one helper by default, two at most.
-- **One `AGENTS.md` for every client.** The same file is linked into Pi, Claude and Codex. It holds policy only; procedures live in skills. Tool-specific rules go in the tool's own config.
-- **Memory lives in the repo.** A versioned root `MEMORY.md` in each repo, read by every client inside and outside BB. BB memory is only for cross-project preferences. Per-tool memory is off.
-- **Lean context.** No large SessionStart hook output; nothing loads that only one tool needs.
+## Routine work stays direct; larger workflows are opt-in
 
-## 1. Global `AGENTS.md` (Pi, Claude, Codex)
+- One agent is the default. A large or complex task does not automatically
+  authorize `poteto-mode`; it runs only when explicitly requested.
+- Disabled pstack's automatic session routing in all three clients with
+  `session hook: off` in their tracked `pstack-models.md` files. `link.sh` now
+  links those files into each client's user directory. Upstream model and
+  effort defaults were left unchanged.
+- An explicitly invoked workflow can use the helpers and reviews it prescribes,
+  including in standalone Pi. This replaces the old blanket restriction that
+  standalone Pi must never use helpers.
+- Inside BB, delegation uses BB child threads and messaging. Outside BB, it uses
+  the client's native tools. One orchestrator owns integration and verification.
+- BB needs no separate pstack installation: it uses the native installation on
+  the thread's execution machine. Today's installation was on the Mac, not a
+  rollout to the VPS or other machines.
 
-- Removed the **Jev** section completely.
-- **Browser section** is now generic. Lightpanda's rules moved into its MCP `description` in Pi's `mcp.json`, so only Pi sees them.
-- **Delegation** is shortened to three bullets: BB child threads; standalone Pi single-agent; the orchestrator checks results.
-- Removed duplicate lines: the "owner source-checks subagent claims" line and the "procedures live in skills" line in Context.
-- Added a **Project memory** section.
+## Pi questions and titles
 
-Final file (copy as a base):
+- Removed the duplicate `@juicesharp/rpiv-ask-user-question` package because
+  pstack supplies Pi's question tool. Inside BB, prefer BB's own question tool.
+- Simplified `pi/extensions/standalone-ui.ts` to load only `pi-title` outside BB.
+  BB continues to own thread titles.
 
-```md
-# Global agent policy
+## Shared agent policy
 
-Short policy, loaded every turn. Procedures live in skills — open the matching skill when the task needs it.
+Updated `agents/AGENTS.md`, shared by Pi, Claude Code and Codex:
 
-## Style
-* Match my writing style: direct, concise, warm, and practical. Lead with the point, avoid unnecessary ceremony, and include enough context to explain constraints and next steps. Adjust formality and detail to the audience.
+- Read the relevant code, identify a checkable outcome, and surface consequential
+  assumptions and tradeoffs. Resolve factual questions from evidence; ask only
+  for decisions that genuinely need the user.
+- Make scoped, simple changes that match the surrounding code. Avoid speculative
+  abstractions and unrelated cleanup, and remove code made unused by the change.
+- Verify the requested behavior and report what changed, what passed and what
+  remains unverified. Tests alone do not prove a live service works.
+- Keep commits, pushes, PRs, deployments and branch/history changes explicitly
+  authorized. Invoking a workflow is not blanket permission for those actions.
+- Write in plain, direct, warm language: prefer active voice, consistent technical
+  terms, focused sentences and short paragraphs. Preserve exact commands,
+  identifiers, values, units and uncertainty. Accuracy takes priority over brevity.
+- Use clear steps for instructions, with conditions and warnings before actions.
+  Choose prose, diagrams or interactive HTML according to what helps understanding;
+  create explainer videos only when requested.
 
-## Research
-* Verify current or uncertain external facts from primary sources.
-* Prefer the `context7` MCP server for library/API documentation — it returns current, version-pinned docs.
+The writing guidance takes useful principles from Simplified Technical English
+without imposing strict ASD-STE100 word limits, vocabulary or punctuation rules.
+No additional writing skill was installed.
 
-## Browser automation
-* Use the client's search/fetch tools for ordinary search and reading (pi-web-access in Pi).
-* Use a browser tool only for JavaScript-dependent pages, interaction, or visual rendering; prefer compact page structure and targeted extraction over full HTML.
-* Close explicitly created browsing sessions when finished.
+## Documentation and verification
 
-## Skills
-* When a task matches a skill's description, read and follow that skill before acting.
-* Do not copy skill procedures into this file.
-* Create new personal skills in `~/.agents/skills/<name>`.
-
-## Delegation and orchestration
-* Launch agents or reviewers only when the user requests delegation or explicitly invokes a workflow that authorizes it. An ordinary review request stays inline; having the tools is not permission.
-* Delegated workers return requests to their owner rather than delegating further. One orchestrator at a time; it checks delegated results against the sources.
-* Inside BB, delegate via BB child threads and BB messaging. Standalone Pi stays single-agent, including reviews.
-
-## Changes
-* Preserve unrelated user changes; do not overwrite or revert them.
-* Run the relevant check before reporting done; report checks that could not be run.
-* A passing test suite is not proof a live service works.
-
-## Context
-* Project `AGENTS.md` / `CLAUDE.md` files layer on top of this file and take precedence where they are more specific.
-
-## Project memory
-* If the repository root has `MEMORY.md`, read it before starting work.
-* Use the repository's versioned `MEMORY.md` as the single home for durable, verified facts that the code and docs don't show: operational paths, deploy or recovery steps, gotchas, decisions. Create it when there is something worth retaining; commits still require authorization. Never secrets, transient status, guesses, or anything already in `AGENTS.md`.
-* Keep it short: update or remove stale entries rather than appending.
-```
-
-## 2. BB
-
-- **New BB-only instructions** in `~/.bb/AGENTS.md`, kept in the repo as `bb/AGENTS.md` and copied into place manually:
-
-  ```md
-  # BB preferences
-
-  ## Questions
-  For necessary clarification questions in BB, prefer BB's `AskUserQuestion` tool when available; otherwise ask in chat. Leave Pi's `ask_user_question` tool for standalone terminal sessions.
-
-  ## Memory
-  Repository knowledge follows the global `MEMORY.md` policy, including inside BB. Do not create duplicate BB project memories for repository facts. Reserve BB memory for cross-project preferences and BB-wide operational facts, using global scope.
-  ```
-
-- Uninstalled the **agent-board** plugin. Removed sidebar panel and footer entries for plugins that aren't installed or are disabled (agent-board, file-manager, graph-studio, simple-notes, tasks, automations, provider-usage).
-- **BB telemetry is off.**
-- Removed the BB user skills **`bb-pi-control`** and **`bb-pi-health`** from `~/.bb/skills`. They were mostly "read BB's own skills first" wrappers.
-- `diff-review` is the review skill inside BB and is **not** shared with the standalone clients. `ui-audit` and `web-design` now point to it.
-
-## 3. Pi
-
-**Packages**
-- Removed **`pi-herdsman`**, **`pi-intercom`** and **`pi-review`** (multi-agent and review packages). Earlier today I also removed **`pi-extmgr`**, **`ponytail`** and **`@saccolabs/pi-claude-cli`**.
-- Five packages remain, **pinned to exact versions** in `settings.json`: `pi-web-access`, `pi-code-previews`, `@juicesharp/rpiv-ask-user-question`, `pi-powerline-footer` and `pi-title`. The pins cover direct packages only, not their dependencies. (`@ff-labs/pi-fff` and `@narumitw/pi-btw` were later removed too.)
-- `@narumitw/pi-btw` removed: its `/btw` side-question config `pi-btw.json` was deleted and `@narumitw/pi-tui-kit` (its only dependency) was pruned.
-
-**Question and title packages load only outside BB**, because BB owns questions and thread titles. Their autoload is disabled in `settings.json` with `{"source": "npm:<pkg>@<ver>", "extensions": []}`, and a small extension `extensions/standalone-ui.ts` loads them only when `BB_THREAD_ID` is unset:
-
-```ts
-import { join } from "node:path";
-import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
-export default async function standaloneUI(pi: ExtensionAPI): Promise<void> {
-	if (process.env.BB_THREAD_ID) return;
-	for (const name of ["@juicesharp/rpiv-ask-user-question", "pi-title"]) {
-		const { default: register } = await import(join(getAgentDir(), "npm", "node_modules", name, "index.ts"));
-		await register(pi);
-	}
-}
-```
-
-**MCP** (`~/.pi/agent/mcp.json`, all `"exposure": "codemode"`)
-- Added **Lightpanda** (`lightpanda mcp --obey-robots`, telemetry and core dumps disabled). Its usage rules are in its `description`: text and page structure only, never screenshots; refresh structure after navigation; close sessions.
-- Added **Fastmail**.
-- **context7** is unchanged.
-
-**Other**
-- Archived the custom **Pi memory extension** and replaced it with the `MEMORY.md` rule. I moved the old notes into each repo's `MEMORY.md` and committed them.
-- Archived the orchestration skill and agent profiles (implementer, researcher, reviewer, tester).
-
-**Live clean-up** (outside git; check for the same leftovers at work)
-- Deleted the leftover folders from removed packages in `~/.pi/agent/`: `pi-herdsman`, `intercom`, `missions`, `pi-blackhole`, `.extmgr-cache`, `run-history.jsonl` and `commandcode-models.json`.
-- Run `npm ls --depth=0` in `~/.pi/agent/npm`. Removed packages can linger there (ponytail did), along with empty `@scope` folders.
-- Deleted old Pi releases in `~/.pi/agent/install/releases/`, keeping only the current one.
-- Check whether `~/.pi/agent/sessions` is a symlink. Here it pointed into the old oh-my-pi folder (`~/.omo`), so Pi sessions were stored there. Fixed by moving the sessions into a real `~/.pi/agent/sessions` folder and deleting `~/.omo` (1.2 GB).
-
-## 4. Shared skills (`~/.agents/skills`, linked into Pi, Codex and Claude)
-
-- **Deleted:** `code-review` and `personal-workflow/DELEGATION.md`.
-- **`personal-workflow`:** delegation is now a short "Extra agents" section:
-  - Default to one helper, at most two, and only for independent work with a checkable result.
-  - Inside BB, use a child thread created with `--parent-self` and a self-contained brief: goal, baseline, owned paths, exclusions, checks, and "report only, no further delegation".
-  - The main agent stays the owner: it integrates, verifies and runs the final checks. Report-only reviewers may share the checkout; concurrent writers need separate worktrees.
-  - Yield to completion notifications instead of polling. Higher risk means stronger verification, not more implementers.
-- **`handoff` renamed to `pi-handoff`** so it doesn't shadow BB's `handoff`. Pi's version writes a portable summary; BB's version moves sessions.
-- **`implement`:** TDD is now opt-in explicitly.
-- **Kept on purpose:** the planning and grilling skills (`grill-*`, `ask-matt`, `brainstorm`, `to-spec`, `to-tickets`, `wayfinder`) and the skills standalone Pi needs even though BB has similar ones (`pi-handoff`, `frontend-design`, `show-me`).
-
-## 5. Codex
-
-- `[features] memories = false`, and removed the `[memories]` table.
-- Removed the **`lavish-axi` SessionStart hook**, whose output was about 2.3k tokens per session. The tool still works when called directly.
-- Hook trust (`[hooks.state."…hooks.json:session_start:N:0"]`) is keyed by **list position**. When you remove a hook, renumber the remaining trust entries or Codex asks you to re-trust them.
-
-## 6. Claude
-
-- I didn't change it. The `lavish-axi` SessionStart hook is still there; consider removing it at work for the same token saving.
-
-## Checklist for work
-
-- [ ] Replace the global `AGENTS.md` with the version above, keeping work-specific sections.
-- [ ] Add `~/.bb/AGENTS.md` (questions and memory scope).
-- [ ] Pi: remove the multi-agent and review packages; pin the rest; add `standalone-ui.ts` with `extensions: []` for the question and title packages.
-- [ ] Pi: move tool-specific rules into MCP `description`s.
-- [ ] Retire any per-tool memory (Pi extension, Codex memories); start `MEMORY.md` per repo.
-- [ ] Drop `lavish-axi` (and other noisy) SessionStart hooks; re-key the Codex hook trust entries.
-- [ ] Remove the `code-review` skill, any `bb-pi-*` skills and `DELEGATION.md`; add the "Extra agents" section; rename `handoff` to `pi-handoff`.
-- [ ] BB: uninstall unused plugins, clean the sidebar keys, turn telemetry off.
-- [ ] Clean `~/.pi/agent`: leftover folders, orphan npm packages, old releases, and a `sessions` symlink if there is one.
-- [ ] Start fresh Pi, BB, Codex and Claude sessions afterwards.
+- Updated the README, skill attribution, client settings, linker and tests for
+  the new setup. The README has the installation commands for another machine.
+- Verified all **63 upstream skills** (39 main skills and 24 principles), native
+  discovery, Pi loading inside and outside BB, and disabled automatic routing.
+- Linker, deployment-script, Pi integration, title UI and BB preference checks
+  passed. The known portability-test failure remains: Mac and Linux Claude
+  defaults differ. Those unrelated defaults were not changed.
+- Live multi-agent workflows were not exercised. Start fresh client sessions or
+  BB threads so old conversation context no longer advertises retired skills.
