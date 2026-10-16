@@ -32,7 +32,7 @@
 
 * Identify a checkable outcome before editing. Surface material assumptions and tradeoffs; resolve factual uncertainty from evidence and ask only for consequential decisions you cannot resolve yourself. Push back when a simpler approach better serves the goal.
 * Write the simplest code that does the job; no speculative abstractions, config or dependencies. Match local style and limit edits to the request; remove code your changes make unused rather than doing unrelated cleanup.
-* Prefer existing checks; add a test only for a real regression risk or tricky logic, kept small with no new frameworks or mocking scaffolding.
+* Prefer existing checks. Add or extend tests only for specific, meaningful failures in the changed behavior that existing checks would miss; briefly name those failures in your completion report. Test observable behavior, avoid redundant cases, and keep tests small with no new frameworks or elaborate mocking scaffolding. More coverage alone is not a reason to add tests.
 * Preserve unrelated user changes; do not overwrite or revert them.
 * Run the relevant check and verify the requested behavior before reporting done; a passing test suite doesn't prove a live service works. Report what changed, what passed, and what remains unverified.
 * Commit and create branches locally without asking. Ask before pushing, opening or commenting on PRs/issues, deploying, or rewriting published history (force-push, amending or resetting pushed commits), even inside a workflow.
