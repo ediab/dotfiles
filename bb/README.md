@@ -57,7 +57,7 @@ file; server preferences and agent instructions are separate restore steps.
 
 ## BB skills in user scope
 
-`bb skills` (bb-user scope) skills live in `~/.bb/skills/` — plain files owned by the BB CLI, editable in the app or via `bb skills` commands. They are separate from the tracked skills in `agents/` (linked via `link.sh`) and from skills shipped inside plugins (`plugins.json` covers those). `bb/skills/` is the canonical copy of `~/.bb/skills/` (`diff-review`, `ui-audit`, `web-design`): edit skills here, then restore. It is a plain copy, not a link; `link.sh` does not touch it.
+`bb skills` (bb-user scope) skills live in `~/.bb/skills/` — plain files owned by the BB CLI, editable in the app or via `bb skills` commands. They are separate from the tracked skills in `agents/` (linked via `link.sh`) and from skills shipped inside plugins (`plugins.json` covers those). `bb/skills/` is the canonical copy of `~/.bb/skills/` (`diff-review`, `ui-audit`): edit skills here, then restore. It is a plain copy, not a link; `link.sh` does not touch it.
 
 ```sh
 # Compare first (run from the dotfiles root):

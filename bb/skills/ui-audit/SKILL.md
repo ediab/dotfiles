@@ -7,7 +7,7 @@ description: >-
   naming the rule that failed. Use when the task is to review, audit, or check
   UI code for compliance ("audit these components", "check the new screen for
   a11y", "review this diff against the UI rules"); building or restyling UI
-  belongs to web-design, and logic-level review to diff-review. Fully offline:
+  belongs to impeccable, and logic-level review to diff-review. Fully offline:
   every rule lives here, nothing is fetched at run time.
 ---
 
@@ -143,7 +143,7 @@ applicable, and the findings/coverage report emitted.
 
 ## Pivots
 
-- Building or restyling the UI rather than auditing it: `web-design`. Audit
+- Building or restyling the UI rather than auditing it: `impeccable`. Audit
   after the change, not instead of it.
 - Logic, architecture, or security in the same diff: `diff-review`; this
   skill judges the interface layer only.

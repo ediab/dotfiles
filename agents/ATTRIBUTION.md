@@ -24,16 +24,6 @@
 - License: MIT; upstream `LICENSE` is bundled in the skill folder.
 - Installed core skill and Codex metadata are unchanged, via `skills@1.7.2`. Shared by Claude Code, Codex and Pi through the existing skill locations/links. Claude plugin commands are not installed.
 
-## anthropics/skills
-
-- Upstream: https://github.com/anthropics/skills
-- Imported in local commit `0c6cdc4`; latest reviewed upstream commit touching the path: `41bbe19d1a1a7eaab5e7bb9050a417e5c6cffc8f` (2026-09-03).
-- License: Apache-2.0; `LICENSE.txt` remains bundled in the skill folder.
-
-| Local skill | Upstream path | Local adaptations |
-|---|---|---|
-| `frontend-design/` | `skills/frontend-design/SKILL.md`, `LICENSE.txt` | User-invoked with Codex policy metadata; brief clarification asks rather than invents the subject; visual guidance rewritten locally. |
-
 ## humanlayer/skills
 
 - Upstream: https://github.com/humanlayer/skills
@@ -55,3 +45,7 @@ is installed, and the full checklist is not copied into the global policy.
 ## Retired copies
 
 All Matt Pocock-derived skills have been removed from active discovery, along with the local `personal-workflow`, adapted Cursor pstack skills and the luchasarie `bro` copy. Their prior attribution and adaptations remain in Git history. The local spreadsheet skill and its bundled license files are also retired and remain in Git history.
+
+The local `frontend-design/` copy of [Anthropic's frontend-design skill](https://github.com/anthropics/skills/tree/main/skills/frontend-design)
+was retired once Impeccable, which builds on that skill, covered the same ground at greater depth.
+Its prior attribution, bundled Apache-2.0 license and local adaptations remain in Git history.
