@@ -66,10 +66,11 @@ ln -s ~/.opencode/bin/opencode ~/.local/bin/opencode
 `~/.local/bin` must be on the execution host's `PATH`, including BB's host daemon.
 The symlink command refuses to replace an existing executable.
 
-`opencode/opencode.json` enables only the OpenCode provider and its two selected
+`opencode/opencode.json` enables only the OpenCode provider and its three selected
 free models. It defaults to `opencode/deepseek-v4.1-flash-free` and also exposes
-`opencode/glm-5.3-flash-free`. Lightweight internal requests use
-DeepSeek Free too. These promotions can expire. No API key is stored in this repo.
+`opencode/glm-5.3-flash-free` and `opencode/muse-spark-1.3-contributor-free`
+(Muse Spark 1.3 free exists only as that contributor variant, so its prompts may
+be used for training). Lightweight internal requests use DeepSeek Free too. These promotions can expire. No API key is stored in this repo.
 The GLM entry supplies metadata missing from OpenCode 1.19.2's bundled catalog,
 using the [official model definition](https://github.com/anomalyco/models.dev/blob/dev/providers/opencode/models/glm-5.3-flash-free.toml).
 Remove that override once the bundled catalog contains the model.
