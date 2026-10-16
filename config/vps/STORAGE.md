@@ -30,7 +30,6 @@ failed delivery leaves that state unchanged so the next hourly run retries.
 Checks:
 
 ```sh
-python3 tests/test-vps-disk-alert.py  # from the dotfiles checkout
 ssh vps 'systemctl --user list-timers vps-disk-alert.timer --no-pager'
 ssh vps 'journalctl --user -u vps-disk-alert.service -n 20 --no-pager'
 ```

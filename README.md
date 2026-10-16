@@ -22,7 +22,7 @@ scripts/agent-hook.sh   optional session integrations, guarded when not installe
 config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 bb/                    explicit install/update and portable preference snapshot/restore (not linked)
 .env.example           names of the secrets ~/.env should hold (not linked)
-tests/                 link, deploy, settings, title-border and BB checks
+tests/                 privileged note-sx deployment/update safety checks
 ```
 
 ## Pi installation
@@ -45,8 +45,9 @@ to check readiness without printing secrets.
 
 `pi/settings.json` pins four npm packages and the pstack Git revision. After linking on another
 machine, run `pi update --extensions` to reconcile the installed packages to those
-pins. To upgrade, change the version in settings, reconcile, and run the checks below.
-These are direct-package pins, not a lockfile for their transitive dependencies.
+pins. To upgrade, change the version in settings, reconcile, and confirm loading
+in a fresh Pi session. These are direct-package pins, not a lockfile for their
+transitive dependencies.
 
 `pi/extensions/standalone-ui.ts` loads the title package only outside BB
 (`BB_THREAD_ID` absent). Its `extensions: []` setting suppresses normal autoload,
@@ -266,20 +267,25 @@ This is a deliberate operation, never an automatic overwrite.
    `claude mcp add-json --scope user context7 '{"type":"http","url":"https://mcp.context7.com/mcp","headersHelper":"..."}'`
    where `headersHelper` is a command that prints `{"CONTEXT7_API_KEY":"<value read from ~/.env>"}`.
 
-## Tests
+## Validation
 
-Python checks require Python 3.11+ (`tomllib`). The commands below use `python3.11`
-explicitly because macOS/BB may resolve `python3` to Apple's Python 3.9. Substitute
-another installed 3.11+ executable if needed. Pi integration checks use the installed
-Pi runtime and packages; they make no model requests.
+Ordinary dotfiles do not need an automated test suite. Check changed syntax and
+verify the result in the affected shell or client. Do not add tests for settings,
+skill inventories, themes or UI preferences.
+
+Only safety checks for consequential operational code are retained: backup
+retention/deletion, privileged note-sx deployment/rollback, and monitor privilege
+and credential boundaries. Run the relevant checks when changing that code, not
+for routine dotfiles edits. Python checks require Python 3.11+.
 
 ```sh
-bash tests/test-link.sh            # link.sh against a fake HOME (never the real one)
-bash tests/test-app-deploy.sh
-python3.11 tests/test-portable-settings.py # Linux settings, optional hooks, cross-platform statusline
-node tests/test-title-in-border.mjs  # Pi title-in-border extension and powerline config
-node --test tests/test-pi-setup.mjs  # Package pins, BB/standalone loading, skill names
-python3.11 -m unittest discover -s tests -p test_bb.py # BB preference boundaries
+python3.11 tests/test-note-sx-deploy.py
+bash tests/test-note-sx-updater.sh
+python3.11 -m unittest discover -s config/vps/recovery/tests
+python3.11 -m unittest discover -s config/vps/security/tests
 ```
+
+These checks use temporary fixtures and mocked services. They do not deploy
+anything or prove live service health.
 
 Credits for copied-in skills: [`agents/ATTRIBUTION.md`](agents/ATTRIBUTION.md).

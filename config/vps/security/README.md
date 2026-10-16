@@ -216,7 +216,8 @@ or app deployment settings are managed here.
 
 ## Validation limits
 
-The unit suite mocks Docker, Trivy, systemd and email. Live systemd controls,
-exact-image scans, mailbox receipt and a full schedule cycle require separate
-operational evidence. The protected root-owned xbot transport snapshot and its private environment
+The retained tests cover privilege, filesystem and credential boundaries using
+temporary fixtures and mocked system calls. General scanner, alert and heartbeat
+integration suites are not retained. Live systemd controls, exact-image scans,
+mailbox receipt and a full schedule cycle require separate operational evidence. The protected root-owned xbot transport snapshot and its private environment
 are runtime dependencies for local mail; upgrades must preserve that transport.

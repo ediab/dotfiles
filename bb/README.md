@@ -129,7 +129,6 @@ In the Mac desktop app, use **macOS menu bar → Window → Server** to choose a
 ## Checks
 
 ```sh
-python3.11 -m unittest discover -s tests -p 'test_bb.py'
 bash -n bb/install.sh
 python3.11 bb/apply.py --server http://127.0.0.1:38886
 ```
