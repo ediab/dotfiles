@@ -27,7 +27,10 @@ import uuid
 from typing import Any, Callable
 from urllib.parse import urlsplit
 
-from core import MonitorError, atomic_json, deliver_transition, locked, read_private_json
+from core import (MonitorError, NATIVE_STATE, SHARED_LOCK, SHARED_TRIVY_CACHE,
+                  atomic_json, deliver_transition, locked, read_monitor_config, read_private_json,
+                  trusted_mail_transport)
+from system_runtime import system_profile, system_unit_runner
 
 
 HOME = Path("/home/diab")
@@ -77,6 +80,8 @@ class Target:
     # user; otherwise only the scanner uid is accepted and a foreign owner is
     # reported explicitly rather than silently trusted.
     owner: int | None = None
+    # Explicit legacy build-cache owner(s), never inferred from the scanning UID.
+    additional_metadata_owners: frozenset[int] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -94,20 +99,44 @@ class Inventory:
 
 def default_targets(home: Path = HOME) -> tuple[Target, ...]:
     apps, dev = home / "apps", home / "Dev"
+    try:
+        xbot_owner = pwd.getpwnam("xbot-app").pw_uid
+    except KeyError:
+        xbot_owner = None  # foreign metadata still refuses; the unit binding also fails
+    try:
+        morning_owner = pwd.getpwnam("morning-brief-app").pw_uid
+    except KeyError:
+        morning_owner = None
+    try:
+        el_owner = pwd.getpwnam("el-machine-app").pw_uid
+    except KeyError:
+        el_owner = None
+    try:
+        operator_owner = pwd.getpwnam("diab").pw_uid
+    except KeyError:
+        operator_owner = None
     return (
         Target("tfl", "npm", Path("/var/lib/tfl/current"), Path("/var/lib/tfl/releases"),
                "package-lock.json", "node_modules", "npm", "active-release-runtime",
                False, "tfl.service", "/var/lib/tfl/current", "tfl",
                ("/usr/bin/npm", "start", "--", "-H", "127.0.0.1", "-p", "8084")),
         Target("xbot", "python", dev / "xbot", dev, "requirements.lock", ".venv", "requirements",
-               "installed-python-environment", True),
+               "installed-python-environment", True, "xbot-timeline.service", str(dev / "xbot"),
+               "xbot-app", (str(dev / "xbot/.venv/bin/python"), str(dev / "xbot/scrape_timeline.py"),
+                            "--output", "data/live_tweets.jsonl", "--state-dir", "state/live", "watch",
+                            "--hours", "48", "--interval", "60", "--retention-hours", "48"),
+               owner=xbot_owner),
         Target("morning-brief", "python", apps / "morning-brief", apps, "requirements-lock.txt",
-               ".venv", "requirements", "installed-python-environment"),
+               ".venv", "requirements", "installed-python-environment", owner=morning_owner),
         Target("el-machine", "python", apps / "el-machine", apps, "uv.lock", ".venv", "uv",
-               "installed-python-environment"),
+               "installed-python-environment", False, "el-machine-web.service", str(apps / "el-machine"),
+               "el-machine-app", (str(apps / "el-machine/.venv/bin/python"), "-m", "el_machine.web",
+                                  "serve", "--data-root", str(home / "data/el-machine"), "--port", "8790"),
+               owner=el_owner,
+               additional_metadata_owners=(frozenset({operator_owner}) if operator_owner is not None else frozenset())),
         Target("houses", "python", apps / "houses" / "pipeline", apps / "houses", "uv.lock",
                ".venv", "uv", "installed-python-environment", False,
-               "houses-health.service", str(apps / "houses" / "pipeline"), None, (), "user"),
+               "houses-health.service", str(apps / "houses" / "pipeline"), None, (), "user", owner=operator_owner),
     )
 
 
@@ -330,7 +359,9 @@ def _unit_binding(target: Target, runner=subprocess.run) -> str:
         actual_argv = tuple(shlex.split(match.group(1))) if match else ()
     except ValueError:
         actual_argv = ()
-    if (result.returncode != 0 or not actual or "path=/usr/bin/npm" not in actual
+    executable = re.match(r"^\{\s*path=([^ ;]+)\s*;", actual)
+    if (result.returncode != 0 or executable is None
+            or executable.group(1) != target.unit_exec_argv[0]
             or actual_argv != target.unit_exec_argv):
         raise MonitorError("service-binding-mismatch")
     return "systemd-unit-verified"
@@ -535,9 +566,10 @@ def _metadata_package(site: Path, info_name: str, owners: frozenset[int]) -> tup
     return _canonical_package(name), _version(version), size
 
 
-def _installed_packages(environment: Path, root: Path, *, owner: int | None = None) -> tuple[Path, dict[str, str]]:
+def _installed_packages(environment: Path, root: Path, *, owner: int | None = None,
+                        additional_owners: frozenset[int] = frozenset()) -> tuple[Path, dict[str, str]]:
     site = _site_packages(environment, root)
-    owners = frozenset({os.getuid()} | ({owner} if owner is not None else set()))
+    owners = frozenset({os.getuid()} | ({owner} if owner is not None else set()) | additional_owners)
     packages: dict[str, str] = {}
     entries = sorted(site.iterdir(), key=lambda path: path.name)
     if len(entries) > 20_000:
@@ -816,7 +848,8 @@ def collect_inventory(target: Target, *, unit_runner=subprocess.run) -> Inventor
         if not target.environment:
             raise MonitorError("python-environment-definition-missing")
         environment = root / target.environment
-        site, installed = _installed_packages(environment, root, owner=target.owner)
+        site, installed = _installed_packages(environment, root, owner=target.owner,
+                                               additional_owners=target.additional_metadata_owners)
         if not installed:
             raise MonitorError("installed-package-inventory-empty")
         lock_packages, lock_complete = _python_lock(target, root)
@@ -1021,7 +1054,7 @@ def _scan_one(inventory: Inventory, scratch: Path, config: dict[str, Any], *,
         "--timeout", f"{timeout}s", "--ignorefile", "/dev/null", "--output", str(output_path),
         str(input_dir),
     ]
-    env = {"HOME": str(HOME), "PATH": "/usr/bin:/bin", "LC_ALL": "C", "LANG": "C",
+    env = {"HOME": str(config["state_dir"] if config.get("profile") == "system" else HOME), "PATH": "/usr/bin:/bin", "LC_ALL": "C", "LANG": "C",
            "TRIVY_DISABLE_TELEMETRY": "true"}
     completed = runner(command, check=False, timeout=timeout, stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL, env=env)
@@ -1085,14 +1118,7 @@ def _summary(report: dict[str, Any], previous: dict[str, Any], scan_id: str) -> 
 
 def _email_sender(config: dict[str, Any]) -> Callable[[str], bool]:
     root = Path(config["email_transport_root"])
-    for name in ("summary_config.py", "scrape_timeline.py"):
-        path = root / name
-        try:
-            info = path.lstat()
-        except OSError as exc:
-            raise MonitorError("existing-email-transport-unavailable") from exc
-        if not stat.S_ISREG(info.st_mode) or stat.S_ISLNK(info.st_mode):
-            raise MonitorError("existing-email-transport-untrusted")
+    trusted_mail_transport(root)
     sys.path.insert(0, str(root))
     try:
         from summary_config import load_environment
@@ -1139,7 +1165,9 @@ def run_scan(config: dict[str, Any], *, targets: tuple[Target, ...] | None = Non
     selected = default_targets() if targets is None else targets
     if not selected or len(selected) > MAX_TARGETS or len({target.application for target in selected}) != len(selected):
         raise MonitorError("native-target-set-invalid")
-    lock_path = state_dir / "scan.lock"  # Shared with the existing Docker image scanner.
+    if config.get("profile") == "system":
+        unit_runner = system_unit_runner(unit_runner)
+    lock_path = config.get("lock_file", state_dir / "scan.lock")
     with locked(lock_path):
         scan_id = datetime.fromtimestamp(started, timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
         report: dict[str, Any] = {
@@ -1166,7 +1194,7 @@ def run_scan(config: dict[str, Any], *, targets: tuple[Target, ...] | None = Non
             os.chmod(scratch, 0o700)
             _disk_guard(report_dir.parent, min_free_bytes=config["min_free_bytes"], disk_usage=disk_usage)
             db_timestamp = _db_updated_at(config["trivy_cache_dir"] / "db" / "metadata.json",
-                                          now=started, owner=os.getuid())
+                                          now=started, owner=config.get("trivy_db_owner", os.getuid()))
             report["trivy_database_updated_at"] = datetime.fromtimestamp(db_timestamp, timezone.utc).isoformat()
             target_rows = {target["application"]: index for index, target in enumerate(report["targets"])}
             for target in selected:
@@ -1281,12 +1309,20 @@ def validate_config(value: Any) -> dict[str, Any]:
         if not isinstance(raw, str) or not Path(raw).is_absolute():
             raise MonitorError("native-scan-path-config-invalid")
         paths[key] = Path(raw)
+    system = system_profile(value)
+    expected_state = NATIVE_STATE if system else HOME / ".local/state/vps-security-scan"
     expected_paths = {
-        "state_dir": HOME / ".local/state/vps-security-scan",
-        "report_dir": HOME / ".local/state/vps-security-scan/reports",
-        "email_transport_root": HOME / "Dev/xbot",
-        "trivy_cache_dir": HOME / ".cache/trivy",
+        "state_dir": expected_state,
+        "report_dir": expected_state / "reports",
+        "email_transport_root": Path("/usr/local/lib/vps-monitor-transport"),
+        "trivy_cache_dir": SHARED_TRIVY_CACHE if system else HOME / ".cache/trivy",
     }
+    try:
+        db_owner = pwd.getpwnam("vps-image-scan").pw_uid if system else os.getuid()
+    except KeyError as exc:
+        raise MonitorError("trivy-database-owner-unavailable") from exc
+    if system and db_owner == 0:
+        raise MonitorError("trivy-database-owner-refused")
     if any(paths[key] != expected for key, expected in expected_paths.items()):
         raise MonitorError("native-scan-path-config-refused")
     if (paths["report_dir"] != paths["state_dir"] / "reports"
@@ -1317,7 +1353,10 @@ def validate_config(value: Any) -> dict[str, Any]:
                     or not parsed.path.strip("/") or parsed.query or parsed.fragment
                     or parsed.port not in (None, 443) or "@" in url or "\n" in url):
                 raise MonitorError("native-healthchecks-url-invalid")
-    return {**paths, "min_free_bytes": floor,
+    return {**paths, "profile": "system" if system else "user",
+            "unit_scope": "system" if system else "user", "trivy_db_owner": db_owner,
+            "lock_file": SHARED_LOCK if system else expected_state / "scan.lock",
+            "min_free_bytes": floor,
             "overall_timeout_seconds": total, "per_target_timeout_seconds": per_target,
             "max_report_bytes": max_report,
             "max_trivy_report_bytes": max_trivy_report,
@@ -1353,7 +1392,7 @@ def main() -> int:
     started = False
     status = 2
     try:
-        config = validate_config(read_private_json(args.config, max_bytes=MAX_CONFIG_BYTES))
+        config = validate_config(read_monitor_config(args.config, max_bytes=MAX_CONFIG_BYTES))
         hc = config["healthchecks"]
         if hc.get("enabled"):
             ping_base = hc["native_ping_url"]

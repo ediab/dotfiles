@@ -12,7 +12,7 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from core import MonitorError, read_private_json
+from core import MonitorError, read_monitor_config
 
 
 def validate_ping_url(value: object) -> str:
@@ -81,7 +81,7 @@ def run_wrapped(component: str, command: list[str], *, config_path: Path,
     value = {}
     enabled = True
     try:
-        value = read_private_json(config_path)
+        value = read_monitor_config(config_path)
         if not isinstance(value, dict) or not isinstance(value.get("healthchecks"), dict):
             raise MonitorError("Healthchecks configuration shape is invalid")
         healthchecks = value["healthchecks"]

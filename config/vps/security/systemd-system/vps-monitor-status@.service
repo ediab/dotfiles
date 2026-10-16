@@ -1,0 +1,25 @@
+[Unit]
+Description=Fixed read-only VPS monitoring status request
+
+[Service]
+Type=exec
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/monitor_status.py
+StandardInput=socket
+StandardOutput=socket
+StandardError=journal
+Environment=HOME=/root
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+TimeoutStartSec=20s
+RuntimeMaxSec=20s
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_SETUID CAP_SETGID
+RestrictAddressFamilies=AF_UNIX
+UMask=0077
+CPUQuota=20%
+MemoryMax=256M
+TasksMax=32

@@ -37,6 +37,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import pwd
 import re
 import shutil
 import stat
@@ -52,8 +53,11 @@ from typing import Any, Iterable
 RCLONE = Path("/usr/local/libexec/vps-recovery/bin/rclone")
 CONFIG = Path("/etc/vps-recovery/rclone.conf")
 BASE = Path("/home/diab/ops/r2-recovery/receipts")
-MORNING = Path("/home/diab/apps/morning-brief/data/state-backup-receipts")
+MORNING = Path("/var/lib/vps-native-backup/morning-brief/receipts")
 LOCK = Path("/home/diab/ops/r2-rollout-live.lock")
+# Owner uid the lock/receipt primitives must verify. Production is root; the
+# module constant exists so the OS race tests can run unprivileged.
+ROOT_UID = 0
 MANIFEST_DIR = Path("/var/lib/vps-recovery/manifests")
 STATUS_DIR = Path("/var/lib/vps-recovery")
 CRON_CONFIG = Path("/home/diab/.config/vps-backups/monitor-recovery.json")
@@ -79,6 +83,7 @@ FOUSEKIS = "r2crypt:fousekis/state"
 REDACT = "r2crypt:redact/state"
 MORNING_STATE = "r2crypt:morning-brief/state"
 MORNING_CONFIG = "r2crypt:morning-brief/config"
+HOUSES_DAILY = "r2crypt:houses/recovery/daily-source-closure/db"
 
 # Frozen-baseline object-count default for app state points.
 APP_DEFAULT_OBJECT_COUNT = 3
@@ -110,6 +115,7 @@ SPECS: tuple[FamilySpec, ...] = (
     FamilySpec(REDACT, True, "app"),
     FamilySpec(MORNING_STATE, True, "morning-state"),
     FamilySpec(MORNING_CONFIG, False, "morning-config"),
+    FamilySpec(HOUSES_DAILY, True, "houses-daily"),
 )
 
 APP_RECEIPTS = (
@@ -224,9 +230,12 @@ def assert_remote_point(family: str, point: VerifiedPoint) -> None:
                 or result["bytes"] < 1):
             raise Refusal("protected remote object missing")
         return
-    if point.shape != "listing-count":
+    if point.shape not in {"listing-count", "recursive-listing-count"}:
         raise Refusal("protected remote shape unknown")
-    rows = list_json(target, "--files-only")
+    flags = ["--files-only"]
+    if point.shape == "recursive-listing-count":
+        flags.append("--recursive")
+    rows = list_json(target, *flags)
     if not rows:
         raise Refusal("protected remote set empty")
     if point.expected_count is not None and len(rows) != point.expected_count:
@@ -240,6 +249,60 @@ def assert_remote_point(family: str, point: VerifiedPoint) -> None:
 # --------------------------------------------------------------------------- #
 # Private receipt reading
 # --------------------------------------------------------------------------- #
+def _write_all(fd: int, data: bytes) -> None:
+    view = memoryview(data)
+    while view:
+        written = os.write(fd, view)
+        if written <= 0:
+            raise Refusal("short write")
+        view = view[written:]
+
+
+def read_fd_bytes(fd: int, size: int, label: str) -> bytes:
+    chunks = []
+    remaining = size
+    while remaining:
+        chunk = os.read(fd, min(remaining, 1 << 20))
+        if not chunk:
+            raise Refusal(label + " changed during read")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    if os.read(fd, 1):
+        raise Refusal(label + " grew during read")
+    return b"".join(chunks)
+
+
+def read_private_bytes(path: Path, maximum: int, label: str) -> bytes:
+    """Descriptor read of a private file; a FIFO or device refuses immediately.
+
+    Receipts and monitor configs live under directories the agent identity can
+    write, so the path can be replaced between checks. O_NONBLOCK stops a
+    substituted FIFO from blocking root, and the descriptor shape is checked
+    before any byte is read.
+    """
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError as exc:
+        raise Refusal(label + " unavailable") from exc
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > maximum:
+            raise Refusal("unsafe " + label)
+        chunks = []
+        remaining = info.st_size
+        while remaining:
+            chunk = os.read(fd, min(remaining, 1 << 20))
+            if not chunk:
+                raise Refusal(label + " changed during read")
+            chunks.append(chunk)
+            remaining -= len(chunk)
+        if os.read(fd, 1):
+            raise Refusal(label + " grew during read")
+        return b"".join(chunks)
+    finally:
+        os.close(fd)
+
+
 def document(path: Path) -> dict[str, Any]:
     try:
         info = path.lstat()
@@ -248,7 +311,7 @@ def document(path: Path) -> dict[str, Any]:
     if (not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077
             or info.st_size > MAX_RECEIPT_BYTES):
         raise Refusal("unsafe receipt")
-    value = json.loads(path.read_bytes())
+    value = json.loads(read_private_bytes(path, MAX_RECEIPT_BYTES, "receipt"))
     if not isinstance(value, dict):
         raise Refusal("receipt shape invalid")
     return value
@@ -394,6 +457,46 @@ def load_morning() -> tuple[dict[str, VerifiedPoint], dict[str, VerifiedPoint]]:
     return state, config
 
 
+def load_houses_daily() -> dict[str, VerifiedPoint]:
+    best = None
+    points = {}
+    for path in receipts(BASE, "houses-daily-*.json"):
+        data = document(path)
+        child = _family_child(data.get("remote"), HOUSES_DAILY)
+        timestamp = parse_point_timestamp(child)
+        if (timestamp is None or data.get("backup_id") != child
+                or path.name != f"houses-daily-{child}.json"):
+            raise Refusal("Houses daily receipt identity mismatch")
+        files = data.get("files")
+        passing = (data.get("status") == "complete"
+                   and all(data.get(field) is True for field in (
+                       "conditional_create", "independent_download_verified",
+                       "all_file_hashes_match", "manual_table_digests_equal",
+                       "sequences_verified", "container_cleanup")))
+        if passing:
+            count = data.get("object_count")
+            if (type(count) is not int or not 2 <= count <= 100
+                    or not isinstance(files, list) or len(files) != count):
+                raise Refusal("Houses daily file set invalid")
+            seen = set()
+            for entry in files:
+                name = entry.get("path") if isinstance(entry, dict) else None
+                if (not isinstance(name, str) or name.startswith("/") or "\\" in name
+                        or any(part in {"", ".", ".."} for part in name.split("/"))
+                        or name in seen or type(entry.get("bytes")) is not int
+                        or entry["bytes"] < 0 or not isinstance(entry.get("sha256"), str)
+                        or re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]) is None):
+                    raise Refusal("Houses daily file manifest invalid")
+                seen.add(name)
+            if not {"manifest.json", "notebook.dump"}.issubset(seen):
+                raise Refusal("Houses daily required files missing")
+            points[child] = VerifiedPoint(child, timestamp, "recursive-listing-count", count)
+        if best is None or (timestamp, child) > (best[0], best[1]):
+            best = (timestamp, child, passing)
+    _newest_receipt_refuses_without_proof(best, "Houses daily")
+    return points
+
+
 def load_verified(spec: FamilySpec) -> dict[str, VerifiedPoint]:
     if spec.loader == "note-sx":
         return load_note_sx()
@@ -406,6 +509,8 @@ def load_verified(spec: FamilySpec) -> dict[str, VerifiedPoint]:
         return load_morning()[0]
     if spec.loader == "morning-config":
         return load_morning()[1]
+    if spec.loader == "houses-daily":
+        return load_houses_daily()
     raise Refusal("family specification unknown")
 
 
@@ -589,43 +694,170 @@ def manifest_entry(manifest: dict[str, Any], family: str, name: str) -> dict[str
 # --------------------------------------------------------------------------- #
 # Local space policy (unchanged in spirit: no seven local snapshots retained)
 # --------------------------------------------------------------------------- #
-def local_cleanup(root: Path, newest_verified_ts: int | None) -> list[str]:
+# The unprivileged identity can create entries under its own trees, so a
+# recursive cleanup must be bounded and must fail closed rather than walk a
+# hostile tree indefinitely.
+CLEANUP_MAX_DEPTH = 64
+CLEANUP_MAX_ENTRIES = 200_000
+
+
+def _cleanup_allowed_owners() -> tuple[int, ...]:
+    owners = [ROOT_UID]
+    try:
+        owners.append(pwd.getpwnam("diab").pw_uid)
+    except KeyError:
+        pass
+    return tuple(owners)
+
+
+def _trusted_anchor(path: Path) -> Path:
+    """Deepest ancestor of ``path`` whose whole chain is root-owned and non-writable."""
+    anchor = None
+    for candidate in reversed(path.parents):
+        try:
+            st = candidate.lstat()
+        except OSError:
+            break
+        if (stat.S_ISDIR(st.st_mode) and not stat.S_ISLNK(st.st_mode)
+                and st.st_uid == ROOT_UID and not st.st_mode & 0o022):
+            anchor = candidate
+        else:
+            break
+    if anchor is None:
+        raise Refusal("no trusted cleanup anchor")
+    return anchor
+
+
+def _open_chain(root: Path, *, anchor: Path, anchor_uid: int,
+                allowed_owners: tuple[int, ...]):
+    """Open ``root`` by walking every component from a trusted anchor.
+
+    Each component is opened relative to the previous retained descriptor with
+    ``O_NOFOLLOW``, so an intermediate symlink (or a final one) is refused
+    instead of followed. A missing component returns ``None``; nothing is ever
+    created. The opened directory is verified from its descriptor before any
+    entry is touched.
+    """
+    try:
+        relative = root.relative_to(anchor)
+    except ValueError:
+        raise Refusal("cleanup root outside trusted anchor") from None
+    if not relative.parts:
+        raise Refusal("cleanup root must be below the anchor")
+    try:
+        fd = os.open(anchor, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    except OSError:
+        raise Refusal("cleanup anchor unavailable") from None
+    try:
+        st = os.fstat(fd)
+        if (not stat.S_ISDIR(st.st_mode) or st.st_uid != anchor_uid
+                or st.st_mode & 0o022):
+            raise Refusal("untrusted cleanup anchor")
+        for index, part in enumerate(relative.parts):
+            last = index == len(relative.parts) - 1
+            try:
+                next_fd = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                  dir_fd=fd)
+            except FileNotFoundError:
+                os.close(fd)
+                return None
+            except OSError:
+                raise Refusal("unsafe cleanup component") from None
+            os.close(fd)
+            fd = next_fd
+            info = os.fstat(fd)
+            if not stat.S_ISDIR(info.st_mode):
+                raise Refusal("unsafe cleanup component")
+            if last:
+                if info.st_uid not in allowed_owners or info.st_mode & 0o022:
+                    raise Refusal("untrusted cleanup root")
+            elif info.st_mode & 0o022:
+                raise Refusal("writable cleanup ancestor")
+        return fd
+    except BaseException:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        raise
+
+
+def _remove_entry_at(dir_fd: int, name: str, *, depth: int = 0,
+                     budget=None) -> None:
+    """Recursive removal relative to a retained descriptor, bounded."""
+    if budget is None:
+        budget = [CLEANUP_MAX_ENTRIES]
+    if depth > CLEANUP_MAX_DEPTH:
+        raise Refusal("local cleanup depth refused")
+    budget[0] -= 1
+    if budget[0] < 0:
+        raise Refusal("local cleanup count refused")
+    info = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+    if stat.S_ISDIR(info.st_mode):
+        child_fd = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                           dir_fd=dir_fd)
+        try:
+            for entry in os.listdir(child_fd):
+                _remove_entry_at(child_fd, entry, depth=depth + 1, budget=budget)
+        finally:
+            os.close(child_fd)
+        os.rmdir(name, dir_fd=dir_fd)
+    else:
+        os.unlink(name, dir_fd=dir_fd)
+
+
+def local_cleanup(root: Path, newest_verified_ts, *, anchor=None,
+                  anchor_uid: int = ROOT_UID, allowed_owners=None) -> list[str]:
+    """Delete superseded local point dirs through an all-component FD walk.
+
+    The roots live under directories the agent identity can write, so the path
+    itself is not trusted: every component is opened with ``O_NOFOLLOW`` from a
+    root-owned anchor, the opened directory is verified from its descriptor
+    before any change, and a missing root is a no-op rather than a
+    ``parents=True`` creation. Filenames, skip rules (newer/in-progress data and
+    non-timestamp entries are preserved) and the returned list are unchanged.
+    """
     removed: list[str] = []
     if newest_verified_ts is None:
         return removed
-    if not root.exists():
-        root.mkdir(parents=True, mode=0o700)
-    if root.is_symlink() or not root.is_dir():
-        raise Refusal("unsafe local recovery root")
-    for child in sorted(root.iterdir()):
-        if child.is_symlink():
-            continue
-        timestamp = parse_point_timestamp(child.name)
-        if timestamp is None or timestamp > newest_verified_ts:
-            continue  # newer/in-progress/ambiguous local data is preserved
-        if child.is_dir():
-            shutil.rmtree(child)
-        else:
-            child.unlink()
-        removed.append(child.name)
+    if allowed_owners is None:
+        allowed_owners = _cleanup_allowed_owners()
+    if anchor is None:
+        anchor = _trusted_anchor(root)
+    dir_fd = _open_chain(root, anchor=anchor, anchor_uid=anchor_uid,
+                         allowed_owners=allowed_owners)
+    if dir_fd is None:
+        return removed
+    try:
+        for name in sorted(os.listdir(dir_fd)):
+            child = os.stat(name, dir_fd=dir_fd, follow_symlinks=False)
+            if stat.S_ISLNK(child.st_mode):
+                continue
+            timestamp = parse_point_timestamp(name)
+            if timestamp is None or timestamp > newest_verified_ts:
+                continue  # newer/in-progress/ambiguous local data is preserved
+            _remove_entry_at(dir_fd, name)
+            removed.append(name)
+    except Refusal:
+        raise
+    except OSError as exc:
+        raise Refusal("local cleanup refused") from exc
+    finally:
+        os.close(dir_fd)
     return removed
 
 
-# --------------------------------------------------------------------------- #
-# Cron observation (preserved from the frozen baseline)
-# --------------------------------------------------------------------------- #
+def morning_timer_present() -> bool:
+    timer = "morning-brief-backup.timer"
+    return all(subprocess.run(["/usr/bin/systemctl", verb, "--quiet", timer],
+                              capture_output=True, timeout=5).returncode == 0
+               for verb in ("is-enabled", "is-active"))
+
+
 def observe_cron() -> None:
-    cfg = json.loads(CRON_CONFIG.read_bytes())
-    row = next(r for r in cfg if r.get("name") == "morning-brief")
-    marker = row.get("entry_marker")
-    if not isinstance(marker, str) or not 5 <= len(marker) <= 200 or "\n" in marker:
-        raise Refusal("invalid cron marker")
-    result = subprocess.run(["/usr/bin/crontab", "-u", "diab", "-l"],
-                            capture_output=True, text=True, timeout=5)
-    if result.returncode or len(result.stdout) > 65536:
-        raise Refusal("cron observation refused")
-    present = any(marker in line and not line.lstrip().startswith("#")
-                  for line in result.stdout.splitlines())
+    # Preserve the existing metadata schema while observing the replacement
+    # root-managed timer. The app-owned crontab is no longer the producer.
+    present = morning_timer_present()
     parent = STATUS_DIR
     try:
         parent.mkdir(mode=0o755)
@@ -645,32 +877,6 @@ def observe_cron() -> None:
     os.replace(temp, parent / "cron-observation.json")
 
 
-# --------------------------------------------------------------------------- #
-# Lock
-# --------------------------------------------------------------------------- #
-def acquire_lock() -> Path:
-    LOCK.mkdir(mode=0o700)  # an existing or ambiguous lock always refuses
-    owner = LOCK / "owner"
-    fd = os.open(owner, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-    with os.fdopen(fd, "w") as handle:
-        handle.write(OWNER + "\n")
-        handle.flush()
-        os.fsync(handle.fileno())
-    return owner
-
-
-def release_lock(owner: Path) -> None:
-    st = owner.lstat()
-    if (not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or owner.read_text().strip() != OWNER
-            or sorted(p.name for p in LOCK.iterdir()) != ["owner"]):
-        raise Refusal("lock ownership changed; retained")
-    owner.unlink()
-    LOCK.rmdir()
-
-
-# --------------------------------------------------------------------------- #
-# Manifest publication
-# --------------------------------------------------------------------------- #
 def write_manifest(manifest: dict[str, Any], *, directory: Path = MANIFEST_DIR) -> tuple[Path, str]:
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(directory, 0o700)
@@ -688,8 +894,197 @@ def write_manifest(manifest: dict[str, Any], *, directory: Path = MANIFEST_DIR) 
     return path, digest
 
 
+def _diab_uid() -> int:
+    return pwd.getpwnam("diab").pw_uid
+
+
+def _open_owned_dir(path: Path, *, uid: int, mode, code: str) -> tuple[int, tuple[int, int]]:
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    except OSError:
+        raise Refusal(code)
+    info = os.fstat(fd)
+    if (not stat.S_ISDIR(info.st_mode) or info.st_uid != uid
+            or (mode is not None and stat.S_IMODE(info.st_mode) != mode)):
+        os.close(fd)
+        raise Refusal(code)
+    return fd, (info.st_dev, info.st_ino)
+
+
+def _drop_lock_dir(fd, identity, owner_identity=None, owned: bool = False) -> None:
+    """Remove only what this process created; never a foreign entry or directory."""
+    if owned and owner_identity is not None:
+        try:
+            st = os.stat("owner", dir_fd=fd, follow_symlinks=False)
+            if (st.st_dev, st.st_ino) == owner_identity:
+                os.unlink("owner", dir_fd=fd)
+        except OSError:
+            pass
+    os.close(fd)
+    if not owned:
+        return
+    try:
+        st = os.lstat(LOCK)
+    except OSError:
+        return
+    if (stat.S_ISDIR(st.st_mode) and not stat.S_ISLNK(st.st_mode)
+            and (st.st_dev, st.st_ino) == identity):
+        try:
+            os.rmdir(LOCK)
+        except OSError:
+            pass
+
+
+def acquire_lock() -> tuple[int, tuple[int, int], tuple[int, int] | None, bool]:
+    """Create and own the shared lock, proving we created what we clean up.
+
+    The parent is diab-owned, so the name can be swapped between `mkdir` and the
+    later open. A freshly created lock must be empty: if the directory we open
+    already holds an entry it is not ours, so we refuse and leave it untouched
+    rather than deleting a foreign root-owned owner file. Only the owner entry
+    this process created (tracked by dev/ino) is ever removed.
+    """
+    parent_fd = -1
+    fd = -1
+    identity = None
+    owner_identity = None
+    owned = False
+    try:
+        try:
+            parent_fd = os.open(LOCK.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        except OSError:
+            raise Refusal("lock parent unavailable") from None
+        try:
+            os.mkdir(LOCK.name, 0o700, dir_fd=parent_fd)
+        except FileExistsError:
+            raise Refusal("busy-or-stale") from None
+        except OSError:
+            raise Refusal("lock-unavailable") from None
+        try:
+            created = os.stat(LOCK.name, dir_fd=parent_fd, follow_symlinks=False)
+        except OSError:
+            raise Refusal("new-lock-directory-unsafe") from None
+        if (not stat.S_ISDIR(created.st_mode) or stat.S_ISLNK(created.st_mode)
+                or created.st_uid != ROOT_UID or stat.S_IMODE(created.st_mode) != 0o700):
+            raise Refusal("new-lock-directory-unsafe")
+        try:
+            fd = os.open(LOCK.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent_fd)
+        except OSError:
+            raise Refusal("new-lock-directory-unsafe") from None
+        info = os.fstat(fd)
+        if (info.st_dev, info.st_ino) != (created.st_dev, created.st_ino):
+            raise Refusal("new-lock-directory-swapped")
+        identity = (info.st_dev, info.st_ino)
+        if os.listdir(fd):
+            raise Refusal("new-lock-directory-not-empty")
+        owned = True
+        owner_fd = os.open("owner", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                           0o600, dir_fd=fd)
+        with os.fdopen(owner_fd, "w") as handle:
+            owner_st = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(owner_st.st_mode) or owner_st.st_uid != ROOT_UID
+                    or stat.S_IMODE(owner_st.st_mode) != 0o600):
+                raise Refusal("owner-file-unsafe")
+            owner_identity = (owner_st.st_dev, owner_st.st_ino)
+            handle.write(OWNER + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+    except Refusal:
+        if fd >= 0:
+            _drop_lock_dir(fd, identity, owner_identity, owned)
+            fd = -1
+        raise
+    except OSError:
+        if fd >= 0:
+            _drop_lock_dir(fd, identity, owner_identity, owned)
+            fd = -1
+        raise Refusal("owner-write-failed") from None
+    finally:
+        if parent_fd >= 0:
+            os.close(parent_fd)
+    return fd, identity, owner_identity, owned
+
+
+def release_lock(owner) -> None:
+    fd, identity, owner_identity, _owned = owner
+    try:
+        if sorted(os.listdir(fd)) != ["owner"]:
+            raise Refusal("lock ownership changed; retained")
+        owner_fd = os.open("owner", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=fd)
+        with os.fdopen(owner_fd, "r") as handle:
+            owner_st = os.fstat(handle.fileno())
+            if (not stat.S_ISREG(owner_st.st_mode) or owner_st.st_uid != ROOT_UID
+                    or stat.S_IMODE(owner_st.st_mode) != 0o600
+                    or handle.read(256).strip() != OWNER):
+                raise Refusal("lock ownership changed; retained")
+            if owner_identity is not None and (owner_st.st_dev, owner_st.st_ino) != owner_identity:
+                raise Refusal("lock ownership changed; retained")
+        os.unlink("owner", dir_fd=fd)
+    except Refusal:
+        raise
+    except OSError as exc:
+        raise Refusal("lock release failed; retained") from exc
+    os.close(fd)
+    try:
+        st = os.lstat(LOCK)
+    except OSError:
+        return
+    if (stat.S_ISDIR(st.st_mode) and not stat.S_ISLNK(st.st_mode)
+            and (st.st_dev, st.st_ino) == identity):
+        try:
+            os.rmdir(LOCK)
+        except OSError:
+            pass
+
+
+def write_completion_status(digest: str) -> None:
+    """Publish the completion status bound to the exact descriptor we wrote."""
+    payload = {"completed": time.time(), "policy": "seven-day-rolling",
+               "manifest_sha256": digest, "latest_verified_points_preserved": True}
+    raw = (json.dumps(payload, sort_keys=True, indent=2) + "\n").encode()
+    content_digest = hashlib.sha256(raw).hexdigest()
+    dir_fd = -1
+    fd = -1
+    temporary_name = ".lean-retention-" + uuid.uuid4().hex
+    final_name = "lean-retention-complete.json"
+    try:
+        dir_fd, _ = _open_owned_dir(BASE, uid=_diab_uid(), mode=None,
+                                    code="receipt-directory-unsafe")
+        fd = os.open(temporary_name,
+                     os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600,
+                     dir_fd=dir_fd)
+        _write_all(fd, raw)
+        os.fsync(fd)
+        written = os.fstat(fd)
+        recorded = (written.st_dev, written.st_ino, written.st_size)
+        os.close(fd)
+        fd = -1
+        os.replace(temporary_name, final_name, src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
+        final_st = os.stat(final_name, dir_fd=dir_fd, follow_symlinks=False)
+        if ((final_st.st_dev, final_st.st_ino, final_st.st_size) != recorded
+                or final_st.st_nlink != 1 or final_st.st_uid != ROOT_UID
+                or stat.S_IMODE(final_st.st_mode) != 0o600):
+            raise Refusal("receipt status identity refused")
+        check_fd = os.open(final_name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=dir_fd)
+        try:
+            if hashlib.sha256(read_fd_bytes(check_fd, recorded[2], "receipt status")).hexdigest() != content_digest:
+                raise Refusal("receipt status content refused")
+        finally:
+            os.close(check_fd)
+        os.fsync(dir_fd)
+    finally:
+        if fd >= 0:
+            os.close(fd)
+        if dir_fd >= 0:
+            try:
+                os.unlink(temporary_name, dir_fd=dir_fd)
+            except OSError:
+                pass
+            os.close(dir_fd)
+
+
 def load_approved_deletes(path: Path) -> set[tuple[str, str]]:
-    value = json.loads(path.read_bytes())
+    value = json.loads(read_private_bytes(path, 4 * 1024 * 1024, "approved manifest"))
     if not isinstance(value, dict) or value.get("schema") != "vps-recovery-retention-manifest/v1":
         raise Refusal("approved manifest invalid")
     approved = set()
@@ -738,16 +1133,7 @@ def main() -> int:
                 raise Refusal("approved manifest drift; refusing to delete")
         assert_trusted_inputs()  # re-validate before mutation
         apply_plan(fresh, now=fresh_now)
-        status = BASE / "lean-retention-complete.json"
-        temporary = BASE / (".lean-retention-" + uuid.uuid4().hex)
-        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        with os.fdopen(fd, "w") as handle:
-            json.dump({"completed": time.time(), "policy": "seven-day-rolling",
-                       "manifest_sha256": digest,
-                       "latest_verified_points_preserved": True}, handle)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temporary, status)
+        write_completion_status(digest)
         print("retention=complete rolling_days=7 latest_verified_points_preserved")
         return 0
     finally:

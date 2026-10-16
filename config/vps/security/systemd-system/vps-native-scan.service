@@ -1,0 +1,26 @@
+[Unit]
+Description=Protected vps-native-scan
+After=network-online.target vps-monitor-status.socket
+Wants=network-online.target vps-monitor-status.socket
+
+[Service]
+Type=oneshot
+User=vps-native-scan
+Group=vps-native-scan
+SupplementaryGroups=vps-security-lock vps-monitor-status
+WorkingDirectory=/var/lib/vps-security-scan/native
+Environment=HOME=/var/lib/vps-security-scan/native
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/native_healthcheck_wrapper.py --component native --config /etc/vps-security-scan/native.json -- /usr/bin/python3 -E -s -B /usr/local/libexec/vps-security-scan/native_scanner.py --config /etc/vps-security-scan/native.json
+TimeoutStartSec=26min
+UMask=0077
+NoNewPrivileges=yes
+LockPersonality=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ReadWritePaths=/var/lib/vps-security-scan/native /run/vps-security-scan/scan.lock
+Nice=10
+CPUQuota=25%
+MemoryMax=1G
+TasksMax=128

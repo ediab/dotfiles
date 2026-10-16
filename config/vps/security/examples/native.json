@@ -1,7 +1,7 @@
 {
   "state_dir": "/home/diab/.local/state/vps-security-scan",
   "report_dir": "/home/diab/.local/state/vps-security-scan/reports",
-  "email_transport_root": "/home/diab/Dev/xbot",
+  "email_transport_root": "/usr/local/lib/vps-monitor-transport",
   "trivy_cache_dir": "/home/diab/.cache/trivy",
   "min_free_bytes": 5368709120,
   "overall_timeout_seconds": 1500,

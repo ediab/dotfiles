@@ -33,6 +33,30 @@ class CoreTests(unittest.TestCase):
                                                 "summary", event="failure", now=12))
             self.assertEqual(json.loads(state.read_text())["sent_at"], 11)
 
+    def test_quiet_recoveries_advance_and_deduplicate_without_email(self):
+        for event in ("recovered", "findings_cleared"):
+            with self.subTest(event=event), tempfile.TemporaryDirectory() as tmp:
+                state = Path(tmp) / "notification.json"
+                atomic_json(state, {"delivered_fingerprint": "previous", "status": "error"})
+                def no_mail(_body):
+                    self.fail("quiet recovery attempted email")
+                self.assertTrue(deliver_transition(state, event, no_mail, "summary", event=event,
+                                                   now=20, extra={"status": "clean", "findings": []}))
+                saved = read_private_json(state)
+                self.assertEqual(saved["delivered_event"], event)
+                self.assertEqual(saved["status"], "clean")
+                self.assertEqual(saved["findings"], [])
+                self.assertFalse(deliver_transition(state, event, no_mail, "summary", event=event, now=21))
+                self.assertEqual(read_private_json(state)["sent_at"], 20)
+
+    def test_unknown_event_is_not_silently_treated_as_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "notification.json"
+            with self.assertRaisesRegex(MonitorError, "delivery failed"):
+                deliver_transition(state, "new", lambda _body: False, "summary",
+                                   event="new_problem_kind", now=10)
+            self.assertFalse(state.exists())
+
     def test_private_config_requires_regular_same_user_private_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.json"
@@ -279,10 +303,31 @@ class ScannerTests(unittest.TestCase):
             self.assertEqual((error["status"], code), ("error", 1))
             self.assertNotIn("PRIVATE_OUTPUT_MARKER", json.dumps(error))
             self.assertNotIn("PRIVATE_OUTPUT_MARKER", emails[-1])
-            before = len(emails)
+            before_recovery = len(emails)
             recovered, code = run_scan(cfg, run=self.response(), send_email=sender, now=400)
             self.assertEqual((recovered["status"], code), ("clean", 0))
-            self.assertEqual(len(emails), before)  # Recoveries are silent.
+            self.assertEqual(len(emails), before_recovery)
+            state = read_private_json(cfg["state_dir"] / "notifications.json")
+            self.assertEqual((state["status"], state["findings"]), ("clean", []))
+
+    def test_error_followed_by_findings_is_not_a_quiet_recovery(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = self.config(Path(tmp))
+            emails = []
+            sender = lambda body: emails.append(body) or True
+            _, status = run_scan(cfg, run=self.response(trivy_status=1), send_email=sender, now=100)
+            self.assertEqual(status, 1)
+            self.assertEqual(len(emails), 1)
+            with self.assertRaisesRegex(MonitorError, "delivery failed"):
+                run_scan(cfg, run=self.response(finding=True), send_email=lambda _body: False, now=200)
+            self.assertEqual(read_private_json(cfg["state_dir"] / "notifications.json")["status"], "error")
+            report, status = run_scan(cfg, run=self.response(finding=True), send_email=sender, now=300)
+            self.assertEqual((report["status"], status), ("findings", 0))
+            self.assertEqual(len(emails), 2)
+            self.assertIn("CVE-2099-0001", emails[-1])
+            self.assertIn("new_or_changed=1", emails[-1])
+            self.assertNotIn("recovered", emails[-1])
+            self.assertEqual(read_private_json(cfg["state_dir"] / "notifications.json")["status"], "findings")
 
     def test_failed_delivery_does_not_acknowledge_finding_state(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -374,10 +419,14 @@ class WatchdogTests(unittest.TestCase):
             run_watchdog(config, now=32 * 3600 + 2, inspect=lambda *_a, **_k: issues,
                          send=lambda body: messages.append(body) or True)
             self.assertIn("failed", messages[-1])
-            run_watchdog(config, now=32 * 3600 + 3, inspect=lambda *_a, **_k: [],
-                         send=lambda body: messages.append(body) or True)
-            self.assertEqual(len(messages), 1)  # Recoveries are silent.
+            self.assertEqual(run_watchdog(config, now=32 * 3600 + 3, inspect=lambda *_a, **_k: [],
+                                          send=lambda _body: self.fail("recovery attempted email")), 0)
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(read_private_json(root / "watchdog-notifications.json")["issues"], [])
             self.assertEqual(read_private_json(root / "watchdog-notifications.json")["event"], "recovered")
+            self.assertEqual(run_watchdog(config, now=32 * 3600 + 4, inspect=lambda *_a, **_k: issues,
+                                          send=lambda body: messages.append(body) or True), 1)
+            self.assertEqual(len(messages), 2)
 
     def test_fresh_failed_heartbeat_is_unhealthy_even_when_notification_is_deduplicated(self):
         with tempfile.TemporaryDirectory() as tmp:

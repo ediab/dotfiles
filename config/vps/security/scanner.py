@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+import pwd
+import stat
 from pathlib import Path
 import re
 import shutil
@@ -16,7 +18,10 @@ import time
 import uuid
 from typing import Any, Callable
 
-from core import MonitorError, atomic_json, deliver_transition, locked, read_private_json
+from core import (MonitorError, IMAGE_STATE, SHARED_LOCK, SHARED_TRIVY_CACHE,
+                  atomic_json, deliver_transition, locked, read_monitor_config, read_private_json,
+                  trusted_mail_transport)
+from system_runtime import system_profile
 
 DEFAULT_CONFIG = Path.home() / ".config/vps-security-scan/config.json"
 DEFAULT_STATE = Path.home() / ".local/state/vps-security-scan"
@@ -86,7 +91,41 @@ def validate_config(config: Any) -> dict[str, Any]:
         raise MonitorError("minimum container count exceeds inventory limit")
     if values["max_total_report_bytes"] < values["max_report_bytes"]:
         raise MonitorError("total report bound must be at least as large as one report")
+    system = system_profile(config)
+    values["profile"] = "system" if system else "user"
+    values["lock_file"] = SHARED_LOCK if system else values["state_dir"] / "scan.lock"
+    if system and (values["state_dir"] != IMAGE_STATE
+                   or values["report_dir"] != IMAGE_STATE / "reports"
+                   or values["email_transport_root"] != "/usr/local/lib/vps-monitor-transport"
+                   or values["min_free_bytes"] < 5 * GIB):
+        raise MonitorError("system-image-path-or-floor-refused")
     return values
+
+
+def _share_database(run) -> None:
+    """Grant native read-only DB access as its image owner, never as root."""
+    try:
+        native_uid = pwd.getpwnam("vps-native-scan").pw_uid
+    except KeyError as exc:
+        raise MonitorError("native-scan-identity-missing") from exc
+    if native_uid == 0 or native_uid == os.getuid():
+        raise MonitorError("native-scan-identity-not-isolated")
+    permissions = []
+    for path, directory in ((SHARED_TRIVY_CACHE, True), (SHARED_TRIVY_CACHE / "db", True),
+                            (SHARED_TRIVY_CACHE / "db/metadata.json", False),
+                            (SHARED_TRIVY_CACHE / "db/trivy.db", False)):
+        info = path.lstat()
+        if info.st_uid != os.getuid() or info.st_mode & 0o022:
+            raise MonitorError("shared-database-owner-refused")
+        if not (stat.S_ISDIR(info.st_mode) if directory else
+                stat.S_ISREG(info.st_mode) and info.st_nlink == 1):
+            raise MonitorError("shared-database-type-refused")
+        permissions.append((path, "rx" if directory else "r"))
+    # Validate every entry before changing any ACL, including final DB files.
+    for path, access in permissions:
+        result = run(["/usr/bin/setfacl", "-m", f"u:{native_uid}:{access}", str(path)], 10)
+        if result.returncode:
+            raise MonitorError("shared-database-read-access-failed")
 
 
 def _check_guards(config: dict[str, Any]) -> None:
@@ -261,7 +300,7 @@ def run_scan(config: dict[str, Any], *, run=_run, send_email: Callable[[str], bo
     started_at = int(clock()) if now is None else now
     config["report_dir"].mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(config["report_dir"], 0o700)
-    lock_path = config["state_dir"] / "scan.lock"
+    lock_path = config.get("lock_file", config["state_dir"] / "scan.lock")
     with locked(lock_path):
         scan_id = datetime.fromtimestamp(started_at, timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
         report: dict[str, Any] = {
@@ -327,6 +366,11 @@ def run_scan(config: dict[str, Any], *, run=_run, send_email: Callable[[str], bo
                     report["errors"].append({"code": "runtime_inventory_changed"})
             except (MonitorError, OSError, subprocess.TimeoutExpired, UnicodeError):
                 report["errors"].append({"code": "runtime_inventory_unverified"})
+            if config.get("profile") == "system":
+                try:
+                    _share_database(run)
+                except (MonitorError, OSError, subprocess.TimeoutExpired):
+                    report["errors"].append({"code": "shared_database_access_failed"})
             report["status"] = "error" if report["errors"] else ("findings" if report["findings"] else "clean")
         except (MonitorError, OSError, subprocess.TimeoutExpired, UnicodeError) as exc:
             # Exception class only: raw command output, paths and secrets are not retained.
@@ -424,8 +468,7 @@ def run_scan(config: dict[str, Any], *, run=_run, send_email: Callable[[str], bo
 
 def _email_sender(config: dict[str, Any]) -> Callable[[str], bool]:
     root = Path(config["email_transport_root"])
-    if not (root / "summary_config.py").is_file() or not (root / "scrape_timeline.py").is_file():
-        raise MonitorError("existing xbot email transport unavailable")
+    trusted_mail_transport(root)
     sys.path.insert(0, str(root))
     try:
         from summary_config import load_environment
@@ -451,7 +494,7 @@ def main() -> int:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     args = parser.parse_args()
     try:
-        config = validate_config(read_private_json(args.config))
+        config = validate_config(read_monitor_config(args.config))
         report, status = run_scan(config)
         print(f"scan_id={report['scan_id']} status={report['status']} images={len(report['images'])} findings={len(report['findings'])} errors={len(report['errors'])}")
         return status

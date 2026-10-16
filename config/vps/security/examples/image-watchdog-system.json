@@ -1,0 +1,10 @@
+{
+  "profile": "system",
+  "state_dir": "/var/lib/vps-security-scan/native/image-watchdog",
+  "email_transport_root": "/usr/local/lib/vps-monitor-transport",
+  "max_heartbeat_age_seconds": 115200,
+  "healthchecks": {
+    "enabled": false,
+    "monitor_ping_urls": {}
+  }
+}

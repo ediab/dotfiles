@@ -1,0 +1,27 @@
+{
+  "report_dir": "/var/lib/vps-security-scan/image/reports",
+  "state_dir": "/var/lib/vps-security-scan/image",
+  "email_transport_root": "/usr/local/lib/vps-monitor-transport",
+  "native_apps_not_scanned": [
+    "tfl",
+    "xbot",
+    "morning-brief",
+    "el-machine",
+    "houses"
+  ],
+  "min_free_bytes": 5368709120,
+  "min_containers": 1,
+  "max_containers": 40,
+  "scan_timeout_seconds": 1200,
+  "overall_timeout_seconds": 6600,
+  "max_report_bytes": 33554432,
+  "max_total_report_bytes": 536870912,
+  "max_retained_reports": 30,
+  "retention_days": 30,
+  "max_heartbeat_age_seconds": 115200,
+  "healthchecks": {
+    "enabled": false,
+    "monitor_ping_urls": {}
+  },
+  "profile": "system"
+}

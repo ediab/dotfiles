@@ -1,0 +1,15 @@
+[Unit]
+Description=Fixed read-only VPS monitoring status
+
+[Socket]
+ListenStream=/run/vps-security-scan/status.sock
+SocketUser=root
+SocketGroup=vps-monitor-status
+SocketMode=0660
+DirectoryMode=0755
+Accept=yes
+MaxConnections=4
+RemoveOnStop=yes
+
+[Install]
+WantedBy=sockets.target

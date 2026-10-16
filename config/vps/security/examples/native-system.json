@@ -1,0 +1,18 @@
+{
+  "state_dir": "/var/lib/vps-security-scan/native",
+  "report_dir": "/var/lib/vps-security-scan/native/reports",
+  "email_transport_root": "/usr/local/lib/vps-monitor-transport",
+  "trivy_cache_dir": "/var/cache/vps-security-scan/trivy",
+  "min_free_bytes": 5368709120,
+  "overall_timeout_seconds": 1500,
+  "per_target_timeout_seconds": 300,
+  "max_report_bytes": 8388608,
+  "max_trivy_report_bytes": 16777216,
+  "max_heartbeat_age_seconds": 691200,
+  "healthchecks": {
+    "enabled": false,
+    "native_ping_url": "",
+    "watchdog_ping_url": ""
+  },
+  "profile": "system"
+}
