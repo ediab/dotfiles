@@ -179,6 +179,8 @@ transport stay untouched.
 
 ## Installation (explicit operator action)
 
+The installed user units run the modules with `/usr/bin/python3`, not the xbot virtualenv.
+
 1. Run `python3 -m unittest discover -s config/vps/security/tests -v`.
 2. Back up installed units/drop-ins and original monitor checksums privately.
 3. Copy these four Python files to `~/ops/vps-security/libexec/` (directory0700,

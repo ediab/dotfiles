@@ -12,7 +12,8 @@
 //
 // Versioned in the dotfiles repo — edit it there, never on the VPS. No deploy script installs
 // it; after an edit, install it by hand from the VPS checkout:
-//   sudo install -m 644 config/vps/apt/51-vps-auto-updates /etc/apt/apt.conf.d/51-vps-auto-updates `~/apps/AGENTS.md` documents the resulting behaviour.
+//   sudo install -m 644 config/vps/apt/51-vps-auto-updates /etc/apt/apt.conf.d/51-vps-auto-updates
+// `~/apps/AGENTS.md` documents the resulting behaviour.
 
 Unattended-Upgrade::Allowed-Origins {
         "${distro_id}:${distro_codename}";
@@ -21,13 +22,12 @@ Unattended-Upgrade::Allowed-Origins {
         "${distro_id}ESM:${distro_codename}-infra-security";
 };
 
-Unattended-Upgrade::Automatic-Reboot "true";
+// Updates install unattended; reboots do not. Reboot this box deliberately.
+Unattended-Upgrade::Automatic-Reboot "false";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
 
-// Reboot even with a user logged in. Consequence: an active mosh/ssh session is cut at
-// the window below. Deploys are protected from this by the shutdown inhibit in
-// ~/bin/vps-deploy.sh, so a reboot waits for an in-flight deploy to finish.
-Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
-
+// Inert while automatic reboots are off; a deliberate reboot still waits for an in-flight
+// deploy through the `vps-deploy-inhibit` shutdown inhibit.
 Unattended-Upgrade::Automatic-Reboot-Time "03:30";
 
 // Reboots leave the previous kernel behind; let the updater reap them instead of

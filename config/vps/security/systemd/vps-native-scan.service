@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/home/diab/Dev/xbot/.venv/bin/python /home/diab/ops/vps-security/libexec/native_healthcheck_wrapper.py --component native --config /home/diab/.config/vps-security-scan/native.json -- /home/diab/Dev/xbot/.venv/bin/python /home/diab/ops/vps-security/libexec/native_scanner.py --config /home/diab/.config/vps-security-scan/native.json
+ExecStart=/usr/bin/python3 /home/diab/ops/vps-security/libexec/native_healthcheck_wrapper.py --component native --config /home/diab/.config/vps-security-scan/native.json -- /usr/bin/python3 /home/diab/ops/vps-security/libexec/native_scanner.py --config /home/diab/.config/vps-security-scan/native.json
 TimeoutStartSec=26min
 UMask=0077
 Environment=PYTHONDONTWRITEBYTECODE=1

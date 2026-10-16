@@ -37,7 +37,7 @@ def main():
     if not notification(level, state, now):
         return 0
 
-    xbot = Path.home() / "Dev/xbot"
+    xbot = Path("/usr/local/lib/vps-monitor-transport")
     sys.path.insert(0, str(xbot))
     from summary_config import load_environment
     from scrape_timeline import DEFAULT_CURL_EXPIRY_EMAIL, send_alert_email
