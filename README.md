@@ -98,7 +98,8 @@ Matt Pocock's skills, the local pstack adaptations, the local `bro` copy and
 No separate BB installation is needed. BB uses the native harness installations
 on the thread's execution machine. Start a fresh thread/provider session after
 installation; existing conversation context can still advertise retired skills.
-Installing on the Mac does not install on the VPS or other enrolled machines.
+Installing native pstack on the Mac does not install it on the VPS or other
+enrolled machines. BB user skills use server-side distribution instead.
 
 Explicitly invoked workflows authorize their prescribed helpers, including in
 standalone Pi; otherwise one agent is the default.
