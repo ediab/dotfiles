@@ -1,3 +1,4 @@
+tap "anomalyco/tap"
 tap "domt4/autoupdate", trusted: true
 tap "hamed-elfayome/claude-usage"
 tap "homebrew/services"
@@ -60,6 +61,8 @@ brew "mole"
 brew "mosh"
 # Open-source, cross-platform JavaScript runtime environment
 brew "node"
+# AI coding agent with access to OpenCode free models
+brew "anomalyco/tap/opencode", trusted: true
 # 7-Zip (high compression file archiver) implementation
 brew "p7zip"
 # Swiss-army knife of markup format conversion

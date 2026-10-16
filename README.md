@@ -1,6 +1,6 @@
 # dotfiles
 
-Public repo holding the latest Pi, Claude and Codex settings, the skills they use,
+Public repo holding the latest Pi, Claude, Codex and OpenCode settings, the skills they use,
 portable BB preferences and setup helpers, and ordinary Mac config. **The checkout is
 the live copy:** `link.sh` symlinks the linked configuration below into place, so a
 setting saved by an app or a skill you edit is already in the repo. BB is an exception:
@@ -9,14 +9,16 @@ its settings use explicit snapshot/restore commands rather than live symlinks.
 ## Layout
 
 ```
-agents/AGENTS.md       -> ~/.pi/agent/AGENTS.md, ~/.codex/AGENTS.md, ~/.claude/CLAUDE.md
+agents/AGENTS.md       -> ~/.pi/agent/AGENTS.md, ~/.codex/AGENTS.md, ~/.claude/CLAUDE.md,
+                         ~/.config/opencode/AGENTS.md
 agents/ATTRIBUTION.md  credits for copied-in skills (not linked)
-agents/skills/         -> ~/.agents/skills (Pi + Codex); one link per skill in ~/.claude/skills
+agents/skills/         -> ~/.agents/skills (Pi + Codex + OpenCode); one link per skill in ~/.claude/skills
 pi/{extensions,themes}/ -> ~/.pi/agent/<same>
 pi/*.json              -> ~/.pi/agent/<same> (settings, web-search, mcp)
 pi/pi-title.jsonc      -> ~/.pi/agent/pi-title.jsonc (pi-title / title-in-border settings)
 claude/                -> ~/.claude/ (platform settings, shared statusline-command.sh)
 codex/                 -> ~/.codex/ (platform config, shared hooks.json, personal agents)
+opencode/opencode.json -> ~/.config/opencode/opencode.json
 scripts/agent-hook.sh   optional session integrations, guarded when not installed
 config/                other dotfiles (zsh, ghostty, starship, herdr, VS Code, VPS files)
 bb/                    explicit install/update and portable preference snapshot/restore (not linked)
@@ -39,6 +41,62 @@ when switching away from a global npm installation. Configuration, credentials
 and sessions remain in `~/.pi/agent`. Credentials stay machine-local and untracked;
 use `pi auth check --provider deepseek` and `pi auth check --provider openai`
 to check readiness without printing secrets.
+
+## OpenCode installation
+
+On macOS, install the official CLI through its Homebrew tap:
+
+```sh
+brew tap anomalyco/tap
+brew install anomalyco/tap/opencode
+./link.sh
+opencode --version
+opencode models opencode
+```
+
+On Linux, install the same CLI version without changing shell configuration:
+
+```sh
+curl -fsSL https://opencode.ai/install | bash -s -- --version 1.19.2 --no-modify-path
+mkdir -p ~/.local/bin
+ln -s ~/.opencode/bin/opencode ~/.local/bin/opencode
+./link.sh
+```
+
+`~/.local/bin` must be on the execution host's `PATH`, including BB's host daemon.
+The symlink command refuses to replace an existing executable.
+
+`opencode/opencode.json` enables only the OpenCode provider and its two selected
+free models. It defaults to `opencode/deepseek-v4.1-flash-free` and also exposes
+`opencode/glm-5.3-flash-free`. Lightweight internal requests use
+DeepSeek Free too. These promotions can expire. No API key is stored in this repo.
+The GLM entry supplies metadata missing from OpenCode 1.19.2's bundled catalog,
+using the [official model definition](https://github.com/anomalyco/models.dev/blob/dev/providers/opencode/models/glm-5.3-flash-free.toml).
+Remove that override once the bundled catalog contains the model.
+
+OpenCode discovers `~/.agents/skills` and `~/.claude/skills` itself. Its config also
+reads pstack skills from Pi's existing package checkout, so reconcile Pi packages
+first on a new machine. This shares skill files, not Pi extensions, Claude hooks,
+Codex plugins, or their credentials. Tool-specific skills may need adaptation.
+No pstack startup hook or Pi delegation tool is installed for OpenCode.
+
+File reads, searches, and skill loading are allowed. Other operations, including
+shell commands, edits, and subagent launches, require approval. `.env` reads are
+denied apart from `.env.example`. Session sharing and update checks are disabled.
+Update through `brew upgrade anomalyco/tap/opencode`.
+
+To select either free model explicitly:
+
+```sh
+opencode --model opencode/deepseek-v4.1-flash-free
+opencode --model opencode/glm-5.3-flash-free
+```
+
+Restart OpenCode after configuration changes. In BB, enable the standard
+**ACP providers** plugin (`bb plugin enable provider-acp`), then start a new
+thread on a host with OpenCode installed and select **opencode** and either free
+model. The preview ACP adapter is not needed. Each execution host needs its own
+CLI installation and linked configuration.
 
 ## Pi packages and host-specific UI
 
@@ -193,11 +251,11 @@ so concurrent runs never see a half-made link. Each run also sets this clone's
 
 ## Adding or changing a skill
 
-| What you do | Repo | Pi | Codex | Claude |
-|---|---|---|---|---|
-| Edit an existing skill, from any app | updated | yes | yes | yes |
-| Create a skill in `~/.agents/skills` or `agents/skills/` | updated | yes | yes | after a Claude restart |
-| An installer adds a skill to `~/.agents/skills` | shows in `git status` | yes | yes | after a Claude restart |
+| What you do | Repo | Pi | Codex | Claude | OpenCode |
+|---|---|---|---|---|---|
+| Edit an existing skill, from any app | updated | yes | yes | yes | after restart |
+| Create a skill in `~/.agents/skills` or `agents/skills/` | updated | yes | yes | after a Claude restart | after restart |
+| An installer adds a skill to `~/.agents/skills` | shows in `git status` | yes | yes | after a Claude restart | after restart |
 
 Claude reads only `~/.claude/skills` (which also holds its own synced skills), so it gets one
 link per skill; `link.sh` creates them. Create new personal skills in `~/.agents/skills/<name>`.

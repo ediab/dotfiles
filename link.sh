@@ -76,7 +76,9 @@ link pi/pi-title.jsonc "$H/.pi/agent/pi-title.jsonc"   # .jsonc, so not in the l
 for d in extensions themes; do link "pi/$d" "$H/.pi/agent/$d"; done
 link agents/AGENTS.md "$H/.pi/agent/AGENTS.md"
 link pi/pstack-models.md "$H/.pi/agent/pstack-models.md"
-link agents/skills "$H/.agents/skills"   # Pi and Codex read this
+link agents/skills "$H/.agents/skills"   # Pi, Codex and OpenCode read this
+link agents/AGENTS.md "$H/.config/opencode/AGENTS.md"
+link opencode/opencode.json "$H/.config/opencode/opencode.json"
 if [ -d "$H/.claude" ]; then
   link agents/AGENTS.md "$H/.claude/CLAUDE.md"
   link "claude/$claude_settings" "$H/.claude/settings.json"

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "enabled_providers": ["opencode"],
+  "model": "opencode/deepseek-v4.1-flash-free",
+  "small_model": "opencode/deepseek-v4.1-flash-free",
+  "share": "disabled",
+  "autoupdate": false,
+  "skills": {
+    "paths": [
+      "~/.pi/agent/git/github.com/michael-denyer/pstack-claude/plugins/pstack/skills"
+    ]
+  },
+  "permission": {
+    "*": "ask",
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow"
+    },
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "skill": "allow",
+    "question": "allow"
+  },
+  "provider": {
+    "opencode": {
+      "whitelist": [
+        "deepseek-v4.1-flash-free",
+        "glm-5.3-flash-free"
+      ],
+      "models": {
+        "glm-5.3-flash-free": {
+          "name": "GLM-5.3-Flash Free",
+          "reasoning": true,
+          "tool_call": true,
+          "interleaved": { "field": "reasoning_content" },
+          "cost": { "input": 0, "output": 0, "cache_read": 0, "cache_write": 0 },
+          "limit": { "context": 200000, "output": 32000 },
+          "provider": { "api": "https://opencode.ai/inference/openai/v1" },
+          "variants": {
+            "low": { "reasoningEffort": "low" },
+            "high": { "reasoningEffort": "high" },
+            "max": { "reasoningEffort": "max" }
+          }
+        }
+      }
+    }
+  }
+}
