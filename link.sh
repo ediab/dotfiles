@@ -58,10 +58,13 @@ link() { # link <repo-relative source> <destination>
 }
 
 # Pi writes machine-local keys into pi/settings.json: lastChangelogVersion after each update,
-# deviceId (a per-machine login ID) on first use. Keep both out of git so pulls are not
-# blocked and machines do not share one ID. Git config is per clone, so set it on every run.
+# deviceId (a per-machine login ID) on first use. Codex's desktop app rewrites its version,
+# browser-service path and [desktop] preferences. Keep these local choices out of git so
+# pulls are not blocked and machines do not share them. Git config is per clone, so set it
+# on every run.
 if git -C "$REPO" rev-parse --git-dir >/dev/null 2>&1; then
   git -C "$REPO" config filter.pi-settings.clean "jq 'del(.lastChangelogVersion, .deviceId)'"
+  git -C "$REPO" config filter.codex-config.clean "python3 '$REPO/scripts/codex-config-clean.py'"
 fi
 
 platform="$(uname)"

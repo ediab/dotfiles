@@ -21,16 +21,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$HOME/Dev/dotfiles/scripts/agent-hook.sh\" lavish-axi",
-            "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
             "command": "bash \"$HOME/Dev/dotfiles/scripts/agent-hook.sh\" chrome-devtools-axi",
             "timeout": 10
           }

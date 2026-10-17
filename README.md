@@ -296,6 +296,12 @@ after every update and `deviceId` (a per-machine login ID). A git clean filter
 (`.gitattributes`, configured by `link.sh` with `jq`) keeps both out of commits, so
 they never dirty the tree or block a pull, and each machine keeps its own ID.
 
+The Mac `codex/config.toml` has a similar clean filter:
+`scripts/codex-config-clean.py` drops `BROWSER_USE_CODEX_APP_VERSION`,
+`NODE_REPL_TRUSTED_SERVICES` and the `[desktop]` table. Codex app updates and
+desktop preferences stay in the live file without dirtying Git. `link.sh` sets
+the filter in each clone.
+
 The local ggshield pre-commit hook (`.git/hooks/pre-commit`, untracked) falls back
 to `GITGUARDIAN_API_KEY` from `~/.env`, because sandboxed agents cannot read the
 macOS keychain where `ggshield auth login` stores the token. `claude/settings.json`
@@ -309,9 +315,12 @@ macOS SSH agent and keychain, which the sandbox blocks, so each push asks for
 permission. That prompt is intentional.
 
 Session hooks use `scripts/agent-hook.sh`; optional helpers and Herdr-installed
-hooks are invoked only when present. Context7 credentials stay in each host's
-`~/.env`, not in tracked settings. Claude's user MCP registrations remain in
-its untracked `~/.claude.json`.
+hooks are invoked only when present. `gh-axi` and `chrome-devtools-axi` run at
+Claude startup; `lavish-axi` is not started automatically because it costs about
+1.7 seconds and 9 KB of context per session. Run it on demand when a review
+surface is useful. Context7 credentials stay in each host's `~/.env`, not in
+tracked settings. Claude's user MCP registrations remain in its untracked
+`~/.claude.json`.
 
 A reconciled machine should rerun `link.sh` with exit 0 and no `SKIP` or `FAIL`.
 The linker still protects conflicting real files: for an approved reconciliation,
