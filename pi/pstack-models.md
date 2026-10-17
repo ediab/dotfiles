@@ -9,6 +9,8 @@ counts as one agent, including aliases. An optional `@low`, `@medium`, `@high`,
 
 pi models: opus=openai/gpt-6.1-sol, fable=openai/gpt-6-astra, sonnet=deepseek/deepseek-flash, haiku=openai/gpt-6-luna
 
+These aliases are pstack labels for the Pi catalog IDs above. They are not permission to call similarly named Anthropic models.
+
 feature, refactoring: opus
 bug-fix: fable
 perf-issue: fable
@@ -21,11 +23,11 @@ why investigators: opus
 why synthesizer: opus
 reflect tooling: opus
 reflect judgment, divergent, synthesizer: opus
-arena runners: opus, fable, sonnet, haiku
-arena cross-judge pool: opus, fable, sonnet, haiku
+arena runners: opus@high, sonnet@high
+arena cross-judge pool: opus@high, sonnet@high
 swarm workers: opus
-architect runners: opus, fable, sonnet, haiku
-interrogate reviewers: opus, fable, sonnet, haiku
+architect runners: opus@high, sonnet@high
+interrogate reviewers: opus@high, fable@high, sonnet@high
 
 default effort: session
 session hook: off

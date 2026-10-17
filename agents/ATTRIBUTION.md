@@ -4,10 +4,10 @@
 
 - Upstream port: https://github.com/michael-denyer/pstack-claude
 - Original: https://github.com/cursor/plugins/tree/main/pstack, by Lauren Tan.
-- Installed release: `0.9.86`, tag `v0.9.86`, commit `1dba27e50e8f18f146bb80f137f0690f8d773c2e`.
+- Installed release: `0.9.92`, tag `v0.9.92`, commit `7bad1ebc26faa268806bfbb84e5af55d178b68e4`.
 - License: MIT, with imported material and notices supplied by the upstream package.
-- Installed through the native Claude Code plugin, Codex plugin and Pi package. No pstack skill files are copied into `agents/skills/` or modified locally.
-- Host, BB delegation and safety overrides live in `agents/AGENTS.md`, not upstream files. See the root README for installation and updates.
+- Installed once per host through the Pi package. Claude Code and Codex have no native pstack installation. No pstack skill files are copied into `agents/skills/` or modified locally.
+- Host, BB delegation and safety overrides live in `agents/AGENTS.md` and `bb/AGENTS.md`, not upstream files. See the root README for installation and updates.
 
 ## pbakaus/impeccable
 

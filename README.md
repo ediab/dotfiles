@@ -124,35 +124,31 @@ Inside BB, prefer BB's own question tool.
 ## Pstack
 
 [Pstack](https://github.com/michael-denyer/pstack-claude) provides on-demand
-engineering workflows in Claude Code, Codex and Pi. Routine tasks run directly;
-`poteto-mode` is reserved for explicit requests, typically large or complex projects. Release `0.9.86` is installed through each
-harness's native plugin/package mechanism, not copied into the shared personal
-skills directory. Claude uses tag `v0.9.86`; Codex and Pi use its commit
-`1dba27e50e8f18f146bb80f137f0690f8d773c2e`. Keep all three aligned when updating.
+engineering workflows. It is installed once per host as a Pi package, not copied
+into the shared personal skills directory. Claude Code and Codex do not install
+pstack; they remain usable independently with the shared instructions and personal
+skills, and have no native pstack commands. Routine tasks run directly;
+`poteto-mode` is reserved for explicit requests, typically large or complex projects.
 
-After linking on a new machine with the CLIs installed, reconcile their installs:
+`pi/settings.json` pins release `0.9.92` at commit
+`7bad1ebc26faa268806bfbb84e5af55d178b68e4`. After linking on a new machine,
+reconcile the package and confirm the revision:
 
 ```sh
-claude plugin marketplace add michael-denyer/pstack-claude@v0.9.86
-claude plugin install pstack@pstack-claude --scope user
-codex plugin marketplace add michael-denyer/pstack-claude --ref 1dba27e50e8f18f146bb80f137f0690f8d773c2e
-codex plugin add pstack@pstack-claude
 pi update --extensions
+pi list
 ```
 
-The native SessionStart hooks remain installed, but routing is disabled by
-`session hook: off` in each harness's `pstack-models.md`. `link.sh` links the
-tracked `claude/`, `codex/` and `pi/` copies into the respective user directories.
-These sheets set routing only; upstream model and effort defaults are unchanged.
-Codex's Mac configuration retains the reviewed hook hash reported by `hooks/list`;
-if you later enable routing, inspect hook trust in `/hooks` on a new machine.
+`pi/pstack-models.md` maps pstack aliases to exact Pi catalog IDs and sets the
+opt-in panels and effort levels. `link.sh` links it to
+`~/.pi/agent/pstack-models.md`. Routing is disabled by `session hook: off`; these
+settings do not change upstream model or effort defaults. Run the upstream
+`setup-pstack` skill when you want to choose models or effort, and keep the
+sheet's alias mapping explicit when updating pstack.
 
-Use `/pstack:poteto-mode <task>` in Claude Code, request `pstack:poteto-mode` in
-Codex, or use `/skill:poteto-mode <task>` in Pi. Specific skills such as `bro`,
-`how`, `architect` and `interrogate` remain directly available. Automatic routing
-is off in all three harnesses; BB inherits that through its native providers.
-Run the upstream `setup-pstack` skill when you want to choose models/effort.
-Keep routing off unless you intentionally change the opt-in policy.
+Use `/skill:poteto-mode <task>` in Pi, or request a specific skill such as `bro`,
+`how`, `architect`, or `interrogate`. BB inherits the Pi installation through its
+`pi` provider. Standalone Pi remains a supported fallback for the same package.
 
 Matt Pocock's skills, the local pstack adaptations, the local `bro` copy and
 `personal-workflow` are retired. Unrelated personal skills remain under
@@ -161,21 +157,24 @@ Matt Pocock's skills, the local pstack adaptations, the local `bro` copy and
 
 ### BB and delegation
 
-No separate BB installation is needed. BB uses the native harness installations
-on the thread's execution machine. Start a fresh thread/provider session after
-installation; existing conversation context can still advertise retired skills.
-Installing native pstack on the Mac does not install it on the VPS or other
-enrolled machines. BB user skills use server-side distribution instead.
+No separate BB installation is needed. BB uses the Pi installation on the
+thread's execution machine. Start a fresh thread/provider session after updating;
+existing conversation context can still advertise retired skills. Installing
+pstack on the Mac does not install it on the VPS or other enrolled machines. BB
+user skills use server-side distribution instead.
 
-Explicitly invoked workflows authorize their prescribed helpers, including in
-standalone Pi; otherwise one agent is the default.
+Every pstack worker inside BB is a `pi` child thread. Claude Code and Codex are
+not pstack execution routes and are not fallback providers. Explicitly invoked
+workflows authorize their prescribed helpers, including in standalone Pi;
+otherwise one agent is the default.
 Inside BB, read the [`pstack-bb` adapter](bb/skills/pstack-bb/SKILL.md) before
 delegating. It routes workers through BB child threads, preserves pstack role
-instructions, and resolves models against the target machine's BB catalog.
-Reviewers can share a stable checkout with explicit no-edit instructions;
-concurrent writers use separate BB worktrees on the parent's machine. Worktrees
-separate edits, not OS permissions. Upstream native tools may still be loaded,
-but the BB adapter takes precedence. No BB plugin or forked pstack runtime is added.
+instructions, passes the required role and rubric paths, and resolves models
+against the target machine's Pi catalog. Reviewers can share a stable checkout
+with explicit no-edit instructions and before/after state checks; consequential
+reviews and concurrent writers use separate BB worktrees on the parent's machine.
+Worktrees separate edits, not OS permissions. No BB plugin or forked pstack runtime
+is added.
 
 Install the adapter in the active BB server's user skill directory as described
 in [`bb/README.md`](bb/README.md#bb-skills-in-user-scope). `link.sh` does not install

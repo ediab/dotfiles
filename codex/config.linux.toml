@@ -26,14 +26,6 @@ status_line = ["model-with-reasoning", "context-remaining", "current-dir", "git-
 status_line_use_colors = true
 
 
-[marketplaces.pstack-claude]
-source_type = "git"
-source = "https://github.com/michael-denyer/pstack-claude.git"
-ref = "1dba27e50e8f18f146bb80f137f0690f8d773c2e"
-
-[plugins."pstack@pstack-claude"]
-enabled = true
-
 # Hook trust for the shared codex/hooks.json. Codex hashes only the hook definition
 # (event, matcher, command), not the file path, so these match the Mac entries.
 

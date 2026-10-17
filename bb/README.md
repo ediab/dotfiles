@@ -104,22 +104,27 @@ skill root. There is no skill export/import command.
 ### Pstack delegation
 
 The [`pstack-bb` skill](skills/pstack-bb/SKILL.md) adapts upstream pstack worker
-operations to BB child threads across Pi, Claude Code, and Codex. The shared
-[`agents/AGENTS.md`](../agents/AGENTS.md) requires it before delegation inside BB.
-Standalone sessions retain their native pstack tools. Keep upstream pstack
-installed on each execution machine and leave its files unchanged.
+operations to BB child threads. Every pstack child is a `pi` thread; Claude Code
+and Codex are not pstack execution routes or fallback providers. The shared
+[`agents/AGENTS.md`](../agents/AGENTS.md) and [`bb/AGENTS.md`](AGENTS.md) require
+it before delegation inside BB. Standalone sessions retain their Pi pstack tools.
+Keep the upstream package installed once per execution machine through Pi, and
+leave its files unchanged.
 
-Workers use the parent's machine. Readers can share the parent's environment;
-writers use managed worktrees from an explicit committed base. The adapter
-preserves pstack roles and review gates, validates model and effort choices
-against BB's catalog, and keeps integration with the parent. Reviewers' no-edit
+Workers use the parent's machine. Readers and reviewers that need uncommitted
+changes can share the parent's environment with explicit no-edit instructions and
+before/after state checks; consequential reviews and writers use managed worktrees
+from an explicit committed base. The adapter preserves pstack roles and review
+gates, passes required role and rubric paths, validates model and effort choices
+against the Pi catalog, and keeps integration with the parent. Reviewers' no-edit
 instructions are not a read-only sandbox. Do not archive a worktree until useful
 work is committed and preserved.
 
-After an adapter update, verify discovery in a fresh BB session. Run a small
-cross-provider review and an isolated-writing check. Inspect the child threads,
-target machines, requested model/effort, completion messages, and diffs. Confirm
-that no native subagent tools ran and that reviewers left the shared tree unchanged.
+After an adapter update, verify discovery in a fresh BB session. Run a bounded
+Pi reviewer check and an isolated-writing check. Inspect the child threads, target
+machines, requested model/effort, role/rubric reads, completion messages, and
+diffs. Confirm that no native subagent tools ran and that reviewers left the shared
+tree unchanged.
 
 ## Capture current preferences
 

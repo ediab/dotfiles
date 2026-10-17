@@ -82,8 +82,7 @@ link opencode/opencode.json "$H/.config/opencode/opencode.json"
 if [ -d "$H/.claude" ]; then
   link agents/AGENTS.md "$H/.claude/CLAUDE.md"
   link "claude/$claude_settings" "$H/.claude/settings.json"
-  link claude/pstack-models.md "$H/.claude/pstack-models.md"
-  link claude/statusline-command.sh "$H/.claude/statusline-command.sh"
+    link claude/statusline-command.sh "$H/.claude/statusline-command.sh"
   for d in "$REPO"/agents/skills/*/; do
     d="$(basename "$d")"
     # Impeccable installs different provider builds; leave Claude's native copy alone.
@@ -94,7 +93,6 @@ fi
 if [ -d "$H/.codex" ]; then
   link agents/AGENTS.md "$H/.codex/AGENTS.md"
   link "codex/$codex_config" "$H/.codex/config.toml"
-  link codex/pstack-models.md "$H/.codex/pstack-models.md"
   link codex/hooks.json "$H/.codex/hooks.json"
   link codex/agents/reviewer.toml "$H/.codex/agents/reviewer.toml"
 fi
