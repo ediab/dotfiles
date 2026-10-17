@@ -115,6 +115,8 @@ NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = ""
 NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = ""
 NODE_REPL_INSTRUCTIONS_USE_CASE_COMPUTER_USE = ""
 BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.1013.40934"
+NODE_REPL_TRUSTED_SERVICES = '{"browser":"/Users/eliasdiab/.codex/plugins/cache/openai-bundled/browser/26.1013.40934/scripts/browser-service.mjs","sky":"@oai/sky/service"}'
 SKY_CUA_SERVICE_PATH = "/Users/eliasdiab/.codex/computer-use/Codex Computer Use.app"
 CODEX_CLI_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex"
 
@@ -353,6 +355,19 @@ enabled = true
 
 [plugins."code-review@openai-bundled"]
 enabled = true
+
+
+[desktop]
+keepRemoteControlAwakeWhilePluggedIn = true
+followUpQueueMode = "queue"
+dock-icon-preference = "codex-system"
+conversationDetailMode = "STEPS_COMMANDS"
+realtimeVoiceScreenContextEnabled = true
+sansFontSize = 14
+codeFontSize = 13
+ambient-suggestions-enabled = false
+avatar-overlay-mascot-width-px = 80
+selected-avatar-id = "rocky"
 
 
 [shell_environment_policy.set]

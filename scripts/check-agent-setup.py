@@ -26,6 +26,18 @@ PSSTACK_SKILLS = (
     "fix-ci",
     "interrogate",
 )
+EXPECTED_ALIASES = {
+    "opus": "openai/gpt-6.1-sol",
+    "fable": "openai/gpt-6-astra",
+    "sonnet": "deepseek/deepseek-flash",
+    "haiku": "openai/gpt-6-luna",
+}
+EXPECTED_PANELS = {
+    "arena runners": "opus@high, sonnet@high",
+    "arena cross-judge pool": "opus@high, sonnet@high",
+    "architect runners": "opus@high, sonnet@high",
+    "interrogate reviewers": "opus@high, fable@high, sonnet@high",
+}
 PSTACK_FORBIDDEN_PROVIDERS = ("claude-code", "codex", "anthropic/")
 problems = []
 notes = []
@@ -188,6 +200,8 @@ def check_models():
     for alias, model in aliases.items():
         if model.startswith(PSTACK_FORBIDDEN_PROVIDERS):
             problem(f"pstack alias {alias} maps to forbidden provider model {model}")
+    if aliases != EXPECTED_ALIASES:
+        problem(f"pstack aliases are {aliases}; expected {EXPECTED_ALIASES}")
     result, error = run("pi", "--list-models")
     catalog = set()
     if error or result is None or result.returncode != 0:
@@ -197,6 +211,8 @@ def check_models():
             fields = line.split()
             if len(fields) >= 2 and not fields[0].startswith("provider"):
                 catalog.add(f"{fields[0]}/{fields[1]}")
+        if not catalog:
+            problem("Pi catalog is empty or unparseable")
     store_path = HOME / ".pi/agent/models-store.json"
     store = json.loads(store_path.read_text()) if store_path.exists() else {}
     for alias, model in aliases.items():
@@ -208,21 +224,29 @@ def check_models():
         if entry is None:
             notes.append(f"no effort metadata for {model}")
     role_efforts = []
+    panels = {}
     for line in sheet.splitlines():
         if ":" not in line or "`" in line or line.startswith(("#", "pi models:", "default effort:", "session hook:")):
             continue
         role, _, entries = line.partition(":")
-        if not role.strip() or role.strip().startswith("These aliases"):
+        role = role.strip()
+        if not role or role.startswith("These aliases"):
             continue
+        normalized = ", ".join(part.strip() for part in entries.split(",") if part.strip())
+        if role in EXPECTED_PANELS:
+            panels[role] = normalized
         for entry in entries.split(","):
             entry = entry.strip()
             if not entry:
                 continue
             model, _, effort = entry.partition("@")
             if model not in aliases and model not in ("inherit-parent", "auto"):
-                problem(f"pstack role line {role.strip()} uses unknown alias {model}")
+                problem(f"pstack role line {role} uses unknown alias {model}")
             if effort:
-                role_efforts.append((role.strip(), model, effort))
+                role_efforts.append((role, model, effort))
+    for role, expected in EXPECTED_PANELS.items():
+        if panels.get(role) != expected:
+            problem(f"pstack panel {role} is {panels.get(role)!r}; expected {expected!r}")
     for role, model, effort in role_efforts:
         resolved = aliases.get(model)
         if not resolved:
@@ -243,8 +267,8 @@ def check_config():
     if mcp.get("mcpServers", {}).get("fastmail", {}).get("enabled") is not False:
         problem("Fastmail is not disabled in pi/mcp.json")
     settings = read_json("pi/settings.json")
-    if settings.get("defaultModel") != "gpt-6.1-sol" or settings.get("defaultThinkingLevel") != "medium":
-        problem("Pi default model/effort drift from openai/gpt-6.1-sol at medium")
+    if (settings.get("defaultProvider"), settings.get("defaultModel"), settings.get("defaultThinkingLevel")) != ("openai", "gpt-6.1-sol", "medium"):
+        problem("Pi default provider/model/effort drift from openai/gpt-6.1-sol at medium")
     for name in ("claude/settings.json", "claude/settings.linux.json"):
         path = ROOT / name
         if path.exists() and "link.sh" in path.read_text():

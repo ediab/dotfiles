@@ -304,11 +304,10 @@ after every update and `deviceId` (a per-machine login ID). A git clean filter
 (`.gitattributes`, configured by `link.sh` with `jq`) keeps both out of commits, so
 they never dirty the tree or block a pull, and each machine keeps its own ID.
 
-The Mac `codex/config.toml` has a similar clean filter:
-`scripts/codex-config-clean.py` drops `BROWSER_USE_CODEX_APP_VERSION`,
-`NODE_REPL_TRUSTED_SERVICES` and the `[desktop]` table. Codex app updates and
-desktop preferences stay in the live file without dirtying Git. `link.sh` sets
-the filter in each clone.
+The Mac `codex/config.toml` keeps the app-managed version, browser-service path
+and `[desktop]` preferences in Git. A clean-only filter would hide them from
+status but lose them when Git rewrites the linked file, so expect this file to
+churn when the Codex app updates; review the diff before committing.
 
 The local ggshield pre-commit hook (`.git/hooks/pre-commit`, untracked) falls back
 to `GITGUARDIAN_API_KEY` from `~/.env`, because sandboxed agents cannot read the
