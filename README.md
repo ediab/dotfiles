@@ -26,6 +26,22 @@ bb/                    explicit install/update and portable preference snapshot/
 tests/                 privileged note-sx deployment/update safety checks
 ```
 
+## Tool routing
+
+- **Normal work:** BB with the Pi provider. BB child threads are the only pstack
+  delegation route.
+- **Optional fallback:** direct Pi, using the same settings, packages, and shared
+  skills.
+- **Specialist work:** request the workflow explicitly (`/skill:poteto-mode`,
+  `diff-review`, Impeccable, `how`, `why`). General principles and orchestration
+  workflows are not automatic prerequisites for routine work.
+- **Pstack:** installed only as a Pi package. Claude Code and Codex remain
+  available for separately chosen work but are not pstack execution routes or
+  fallback providers.
+
+Removed clients and skills remain in Git history; this README describes the
+current setup only.
+
 ## Pi installation
 
 Install Pi separately from the Brewfile on macOS and Linux:
@@ -150,16 +166,13 @@ Use `/skill:poteto-mode <task>` in Pi, or request a specific skill such as `bro`
 `how`, `architect`, or `interrogate`. BB inherits the Pi installation through its
 `pi` provider. Standalone Pi remains a supported fallback for the same package.
 
-Matt Pocock's skills, the local pstack adaptations, the local `bro` copy and
-`personal-workflow` are retired. Unrelated personal skills remain under
-`agents/skills/`. Old names such as `to-spec`, `to-tickets`, `domain-modeling` and
-`pi-handoff` no longer exist; they are not compatibility aliases.
+Unrelated personal skills remain under `agents/skills/`.
 
 ### BB and delegation
 
 No separate BB installation is needed. BB uses the Pi installation on the
 thread's execution machine. Start a fresh thread/provider session after updating;
-existing conversation context can still advertise retired skills. Installing
+existing conversation context can still advertise older skills. Installing
 pstack on the Mac does not install it on the VPS or other enrolled machines. BB
 user skills use server-side distribution instead.
 
@@ -180,8 +193,6 @@ Install the adapter in the active BB server's user skill directory as described
 in [`bb/README.md`](bb/README.md#bb-skills-in-user-scope). `link.sh` does not install
 BB skills. Start a fresh provider session after installing or updating the adapter.
 
-The earlier standalone single-agent setup was retired and removed from the tree in
-`23db841`; its files remain in Git history only.
 Herdr remains an optional terminal workspace.
 
 ## UI skills
@@ -230,9 +241,6 @@ file in every repo. Commit locally when you like; push only when authorized.
 [`bb/AGENTS.md`](bb/AGENTS.md) reserves BB memory for global, cross-project preferences
 and BB-wide operational knowledge, avoiding duplicate repository memory stores.
 Restore that file explicitly as described in [`bb/README.md`](bb/README.md#bb-user-instructions).
-
-The old Pi memory extension was removed from the tree in `23db841` (Git history only)
-and no longer loads. Its machine-local `~/.pi/agent/memory/` store has been removed.
 
 ## BB
 

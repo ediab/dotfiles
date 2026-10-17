@@ -6,7 +6,7 @@ This folder records how to install/update BB and restore selected preferences. I
 
 - `install.sh`: explicitly install the latest stable npm runtime, or a specified stable version.
 - `AGENTS.md`: portable BB user instructions, copied explicitly into the server's data directory.
-- `preferences.json`: last captured portable preferences from the Mac server.
+- `preferences.json`: last captured portable preferences from the active server.
 - `snapshot.py`: refresh that file using an allowlist of general, appearance, and sidebar settings.
 - `apply.py`: preview or explicitly restore those preferences to a chosen server.
 - `plugins.json`: manually maintained plugin inventory with observed versions, sources, and monorepo subdirectories. It is documentation, not an automatic installer.
@@ -139,7 +139,10 @@ This targets the **local server**, not necessarily the server currently selected
 
 Use `--bb /path/to/bb` if the CLI is not on PATH. Review `git diff -- bb/` before committing. Snapshot refreshes preferences only; update `plugins.json` separately after plugin installs, removals, or version changes.
 
-The initial snapshot uses **Catppuccin** and **BB Sidebar**. Tokyo Night is installed but was not the active theme at capture time.
+The current snapshot was captured from the active VPS server on 2026-10-17. It
+uses the **Vercel** theme, **BB Sidebar**, and the plugin inventory in
+`plugins.json`. Restoring preferences does not install plugins; install the listed
+plugins first.
 
 ## Restore preferences
 

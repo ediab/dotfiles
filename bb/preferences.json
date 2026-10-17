@@ -13,8 +13,8 @@
     "showUnhandledProviderEvents": false
   },
   "appearance": {
-    "themeId": "catppuccin",
-    "faviconColor": "default"
+    "themeId": "plugin:vercel-theme:vercel",
+    "faviconColor": "yellow"
   },
   "ui": {
     "sidebar.organizationMode": "chronological",
@@ -37,26 +37,29 @@
       "threads"
     ],
     "sidebar.footerOrder": [
-      "builtin:settings",
       "builtin:mobile",
+      "builtin:settings",
       "builtin:report-bug"
     ],
     "sidebar.hiddenFooterItems": [
-      "builtin:mobile",
       "builtin:report-bug"
     ],
     "sidebar.pluginPanelOrder": [
+      "__bb__/automations",
       "__bb__/new-thread",
       "__bb__/search-threads",
       "__bb__/extensions",
       "__bb__/skills",
       "theme-preview/preview",
-      "files-editor/files"
+      "files-editor/files",
+      "plugin-api-docs/plugin-api"
     ],
     "sidebar.visiblePluginPanels": [
       "__bb__/new-thread",
-      "__bb__/search-threads"
+      "__bb__/search-threads",
+      "__bb__/extensions",
+      "files-editor/files"
     ],
-    "sidebar.threadListProvider": "bb-sidebar/inbox"
+    "sidebar.threadListProvider": "__automatic__"
   }
 }

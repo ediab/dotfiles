@@ -3,7 +3,7 @@
     {
       "id": "attention",
       "version": "0.1.5",
-      "enabled": true,
+      "enabled": false,
       "source": "npm:bb-plugin-attention@^0.1.0"
     },
     {
@@ -11,6 +11,18 @@
       "version": "0.2.34",
       "enabled": true,
       "source": "git:https://github.com/yusuf8834/bb-sidebar.git@semver:^0.2.0"
+    },
+    {
+      "id": "beautiful-chat",
+      "version": "0.1.2",
+      "enabled": true,
+      "source": "git:https://github.com/diip3sh/bb-plugin-beautiful-chat.git@semver:^0.1.0"
+    },
+    {
+      "id": "compact-nav",
+      "version": "0.1.5",
+      "enabled": true,
+      "source": "git:https://github.com/SawyerHood/sawyer-plugins.git@compact-nav/v0.1.5"
     },
     {
       "id": "files-editor",
@@ -25,16 +37,22 @@
       "source": "git:https://github.com/vburojevic/bb-plugin-handoff.git@semver:^0.7.0"
     },
     {
+      "id": "host-monitor",
+      "version": "0.1.7",
+      "enabled": true,
+      "source": "git:https://github.com/MateoCerquetella/bb-plugins.git@semver:host-monitor/:^0.1.2"
+    },
+    {
       "id": "image-preview",
       "version": "0.1.0",
       "enabled": true,
       "source": "git:https://github.com/Dwite/bb-plugin-image-preview.git@semver:^0.1.0"
     },
     {
-      "id": "tokyo-night",
+      "id": "vercel-theme",
       "version": "0.1.0",
       "enabled": true,
-      "source": "git:https://github.com/krehel/bb-plugin-tokyo-night.git@semver:^0.1.0"
+      "source": "git:https://github.com/divyesh-puri/bb-plugin-vercel-theme.git@semver:^0.1.0"
     }
   ]
 }
