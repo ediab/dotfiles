@@ -31,7 +31,17 @@
       "source": "npm:pi-title@0.1.8",
       "extensions": []
     },
-    "git:github.com/michael-denyer/pstack-claude@7bad1ebc26faa268806bfbb84e5af55d178b68e4"
+    {
+      "source": "git:github.com/michael-denyer/pstack-claude@7bad1ebc26faa268806bfbb84e5af55d178b68e4",
+      "skills": [
+        "plugins/pstack/skills/poteto-mode/SKILL.md",
+        "plugins/pstack/skills/blast-radius/SKILL.md",
+        "plugins/pstack/skills/benchmark-checklist/SKILL.md",
+        "plugins/pstack/skills/tdd/SKILL.md",
+        "plugins/pstack/skills/fix-ci/SKILL.md",
+        "plugins/pstack/skills/interrogate/SKILL.md"
+      ]
+    }
   ],
   "powerline": {
     "preset": "default",

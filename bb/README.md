@@ -67,8 +67,9 @@ runtime copies to execution machines, including the Mac. Do not edit generated
 `~/.bb/runtime/global-skills/` copies. These skills are separate from native
 skills in `agents/` and from plugin skills.
 
-`bb/skills/` is the canonical copy of `diff-review`, `ui-audit`, and `pstack-bb`.
-Edit this repo, sync it to the VPS through Git, then restore the intended skills
+`bb/skills/` is the canonical copy of `ui-audit` and `pstack-bb`. `diff-review`
+lives in `agents/skills/` and is linked normally as a shared personal skill. Edit
+this repo, sync it to the VPS through Git, then restore the intended BB skills
 into the server's data directory. These are plain copies, not links;
 `link.sh` and `apply.py` do not install them.
 

@@ -189,8 +189,10 @@ Herdr remains an optional terminal workspace.
 [Impeccable](https://github.com/pbakaus/impeccable) **4.6.0** and
 [Interface Design](https://github.com/Dammyjay93/interface-design) are installed
 unchanged through their supported installers. Taste Skill is not installed.
-They retain upstream automatic skill selection; no additional routing policy is added.
-Name the skill explicitly when you want a particular workflow to lead.
+The shared policy makes Impeccable the default workflow for UI work and keeps
+Interface Design available when explicitly selected; do not run both for one task
+or keep competing design records. Name Interface Design explicitly when you want
+it to lead.
 
 On another machine, install the native copies before verifying the setup:
 

@@ -1,26 +1,22 @@
 ---
 name: diff-review
 description: >-
-  Single-ranked review of the diff between HEAD and a fixed point, run inline
-  in this thread with no sub-agents. Findings land in one severity-ranked list
-  (P1 must-fix before merge / P2 should-fix / P3 nice-to-have) with a concrete
-  next action for each finding, and the review closes with the checks that were
-  run plus what was not covered. Use when the user asks to review a branch, a
-  diff, or work-in-progress changes as a ranked fix list rather than a
-  standards/spec two-axis report.
+  Single-ranked review of a committed branch or the current working tree against
+  a fixed point, run inline in this thread with no sub-agents. Findings land in
+  one severity-ranked list (P1 must-fix before merge / P2 should-fix / P3
+  nice-to-have) with a concrete next action for each finding, and the review
+  closes with the checks that were run plus what was not covered. Use when the
+  user asks to review a branch, a diff, or work-in-progress changes as a ranked
+  fix list rather than a standards/spec two-axis report.
 ---
 
-Review the diff between `HEAD` and a fixed point the user names (a commit,
-branch, tag, `HEAD~n` — ask only when they did not specify one). Record the
-exact diff command the way the user stated it: for a branch it is usually
-`git diff <fixed-point>...HEAD` (three dots, merge-base), for stacked lines
-`git log --oneline <fixed-point>..HEAD` and `git diff HEAD~1` per commit.
-
-Keep the review in this thread. Do not spawn sub-agents.
+Review a diff against a fixed point the user names (a commit, branch, tag,
+`HEAD~n` — ask only when they did not specify one). Keep the review in this
+thread. Do not spawn sub-agents.
 
 ## Steps
 
-### 1. Pin the fixed point and the diff
+### 1. Pin the fixed point and the review scope
 
 Confirm the fixed point resolves before reading anything else:
 
@@ -28,14 +24,30 @@ Confirm the fixed point resolves before reading anything else:
 git rev-parse --verify <fixed-point>^{commit}
 ```
 
-Then take the diff once and reuse it for every step:
+Choose the scope from what the user asked for:
+
+- **Committed branch:** `git diff <fixed-point>...HEAD` (three dots, merge-base)
+  reviews the branch's commits. For stacked lines, use
+  `git log --oneline <fixed-point>..HEAD` and `git diff HEAD~1` per commit.
+- **Working tree (uncommitted review):** `git diff <fixed-point>` reviews the
+  working tree against the fixed point, including staged and unstaged edits to
+  tracked files. Add `git status --porcelain` and read any untracked files that
+  belong to the change: `git diff` never shows them.
+- **Both:** use `git diff <fixed-point>` for the combined change and
+  `git log --oneline <fixed-point>..HEAD` for commit context.
+
+If the user's wording could mean either scope and the difference matters, ask
+which one they want. Record the exact command and scope in the report.
+
+Take the diff once and reuse it for every step:
 
 ```bash
-git diff <fixed-point>...HEAD
+git diff <fixed-point>...HEAD        # or the working-tree form chosen above
 ```
 
 If the diff is empty, stop and say which files differ from the fixed point
-(`git diff --stat <fixed-point>...HEAD`) rather than reviewing nothing.
+(`git diff --stat <fixed-point>...HEAD`, or the chosen form) plus any untracked
+files relevant to the change, rather than reviewing nothing.
 
 ### 2. Read for real problems, not style notes
 
@@ -84,7 +96,9 @@ Never report checks you did not run as passing.
 ### 5. Report
 
 ```
-## diff-review: <fixed-point> → HEAD
+## diff-review: <fixed-point> → <HEAD or working tree>
+
+Scope: <the exact diff command and whether it includes uncommitted work>
 
 ### Findings
 N. P2 — file:line — one-sentence problem. Next action: ...

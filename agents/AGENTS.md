@@ -19,14 +19,16 @@
 
 ## Skills and workflow
 
-* Use `poteto-mode` only when I explicitly request it, typically for large or complex projects. Handle routine tasks directly; project size alone is not permission to invoke it.
-* When another skill matches the task, read and follow it. Keep upstream pstack unmodified; create unrelated personal skills in `~/.agents/skills/<name>`.
+* Use a specialist skill when it supplies task-specific knowledge or a concrete tool procedure for the work at hand. General engineering principles and orchestration workflows are opt-in: read them when I request that workflow or the task plainly needs its procedure.
+* Use `poteto-mode` only when I explicitly request it, typically for large or complex projects. Handle routine tasks directly; project size alone is not permission to invoke it. Do not automatically load `how`, `why`, or `architect` for an ordinary explanation or change; keep them available on explicit request.
+* For UI work, use Impeccable as the default workflow. Select Interface Design only when I explicitly ask for it. Do not run both workflows for one task or keep competing design records.
+* Keep upstream pstack unmodified; create unrelated personal skills in `~/.agents/skills/<name>`.
 * These host and safety rules take precedence over skill playbooks.
 
 ## Delegation and orchestration
 
 * Explicitly invoked workflows authorize their prescribed helpers and independent reviews, including in standalone Pi. Otherwise use one agent and launch helpers only when requested. One orchestrator owns integration and checks delegated results against the sources; workers return requests rather than delegating further.
-* Inside BB, read the `pstack-bb` skill before delegation and use BB child threads and BB messaging instead of native subagent tools. If the adapter is missing, report it before dispatching pstack workers. Use BB's question tool when available. Outside BB, use the harness's native tools, including the pstack Pi extension.
+* Inside BB, the BB-specific user instructions add delegation and question-tool routing. Outside BB, use the harness's native tools, including the pstack Pi extension.
 
 ## Changes
 
