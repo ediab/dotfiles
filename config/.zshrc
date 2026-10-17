@@ -191,6 +191,12 @@ alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 alias sibyl-web="cd ~/Dev/Sibyl && uv run sibyl-web"
 alias notes-publish='rsync -a --delete "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Elias'\''s Vault/Published/" ~/Dev/notes/content/ && cd ~/Dev/notes && npx quartz sync --no-pull'
 
+# --- statements media library ---
+# Rebuild the album gallery from the folders and serve it on 127.0.0.1 so tiles can
+# reveal in Finder or move to Trash. Ctrl-c stops it; the library's launchd job keeps
+# the pages fresh in the background either way.
+alias statements-start='python3 "$HOME/Statements/gallery.py" --serve'
+
 # ==============================================
 # 6. FUNCTIONS
 # ==============================================
