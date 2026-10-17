@@ -27,7 +27,7 @@ Ordinary home config sources linked from `config/`:
 - `starship.toml`, `ghostty/config`, `herdr/config.toml` → matching paths under `~/.config/`;
 - `vscode/settings.json` and `vscode/keybindings.json` → Code's User directory.
 
-Committing, pushing and VPS deployment still need an explicit request.
+Local commits and branches need no extra question. Pushing, VPS deployment and other consequential external actions still need an explicit request.
 
 ## VPS access
 

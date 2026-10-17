@@ -42,6 +42,12 @@ and sessions remain in `~/.pi/agent`. Credentials stay machine-local and untrack
 use `pi auth check --provider deepseek` and `pi auth check --provider openai`
 to check readiness without printing secrets.
 
+`pi/mcp.json` configures Context7, Fastmail and Lightpanda. Fastmail keeps its
+URL and credentials but is marked `"enabled": false`, so ordinary sessions do not
+connect it. To use it, open `/mcp`, select `fastmail` and enable it; `/mcp` saves
+the change to `pi/mcp.json`, and it stays enabled until you disable it there.
+Nothing expires the enablement automatically.
+
 ## OpenCode installation
 
 On macOS, install the official CLI through its Homebrew tap:
@@ -218,7 +224,7 @@ are separate opt-in actions, not part of this setup.
 The shared [`agents/AGENTS.md`](agents/AGENTS.md#project-memory) defines the policy:
 repository facts live in a versioned root `MEMORY.md`, read by every client inside
 and outside BB. Create it when there is useful knowledge to retain, not as an empty
-file in every repo. Stage, commit and push only when authorized.
+file in every repo. Commit locally when you like; push only when authorized.
 
 [`bb/AGENTS.md`](bb/AGENTS.md) reserves BB memory for global, cross-project preferences
 and BB-wide operational knowledge, avoiding duplicate repository memory stores.
@@ -235,7 +241,7 @@ stay outside this repo. `link.sh` does not install, update, link, or apply BB se
 
 ## `link.sh`
 
-No flags; prints what it does; rerun any time (Claude's `SessionStart` hook runs it too).
+No flags; prints what it does; rerun any time. Nothing runs it automatically at startup.
 For each `source -> destination`:
 
 1. Nothing there: create parent folders, then link.

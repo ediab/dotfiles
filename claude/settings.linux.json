@@ -44,15 +44,6 @@
             "timeout": 10
           }
         ]
-      },
-      {
-        "matcher": "startup",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$HOME/Dev/dotfiles/link.sh\" >/dev/null 2>&1 || true"
-          }
-        ]
       }
     ]
   },

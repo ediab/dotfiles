@@ -9,6 +9,7 @@
     },
     "fastmail": {
       "url": "https://api.fastmail.com/mcp",
+      "enabled": false,
       "exposure": "codemode",
       "description": "Access Fastmail email, calendars, and contacts with OAuth-authorized permissions."
     },
